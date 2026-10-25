@@ -11,7 +11,7 @@ GO_SRC_DIR=src/go
 TS_SRC_DIR=src/typescript
 
 # --- Phony Targets ---
-.PHONY: all clean build test lint build-go test-go lint-go clean-go build-ts test-ts lint-ts typecheck-ts clean-ts plugin-source plugin-enricher plugin-destination lint-codebase lint-shared-modules tools build-tools-go build-tools-ts prepare prepare-go prepare-ts test-integration test-e2e test-coverage preflight
+.PHONY: all clean build build-ctl test lint build-go test-go lint-go clean-go build-ts test-ts lint-ts typecheck-ts clean-ts plugin-source plugin-enricher plugin-destination lint-codebase lint-shared-modules tools build-tools-go build-tools-ts prepare prepare-go prepare-ts test-integration test-e2e test-coverage preflight
 
 all: generate clean lint build test
 
@@ -134,6 +134,12 @@ build-tools-go:
 	cd $(GO_SRC_DIR) && $(GOBUILD) -o ../../bin/fit-combine ./cmd/fit-combine
 	@echo "  Building fitglue-mcp tool..."
 	cd $(GO_SRC_DIR) && $(GOBUILD) -o ../../bin/fitglue-mcp ./cmd/mcp
+	@echo "  Building fitgluectl tool..."
+	cd $(GO_SRC_DIR) && $(GOBUILD) -o ../../bin/fitgluectl ./cmd/fitgluectl
+
+build-ctl:
+	@mkdir -p bin
+	cd $(GO_SRC_DIR) && $(GOBUILD) -o ../../bin/fitgluectl ./cmd/fitgluectl
 
 test:
 	@echo "Testing Go services (Unit)..."
