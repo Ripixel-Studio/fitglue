@@ -29,8 +29,6 @@ const (
 	UserService_SetIntegration_FullMethodName              = "/fitglue.services.user.UserService/SetIntegration"
 	UserService_DeleteIntegration_FullMethodName           = "/fitglue.services.user.UserService/DeleteIntegration"
 	UserService_ListIntegrations_FullMethodName            = "/fitglue.services.user.UserService/ListIntegrations"
-	UserService_GetNotificationPrefs_FullMethodName        = "/fitglue.services.user.UserService/GetNotificationPrefs"
-	UserService_UpdateNotificationPrefs_FullMethodName     = "/fitglue.services.user.UserService/UpdateNotificationPrefs"
 	UserService_ListCounters_FullMethodName                = "/fitglue.services.user.UserService/ListCounters"
 	UserService_UpdateCounter_FullMethodName               = "/fitglue.services.user.UserService/UpdateCounter"
 	UserService_GetBoosterData_FullMethodName              = "/fitglue.services.user.UserService/GetBoosterData"
@@ -49,7 +47,6 @@ const (
 	UserService_SetPluginDefaults_FullMethodName           = "/fitglue.services.user.UserService/SetPluginDefaults"
 	UserService_DeletePluginDefaults_FullMethodName        = "/fitglue.services.user.UserService/DeletePluginDefaults"
 	UserService_DeleteCounter_FullMethodName               = "/fitglue.services.user.UserService/DeleteCounter"
-	UserService_SetFCMToken_FullMethodName                 = "/fitglue.services.user.UserService/SetFCMToken"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -64,8 +61,6 @@ type UserServiceClient interface {
 	SetIntegration(ctx context.Context, in *SetIntegrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeleteIntegration(ctx context.Context, in *DeleteIntegrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ListIntegrations(ctx context.Context, in *ListIntegrationsRequest, opts ...grpc.CallOption) (*user.UserIntegrations, error)
-	GetNotificationPrefs(ctx context.Context, in *GetNotificationPrefsRequest, opts ...grpc.CallOption) (*user.NotificationPreferences, error)
-	UpdateNotificationPrefs(ctx context.Context, in *UpdateNotificationPrefsRequest, opts ...grpc.CallOption) (*user.NotificationPreferences, error)
 	ListCounters(ctx context.Context, in *ListCountersRequest, opts ...grpc.CallOption) (*ListCountersResponse, error)
 	UpdateCounter(ctx context.Context, in *UpdateCounterRequest, opts ...grpc.CallOption) (*user.Counter, error)
 	GetBoosterData(ctx context.Context, in *GetBoosterDataRequest, opts ...grpc.CallOption) (*GetBoosterDataResponse, error)
@@ -90,8 +85,6 @@ type UserServiceClient interface {
 	DeletePluginDefaults(ctx context.Context, in *DeletePluginDefaultsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Counter deletion
 	DeleteCounter(ctx context.Context, in *DeleteCounterRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// FCM Token registration for push notifications
-	SetFCMToken(ctx context.Context, in *SetFCMTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type userServiceClient struct {
@@ -176,26 +169,6 @@ func (c *userServiceClient) ListIntegrations(ctx context.Context, in *ListIntegr
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(user.UserIntegrations)
 	err := c.cc.Invoke(ctx, UserService_ListIntegrations_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) GetNotificationPrefs(ctx context.Context, in *GetNotificationPrefsRequest, opts ...grpc.CallOption) (*user.NotificationPreferences, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(user.NotificationPreferences)
-	err := c.cc.Invoke(ctx, UserService_GetNotificationPrefs_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) UpdateNotificationPrefs(ctx context.Context, in *UpdateNotificationPrefsRequest, opts ...grpc.CallOption) (*user.NotificationPreferences, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(user.NotificationPreferences)
-	err := c.cc.Invoke(ctx, UserService_UpdateNotificationPrefs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -382,16 +355,6 @@ func (c *userServiceClient) DeleteCounter(ctx context.Context, in *DeleteCounter
 	return out, nil
 }
 
-func (c *userServiceClient) SetFCMToken(ctx context.Context, in *SetFCMTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserService_SetFCMToken_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -404,8 +367,6 @@ type UserServiceServer interface {
 	SetIntegration(context.Context, *SetIntegrationRequest) (*emptypb.Empty, error)
 	DeleteIntegration(context.Context, *DeleteIntegrationRequest) (*emptypb.Empty, error)
 	ListIntegrations(context.Context, *ListIntegrationsRequest) (*user.UserIntegrations, error)
-	GetNotificationPrefs(context.Context, *GetNotificationPrefsRequest) (*user.NotificationPreferences, error)
-	UpdateNotificationPrefs(context.Context, *UpdateNotificationPrefsRequest) (*user.NotificationPreferences, error)
 	ListCounters(context.Context, *ListCountersRequest) (*ListCountersResponse, error)
 	UpdateCounter(context.Context, *UpdateCounterRequest) (*user.Counter, error)
 	GetBoosterData(context.Context, *GetBoosterDataRequest) (*GetBoosterDataResponse, error)
@@ -430,8 +391,6 @@ type UserServiceServer interface {
 	DeletePluginDefaults(context.Context, *DeletePluginDefaultsRequest) (*emptypb.Empty, error)
 	// Counter deletion
 	DeleteCounter(context.Context, *DeleteCounterRequest) (*emptypb.Empty, error)
-	// FCM Token registration for push notifications
-	SetFCMToken(context.Context, *SetFCMTokenRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -465,12 +424,6 @@ func (UnimplementedUserServiceServer) DeleteIntegration(context.Context, *Delete
 }
 func (UnimplementedUserServiceServer) ListIntegrations(context.Context, *ListIntegrationsRequest) (*user.UserIntegrations, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListIntegrations not implemented")
-}
-func (UnimplementedUserServiceServer) GetNotificationPrefs(context.Context, *GetNotificationPrefsRequest) (*user.NotificationPreferences, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetNotificationPrefs not implemented")
-}
-func (UnimplementedUserServiceServer) UpdateNotificationPrefs(context.Context, *UpdateNotificationPrefsRequest) (*user.NotificationPreferences, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateNotificationPrefs not implemented")
 }
 func (UnimplementedUserServiceServer) ListCounters(context.Context, *ListCountersRequest) (*ListCountersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCounters not implemented")
@@ -525,9 +478,6 @@ func (UnimplementedUserServiceServer) DeletePluginDefaults(context.Context, *Del
 }
 func (UnimplementedUserServiceServer) DeleteCounter(context.Context, *DeleteCounterRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteCounter not implemented")
-}
-func (UnimplementedUserServiceServer) SetFCMToken(context.Context, *SetFCMTokenRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SetFCMToken not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -690,42 +640,6 @@ func _UserService_ListIntegrations_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).ListIntegrations(ctx, req.(*ListIntegrationsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_GetNotificationPrefs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetNotificationPrefsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).GetNotificationPrefs(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_GetNotificationPrefs_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).GetNotificationPrefs(ctx, req.(*GetNotificationPrefsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_UpdateNotificationPrefs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateNotificationPrefsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).UpdateNotificationPrefs(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_UpdateNotificationPrefs_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).UpdateNotificationPrefs(ctx, req.(*UpdateNotificationPrefsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1054,24 +968,6 @@ func _UserService_DeleteCounter_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_SetFCMToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetFCMTokenRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).SetFCMToken(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_SetFCMToken_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).SetFCMToken(ctx, req.(*SetFCMTokenRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1110,14 +1006,6 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListIntegrations",
 			Handler:    _UserService_ListIntegrations_Handler,
-		},
-		{
-			MethodName: "GetNotificationPrefs",
-			Handler:    _UserService_GetNotificationPrefs_Handler,
-		},
-		{
-			MethodName: "UpdateNotificationPrefs",
-			Handler:    _UserService_UpdateNotificationPrefs_Handler,
 		},
 		{
 			MethodName: "ListCounters",
@@ -1190,10 +1078,6 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteCounter",
 			Handler:    _UserService_DeleteCounter_Handler,
-		},
-		{
-			MethodName: "SetFCMToken",
-			Handler:    _UserService_SetFCMToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -42,10 +42,6 @@ func TestFirestoreStore_OfflineCoverageExtra(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("AddFCMToken", func(t *testing.T) {
-		assert.Error(t, store.AddFCMToken(ctx, "user1", "token1"))
-	})
-
 	t.Run("DeleteCounter", func(t *testing.T) {
 		assert.Error(t, store.DeleteCounter(ctx, "user1", "c1"))
 	})
@@ -97,12 +93,10 @@ func TestNormalizeUserData(t *testing.T) {
 	// Regression for SERVER-A ("failed to get profile"): the old TypeScript
 	// backend wrote fields in camelCase; Go services later write the same fields
 	// in snake_case, so legacy user docs accumulate BOTH spellings. Only a couple
-	// of fields used to be de-duplicated, so fcm_tokens / streak collisions
-	// leaked through and made protojson fail the whole read.
+	// of fields used to be de-duplicated, so streak collisions leaked through and
+	// made protojson fail the whole read.
 	t.Run("DropsAllCamelCaseDuplicatesGenerically", func(t *testing.T) {
 		out := normalizeUserData(map[string]interface{}{
-			"fcmTokens":             []interface{}{"a"},
-			"fcm_tokens":            []interface{}{"b"},
 			"syncCountThisMonth":    int64(3),
 			"sync_count_this_month": int64(5),
 			"currentStreakDays":     int64(1),
@@ -110,7 +104,7 @@ func TestNormalizeUserData(t *testing.T) {
 			"displayName":           "old",
 			"display_name":          "new",
 		})
-		for _, camel := range []string{"fcmTokens", "syncCountThisMonth", "currentStreakDays", "displayName"} {
+		for _, camel := range []string{"syncCountThisMonth", "currentStreakDays", "displayName"} {
 			_, has := out[camel]
 			assert.False(t, has, "%s should be dropped", camel)
 		}
@@ -126,10 +120,10 @@ func TestNormalizeUserData(t *testing.T) {
 // "failed to get profile" and returned as codes.Internal.
 func TestGetProfileParsing_LegacyDuplicateKeys(t *testing.T) {
 	cases := map[string]map[string]interface{}{
-		"fcm_tokens collision (mobile SetFCMToken onto legacy doc)": {
-			"user_id":    "u1",
-			"fcmTokens":  []interface{}{"legacy"},
-			"fcm_tokens": []interface{}{"legacy", "new"},
+		"display_name collision (legacy camelCase + Go snake_case)": {
+			"user_id":      "u1",
+			"displayName":  "legacy",
+			"display_name": "new",
 		},
 		"sync_count collision (legacy counter written by both backends)": {
 			"user_id":               "u1",
@@ -158,16 +152,4 @@ func TestIsApiKeyProvider(t *testing.T) {
 	assert.True(t, isApiKeyProvider("hevy"))
 	assert.False(t, isApiKeyProvider("strava"))
 	assert.False(t, isApiKeyProvider(""))
-}
-
-func TestDefaultNotificationPreferences(t *testing.T) {
-	prefs := defaultNotificationPreferences()
-	assert.NotNil(t, prefs)
-	for _, p := range []*pbuser.NotificationTypePreference{
-		prefs.PendingInput, prefs.PipelineSuccess, prefs.PipelineFailure,
-		prefs.ConnectionAction, prefs.ShowcaseRoundup, prefs.PipelineCancelled,
-	} {
-		assert.NotNil(t, p)
-		assert.Equal(t, []pbuser.NotificationChannel{pbuser.NotificationChannel_NOTIFICATION_CHANNEL_PUSH}, p.Channels)
-	}
 }

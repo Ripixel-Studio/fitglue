@@ -121,7 +121,7 @@ func NewService(ctx context.Context) (*Service, error) {
 		return nil, fmt.Errorf("storage init: %w", err)
 	}
 
-	// Firebase (for FCM and potentially other admin features)
+	// Firebase (Auth admin features)
 	fbApp, err := firebase.NewApp(ctx, &firebase.Config{ProjectID: cfg.ProjectID})
 	if err != nil {
 		logger.Error(ctx, "Firebase App init failed", "error", err)

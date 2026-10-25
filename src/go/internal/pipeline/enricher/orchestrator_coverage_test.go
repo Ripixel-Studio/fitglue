@@ -48,7 +48,7 @@ func TestResolvePipeline_Coverage(t *testing.T) {
 				return nil, errors.New("boom")
 			},
 		}
-		o := NewOrchestrator(db, nil, "bucket", nil)
+		o := NewOrchestrator(db, nil, "bucket")
 		got, err := o.resolvePipeline(context.Background(), "p1", "u1", logger)
 		assert.Error(t, err)
 		assert.Nil(t, got)
@@ -60,7 +60,7 @@ func TestResolvePipeline_Coverage(t *testing.T) {
 				return []*pbpipeline.PipelineConfig{{Id: "p1", Disabled: true}}, nil
 			},
 		}
-		o := NewOrchestrator(db, nil, "bucket", nil)
+		o := NewOrchestrator(db, nil, "bucket")
 		got, err := o.resolvePipeline(context.Background(), "p1", "u1", logger)
 		assert.NoError(t, err)
 		assert.Nil(t, got)
@@ -72,7 +72,7 @@ func TestResolvePipeline_Coverage(t *testing.T) {
 				return []*pbpipeline.PipelineConfig{{Id: "other"}}, nil
 			},
 		}
-		o := NewOrchestrator(db, nil, "bucket", nil)
+		o := NewOrchestrator(db, nil, "bucket")
 		got, err := o.resolvePipeline(context.Background(), "p1", "u1", logger)
 		assert.NoError(t, err)
 		assert.Nil(t, got)
@@ -92,7 +92,7 @@ func TestResolvePipeline_Coverage(t *testing.T) {
 				}}, nil
 			},
 		}
-		o := NewOrchestrator(db, nil, "bucket", nil)
+		o := NewOrchestrator(db, nil, "bucket")
 		got, err := o.resolvePipeline(context.Background(), "p1", "u1", logger)
 		require.NoError(t, err)
 		require.NotNil(t, got)
@@ -107,7 +107,7 @@ func TestResolvePipeline_Coverage(t *testing.T) {
 				return []*pbpipeline.PipelineConfig{{Id: "p1", Source: "SOURCE_LEGACY"}}, nil
 			},
 		}
-		o := NewOrchestrator(db, nil, "bucket", nil)
+		o := NewOrchestrator(db, nil, "bucket")
 		got, err := o.resolvePipeline(context.Background(), "p1", "u1", logger)
 		require.NoError(t, err)
 		require.NotNil(t, got)
@@ -140,7 +140,7 @@ func TestCreateNonBlockingPendingInput_Coverage(t *testing.T) {
 				return &pbpipeline.PendingInput{ActivityId: id}, nil
 			},
 		}
-		o := NewOrchestrator(db, nil, "bucket", nil)
+		o := NewOrchestrator(db, nil, "bucket")
 		waitErr := &user_input.WaitForInputError{ActivityID: "act-1", EnricherProviderID: "user_input"}
 		got := o.createNonBlockingPendingInput(context.Background(), logger, basicPayload(), waitErr, "linked", "")
 		assert.Equal(t, "act-1", got)
@@ -155,7 +155,7 @@ func TestCreateNonBlockingPendingInput_Coverage(t *testing.T) {
 				return nil
 			},
 		}
-		o := NewOrchestrator(db, store, "bucket", nil)
+		o := NewOrchestrator(db, store, "bucket")
 		waitErr := &user_input.WaitForInputError{
 			ActivityID:         "act-2",
 			EnricherProviderID: "user_input",
@@ -169,7 +169,7 @@ func TestCreateNonBlockingPendingInput_Coverage(t *testing.T) {
 
 	t.Run("CreateFailsReturnsEmpty", func(t *testing.T) {
 		db := &errCreatePendingDB{}
-		o := NewOrchestrator(db, nil, "", nil)
+		o := NewOrchestrator(db, nil, "")
 		waitErr := &user_input.WaitForInputError{ActivityID: "act-3", EnricherProviderID: "user_input"}
 		got := o.createNonBlockingPendingInput(context.Background(), logger, basicPayload(), waitErr, "", "gs://existing/uri")
 		assert.Equal(t, "", got)
@@ -197,7 +197,7 @@ func TestHandleWaitError_Coverage(t *testing.T) {
 				return &pbpipeline.PendingInput{Status: pbpipeline.PendingInput_STATUS_COMPLETED}, nil
 			},
 		}
-		o := NewOrchestrator(db, nil, "bucket", nil)
+		o := NewOrchestrator(db, nil, "bucket")
 		waitErr := &user_input.WaitForInputError{ActivityID: "act-1"}
 		res, err := o.handleWaitError(context.Background(), logger, basicPayload(), execs, waitErr, "linked", "gs://uri")
 		require.NoError(t, err)
@@ -205,25 +205,23 @@ func TestHandleWaitError_Coverage(t *testing.T) {
 		assert.Empty(t, res.Events)
 	})
 
-	t.Run("ExistingWaitingResendsNotification", func(t *testing.T) {
-		var published bool
+	t.Run("ExistingWaitingShortCircuits", func(t *testing.T) {
+		var created bool
 		db := &mocks.MockDatabase{
 			GetPendingInputFunc: func(ctx context.Context, userId, id string) (*pbpipeline.PendingInput, error) {
 				return &pbpipeline.PendingInput{Status: pbpipeline.PendingInput_STATUS_WAITING}, nil
 			},
-		}
-		pub := &mocks.MockPublisher{
-			PublishJSONFunc: func(ctx context.Context, topic string, data []byte) error {
-				published = true
+			CreatePendingInputFunc: func(ctx context.Context, userId string, input *pbpipeline.PendingInput) error {
+				created = true
 				return nil
 			},
 		}
-		o := NewOrchestrator(db, nil, "bucket", pub)
+		o := NewOrchestrator(db, nil, "bucket")
 		waitErr := &user_input.WaitForInputError{ActivityID: "act-1"}
 		res, err := o.handleWaitError(context.Background(), logger, basicPayload(), execs, waitErr, "linked", "gs://uri")
 		require.NoError(t, err)
 		assert.Equal(t, pbpipeline.ExecutionStatus_STATUS_WAITING, res.Status)
-		assert.True(t, published, "expected notification re-send for waiting input")
+		assert.False(t, created, "an already-waiting input must not be re-created")
 	})
 
 	t.Run("CreatesNewWithFallbackUpload", func(t *testing.T) {
@@ -235,12 +233,7 @@ func TestHandleWaitError_Coverage(t *testing.T) {
 				return nil
 			},
 		}
-		pub := &mocks.MockPublisher{
-			PublishJSONFunc: func(ctx context.Context, topic string, data []byte) error {
-				return nil
-			},
-		}
-		o := NewOrchestrator(db, store, "bucket", pub)
+		o := NewOrchestrator(db, store, "bucket")
 		waitErr := &user_input.WaitForInputError{
 			ActivityID:     "act-new",
 			RequiredFields: []string{"fit_file"},
@@ -253,82 +246,6 @@ func TestHandleWaitError_Coverage(t *testing.T) {
 	})
 }
 
-// --- sendPendingInputNotification ---
-
-func TestSendPendingInputNotification_Coverage(t *testing.T) {
-	logger := covLogger()
-
-	t.Run("NilPublisherNoPanic", func(t *testing.T) {
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", nil)
-		assert.NotPanics(t, func() {
-			o.sendPendingInputNotification(context.Background(), logger, "u1", "act-1")
-		})
-	})
-
-	t.Run("PublishesNotification", func(t *testing.T) {
-		var topic string
-		pub := &mocks.MockPublisher{
-			PublishJSONFunc: func(ctx context.Context, t string, data []byte) error {
-				topic = t
-				return nil
-			},
-		}
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", pub)
-		o.sendPendingInputNotification(context.Background(), logger, "u1", "act-1")
-		assert.NotEmpty(t, topic)
-	})
-
-	t.Run("PublishErrorLogged", func(t *testing.T) {
-		pub := &mocks.MockPublisher{
-			PublishJSONFunc: func(ctx context.Context, t string, data []byte) error {
-				return errors.New("pub fail")
-			},
-		}
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", pub)
-		assert.NotPanics(t, func() {
-			o.sendPendingInputNotification(context.Background(), logger, "u1", "act-1")
-		})
-	})
-}
-
-// --- enqueuePipelineFailureNotification ---
-
-func TestEnqueuePipelineFailureNotification_Coverage(t *testing.T) {
-	logger := covLogger()
-
-	t.Run("NilPublisher", func(t *testing.T) {
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", nil)
-		assert.NotPanics(t, func() {
-			o.enqueuePipelineFailureNotification(logger, context.Background(), "u1", "act-1", "Run", "branding")
-		})
-	})
-
-	t.Run("Publishes", func(t *testing.T) {
-		var published bool
-		pub := &mocks.MockPublisher{
-			PublishJSONFunc: func(ctx context.Context, t string, data []byte) error {
-				published = true
-				return nil
-			},
-		}
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", pub)
-		o.enqueuePipelineFailureNotification(logger, context.Background(), "u1", "act-1", "Run", "branding")
-		assert.True(t, published)
-	})
-
-	t.Run("PublishErrorLogged", func(t *testing.T) {
-		pub := &mocks.MockPublisher{
-			PublishJSONFunc: func(ctx context.Context, t string, data []byte) error {
-				return errors.New("fail")
-			},
-		}
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", pub)
-		assert.NotPanics(t, func() {
-			o.enqueuePipelineFailureNotification(logger, context.Background(), "u1", "act-1", "Run", "branding")
-		})
-	})
-}
-
 // --- createInitialPipelineRun ---
 
 func TestCreateInitialPipelineRun_Coverage(t *testing.T) {
@@ -338,14 +255,14 @@ func TestCreateInitialPipelineRun_Coverage(t *testing.T) {
 	dests := []pbplugin.DestinationType{pbplugin.DestinationType_DESTINATION_STRAVA}
 
 	t.Run("ResumeModeOnlyResetsStatus", func(t *testing.T) {
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", nil)
+		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket")
 		assert.NotPanics(t, func() {
 			o.createInitialPipelineRun(context.Background(), logger, "u1", "exec-1", "p1", "act-1", payload, dests, true)
 		})
 	})
 
 	t.Run("FreshCreatesRunAndOutcomes", func(t *testing.T) {
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", nil)
+		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket")
 		assert.NotPanics(t, func() {
 			o.createInitialPipelineRun(context.Background(), logger, "u1", "exec-1", "p1", "act-1", payload, dests, false)
 		})
@@ -361,7 +278,7 @@ func TestUpdatePipelineRunStatus_Coverage(t *testing.T) {
 	t.Run("WithMessageAndExecs", func(t *testing.T) {
 		var captured map[string]interface{}
 		db := &updateCaptureDB{onUpdate: func(data map[string]interface{}) { captured = data }}
-		o := NewOrchestrator(db, nil, "bucket", nil)
+		o := NewOrchestrator(db, nil, "bucket")
 		o.updatePipelineRunStatus(context.Background(), logger, "u1", "run-1",
 			pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_FAILED, "it failed", execs)
 		require.NotNil(t, captured)
@@ -370,7 +287,7 @@ func TestUpdatePipelineRunStatus_Coverage(t *testing.T) {
 	})
 
 	t.Run("GateSkippedNoExecs", func(t *testing.T) {
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", nil)
+		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket")
 		assert.NotPanics(t, func() {
 			o.updatePipelineRunStatus(context.Background(), logger, "u1", "run-1",
 				pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_SKIPPED, "", nil)
@@ -378,7 +295,7 @@ func TestUpdatePipelineRunStatus_Coverage(t *testing.T) {
 	})
 
 	t.Run("UpdateErrorLogged", func(t *testing.T) {
-		o := NewOrchestrator(&updateErrDB{}, nil, "bucket", nil)
+		o := NewOrchestrator(&updateErrDB{}, nil, "bucket")
 		assert.NotPanics(t, func() {
 			o.updatePipelineRunStatus(context.Background(), logger, "u1", "run-1",
 				pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_RUNNING, "", execs)
@@ -422,14 +339,14 @@ func TestFinalizePipelineRun_Coverage(t *testing.T) {
 	execs := []ProviderExecution{{ProviderName: "hr_zones", Status: "SUCCESS"}}
 
 	t.Run("Success", func(t *testing.T) {
-		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket", nil)
+		o := NewOrchestrator(&mocks.MockDatabase{}, nil, "bucket")
 		assert.NotPanics(t, func() {
 			o.finalizePipelineRun(context.Background(), logger, "u1", event, execs, "gs://uri")
 		})
 	})
 
 	t.Run("UpdateErrorLogged", func(t *testing.T) {
-		o := NewOrchestrator(&updateErrDB{}, nil, "bucket", nil)
+		o := NewOrchestrator(&updateErrDB{}, nil, "bucket")
 		assert.NotPanics(t, func() {
 			o.finalizePipelineRun(context.Background(), logger, "u1", event, execs, "gs://uri")
 		})

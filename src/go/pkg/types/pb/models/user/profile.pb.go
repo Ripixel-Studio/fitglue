@@ -23,69 +23,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type NotificationChannel int32
-
-const (
-	NotificationChannel_NOTIFICATION_CHANNEL_UNSPECIFIED NotificationChannel = 0
-	NotificationChannel_NOTIFICATION_CHANNEL_PUSH        NotificationChannel = 1
-	NotificationChannel_NOTIFICATION_CHANNEL_EMAIL       NotificationChannel = 2
-)
-
-// Enum value maps for NotificationChannel.
-var (
-	NotificationChannel_name = map[int32]string{
-		0: "NOTIFICATION_CHANNEL_UNSPECIFIED",
-		1: "NOTIFICATION_CHANNEL_PUSH",
-		2: "NOTIFICATION_CHANNEL_EMAIL",
-	}
-	NotificationChannel_value = map[string]int32{
-		"NOTIFICATION_CHANNEL_UNSPECIFIED": 0,
-		"NOTIFICATION_CHANNEL_PUSH":        1,
-		"NOTIFICATION_CHANNEL_EMAIL":       2,
-	}
-)
-
-func (x NotificationChannel) Enum() *NotificationChannel {
-	p := new(NotificationChannel)
-	*p = x
-	return p
-}
-
-func (x NotificationChannel) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (NotificationChannel) Descriptor() protoreflect.EnumDescriptor {
-	return file_models_user_profile_proto_enumTypes[0].Descriptor()
-}
-
-func (NotificationChannel) Type() protoreflect.EnumType {
-	return &file_models_user_profile_proto_enumTypes[0]
-}
-
-func (x NotificationChannel) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use NotificationChannel.Descriptor instead.
-func (NotificationChannel) EnumDescriptor() ([]byte, []int) {
-	return file_models_user_profile_proto_rawDescGZIP(), []int{0}
-}
-
 // UserProfile represents the core user identity and preferences,
 // cleanly separated from integrations.
 type UserProfile struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	UserId    string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	FcmTokens []string               `protobuf:"bytes,3,rep,name=fcm_tokens,json=fcmTokens,proto3" json:"fcm_tokens,omitempty"`
 	IsAdmin   bool                   `protobuf:"varint,5,opt,name=is_admin,json=isAdmin,proto3" json:"is_admin,omitempty"`
 	// Waitlist gate - false until admin enables access
-	AccessEnabled bool `protobuf:"varint,9,opt,name=access_enabled,json=accessEnabled,proto3" json:"access_enabled,omitempty"`
-	// User's push notification preferences
-	NotificationPreferences *NotificationPreferences `protobuf:"bytes,10,opt,name=notification_preferences,json=notificationPreferences,proto3" json:"notification_preferences,omitempty"`
-	Email                   string                   `protobuf:"bytes,12,opt,name=email,proto3" json:"email,omitempty"`
-	DisplayName             string                   `protobuf:"bytes,13,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	AccessEnabled bool   `protobuf:"varint,9,opt,name=access_enabled,json=accessEnabled,proto3" json:"access_enabled,omitempty"`
+	Email         string `protobuf:"bytes,12,opt,name=email,proto3" json:"email,omitempty"`
+	DisplayName   string `protobuf:"bytes,13,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	// Streak aggregates — written by streak-tracker enricher rollup on every activity sync.
 	// A "streak day" is any calendar day with at least one qualifying activity.
 	// Optional; absent means not yet computed.
@@ -139,13 +87,6 @@ func (x *UserProfile) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *UserProfile) GetFcmTokens() []string {
-	if x != nil {
-		return x.FcmTokens
-	}
-	return nil
-}
-
 func (x *UserProfile) GetIsAdmin() bool {
 	if x != nil {
 		return x.IsAdmin
@@ -158,13 +99,6 @@ func (x *UserProfile) GetAccessEnabled() bool {
 		return x.AccessEnabled
 	}
 	return false
-}
-
-func (x *UserProfile) GetNotificationPreferences() *NotificationPreferences {
-	if x != nil {
-		return x.NotificationPreferences
-	}
-	return nil
 }
 
 func (x *UserProfile) GetEmail() string {
@@ -195,137 +129,6 @@ func (x *UserProfile) GetLongestStreakDays() int32 {
 	return 0
 }
 
-// NotificationTypePreference holds which channels are active for one notification type.
-// An empty channels list means the notification type is disabled entirely.
-// A nil/absent preference means "use the default" which is [PUSH].
-type NotificationTypePreference struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channels      []NotificationChannel  `protobuf:"varint,1,rep,packed,name=channels,proto3,enum=fitglue.models.user.NotificationChannel" json:"channels,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *NotificationTypePreference) Reset() {
-	*x = NotificationTypePreference{}
-	mi := &file_models_user_profile_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *NotificationTypePreference) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NotificationTypePreference) ProtoMessage() {}
-
-func (x *NotificationTypePreference) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_profile_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NotificationTypePreference.ProtoReflect.Descriptor instead.
-func (*NotificationTypePreference) Descriptor() ([]byte, []int) {
-	return file_models_user_profile_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *NotificationTypePreference) GetChannels() []NotificationChannel {
-	if x != nil {
-		return x.Channels
-	}
-	return nil
-}
-
-type NotificationPreferences struct {
-	state             protoimpl.MessageState      `protogen:"open.v1"`
-	PendingInput      *NotificationTypePreference `protobuf:"bytes,1,opt,name=pending_input,json=pendingInput,proto3" json:"pending_input,omitempty"`
-	PipelineSuccess   *NotificationTypePreference `protobuf:"bytes,2,opt,name=pipeline_success,json=pipelineSuccess,proto3" json:"pipeline_success,omitempty"`
-	PipelineFailure   *NotificationTypePreference `protobuf:"bytes,3,opt,name=pipeline_failure,json=pipelineFailure,proto3" json:"pipeline_failure,omitempty"`
-	ConnectionAction  *NotificationTypePreference `protobuf:"bytes,4,opt,name=connection_action,json=connectionAction,proto3" json:"connection_action,omitempty"`
-	ShowcaseRoundup   *NotificationTypePreference `protobuf:"bytes,5,opt,name=showcase_roundup,json=showcaseRoundup,proto3" json:"showcase_roundup,omitempty"`
-	PipelineCancelled *NotificationTypePreference `protobuf:"bytes,6,opt,name=pipeline_cancelled,json=pipelineCancelled,proto3" json:"pipeline_cancelled,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *NotificationPreferences) Reset() {
-	*x = NotificationPreferences{}
-	mi := &file_models_user_profile_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *NotificationPreferences) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NotificationPreferences) ProtoMessage() {}
-
-func (x *NotificationPreferences) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_profile_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NotificationPreferences.ProtoReflect.Descriptor instead.
-func (*NotificationPreferences) Descriptor() ([]byte, []int) {
-	return file_models_user_profile_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *NotificationPreferences) GetPendingInput() *NotificationTypePreference {
-	if x != nil {
-		return x.PendingInput
-	}
-	return nil
-}
-
-func (x *NotificationPreferences) GetPipelineSuccess() *NotificationTypePreference {
-	if x != nil {
-		return x.PipelineSuccess
-	}
-	return nil
-}
-
-func (x *NotificationPreferences) GetPipelineFailure() *NotificationTypePreference {
-	if x != nil {
-		return x.PipelineFailure
-	}
-	return nil
-}
-
-func (x *NotificationPreferences) GetConnectionAction() *NotificationTypePreference {
-	if x != nil {
-		return x.ConnectionAction
-	}
-	return nil
-}
-
-func (x *NotificationPreferences) GetShowcaseRoundup() *NotificationTypePreference {
-	if x != nil {
-		return x.ShowcaseRoundup
-	}
-	return nil
-}
-
-func (x *NotificationPreferences) GetPipelineCancelled() *NotificationTypePreference {
-	if x != nil {
-		return x.PipelineCancelled
-	}
-	return nil
-}
-
 type Counter struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // Key, e.g. "parkrun_bushy"
@@ -337,7 +140,7 @@ type Counter struct {
 
 func (x *Counter) Reset() {
 	*x = Counter{}
-	mi := &file_models_user_profile_proto_msgTypes[3]
+	mi := &file_models_user_profile_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -349,7 +152,7 @@ func (x *Counter) String() string {
 func (*Counter) ProtoMessage() {}
 
 func (x *Counter) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_profile_proto_msgTypes[3]
+	mi := &file_models_user_profile_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -362,7 +165,7 @@ func (x *Counter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Counter.ProtoReflect.Descriptor instead.
 func (*Counter) Descriptor() ([]byte, []int) {
-	return file_models_user_profile_proto_rawDescGZIP(), []int{3}
+	return file_models_user_profile_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Counter) GetId() string {
@@ -403,7 +206,7 @@ type PersonalRecord struct {
 
 func (x *PersonalRecord) Reset() {
 	*x = PersonalRecord{}
-	mi := &file_models_user_profile_proto_msgTypes[4]
+	mi := &file_models_user_profile_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -415,7 +218,7 @@ func (x *PersonalRecord) String() string {
 func (*PersonalRecord) ProtoMessage() {}
 
 func (x *PersonalRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_profile_proto_msgTypes[4]
+	mi := &file_models_user_profile_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -428,7 +231,7 @@ func (x *PersonalRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PersonalRecord.ProtoReflect.Descriptor instead.
 func (*PersonalRecord) Descriptor() ([]byte, []int) {
-	return file_models_user_profile_proto_rawDescGZIP(), []int{4}
+	return file_models_user_profile_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *PersonalRecord) GetRecordType() string {
@@ -491,32 +294,20 @@ var File_models_user_profile_proto protoreflect.FileDescriptor
 
 const file_models_user_profile_proto_rawDesc = "" +
 	"\n" +
-	"\x19models/user/profile.proto\x12\x13fitglue.models.user\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cmodels/activity/source.proto\"\xf3\x04\n" +
+	"\x19models/user/profile.proto\x12\x13fitglue.models.user\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cmodels/activity/source.proto\"\xf7\x03\n" +
 	"\vUserProfile\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x129\n" +
 	"\n" +
-	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
-	"\n" +
-	"fcm_tokens\x18\x03 \x03(\tR\tfcmTokens\x12\x19\n" +
+	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x19\n" +
 	"\bis_admin\x18\x05 \x01(\bR\aisAdmin\x12%\n" +
-	"\x0eaccess_enabled\x18\t \x01(\bR\raccessEnabled\x12g\n" +
-	"\x18notification_preferences\x18\n" +
-	" \x01(\v2,.fitglue.models.user.NotificationPreferencesR\x17notificationPreferences\x12\x14\n" +
+	"\x0eaccess_enabled\x18\t \x01(\bR\raccessEnabled\x12\x14\n" +
 	"\x05email\x18\f \x01(\tR\x05email\x12!\n" +
 	"\fdisplay_name\x18\r \x01(\tR\vdisplayName\x123\n" +
 	"\x13current_streak_days\x18\x0e \x01(\x05H\x00R\x11currentStreakDays\x88\x01\x01\x123\n" +
 	"\x13longest_streak_days\x18\x0f \x01(\x05H\x01R\x11longestStreakDays\x88\x01\x01B\x16\n" +
 	"\x14_current_streak_daysB\x16\n" +
-	"\x14_longest_streak_daysJ\x04\b\x04\x10\x05J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\v\x10\fR\x04tierR\x15sync_count_this_monthR\x13sync_count_reset_atR\x14prevented_sync_countR\rtrial_ends_at\"b\n" +
-	"\x1aNotificationTypePreference\x12D\n" +
-	"\bchannels\x18\x01 \x03(\x0e2(.fitglue.models.user.NotificationChannelR\bchannels\"\xc1\x04\n" +
-	"\x17NotificationPreferences\x12T\n" +
-	"\rpending_input\x18\x01 \x01(\v2/.fitglue.models.user.NotificationTypePreferenceR\fpendingInput\x12Z\n" +
-	"\x10pipeline_success\x18\x02 \x01(\v2/.fitglue.models.user.NotificationTypePreferenceR\x0fpipelineSuccess\x12Z\n" +
-	"\x10pipeline_failure\x18\x03 \x01(\v2/.fitglue.models.user.NotificationTypePreferenceR\x0fpipelineFailure\x12\\\n" +
-	"\x11connection_action\x18\x04 \x01(\v2/.fitglue.models.user.NotificationTypePreferenceR\x10connectionAction\x12Z\n" +
-	"\x10showcase_roundup\x18\x05 \x01(\v2/.fitglue.models.user.NotificationTypePreferenceR\x0fshowcaseRoundup\x12^\n" +
-	"\x12pipeline_cancelled\x18\x06 \x01(\v2/.fitglue.models.user.NotificationTypePreferenceR\x11pipelineCancelled\"n\n" +
+	"\x14_longest_streak_daysJ\x04\b\x04\x10\x05J\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\b\x10\tJ\x04\b\v\x10\fJ\x04\b\x03\x10\x04J\x04\b\n" +
+	"\x10\vR\x04tierR\x15sync_count_this_monthR\x13sync_count_reset_atR\x14prevented_sync_countR\rtrial_ends_at\"n\n" +
 	"\aCounter\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x03R\x05count\x12=\n" +
@@ -534,11 +325,7 @@ const file_models_user_profile_proto_rawDesc = "" +
 	"\x0eprevious_value\x18\a \x01(\x01H\x00R\rpreviousValue\x88\x01\x01\x12%\n" +
 	"\vimprovement\x18\b \x01(\x01H\x01R\vimprovement\x88\x01\x01B\x11\n" +
 	"\x0f_previous_valueB\x0e\n" +
-	"\f_improvement*z\n" +
-	"\x13NotificationChannel\x12$\n" +
-	" NOTIFICATION_CHANNEL_UNSPECIFIED\x10\x00\x12\x1d\n" +
-	"\x19NOTIFICATION_CHANNEL_PUSH\x10\x01\x12\x1e\n" +
-	"\x1aNOTIFICATION_CHANNEL_EMAIL\x10\x02B;Z9github.com/fitglue/server/src/go/pkg/types/pb/models/userb\x06proto3"
+	"\f_improvementB;Z9github.com/fitglue/server/src/go/pkg/types/pb/models/userb\x06proto3"
 
 var (
 	file_models_user_profile_proto_rawDescOnce sync.Once
@@ -552,36 +339,24 @@ func file_models_user_profile_proto_rawDescGZIP() []byte {
 	return file_models_user_profile_proto_rawDescData
 }
 
-var file_models_user_profile_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_models_user_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_models_user_profile_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_models_user_profile_proto_goTypes = []any{
-	(NotificationChannel)(0),           // 0: fitglue.models.user.NotificationChannel
-	(*UserProfile)(nil),                // 1: fitglue.models.user.UserProfile
-	(*NotificationTypePreference)(nil), // 2: fitglue.models.user.NotificationTypePreference
-	(*NotificationPreferences)(nil),    // 3: fitglue.models.user.NotificationPreferences
-	(*Counter)(nil),                    // 4: fitglue.models.user.Counter
-	(*PersonalRecord)(nil),             // 5: fitglue.models.user.PersonalRecord
-	(*timestamppb.Timestamp)(nil),      // 6: google.protobuf.Timestamp
-	(activity.ActivityType)(0),         // 7: fitglue.models.activity.ActivityType
+	(*UserProfile)(nil),           // 0: fitglue.models.user.UserProfile
+	(*Counter)(nil),               // 1: fitglue.models.user.Counter
+	(*PersonalRecord)(nil),        // 2: fitglue.models.user.PersonalRecord
+	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(activity.ActivityType)(0),    // 4: fitglue.models.activity.ActivityType
 }
 var file_models_user_profile_proto_depIdxs = []int32{
-	6,  // 0: fitglue.models.user.UserProfile.created_at:type_name -> google.protobuf.Timestamp
-	3,  // 1: fitglue.models.user.UserProfile.notification_preferences:type_name -> fitglue.models.user.NotificationPreferences
-	0,  // 2: fitglue.models.user.NotificationTypePreference.channels:type_name -> fitglue.models.user.NotificationChannel
-	2,  // 3: fitglue.models.user.NotificationPreferences.pending_input:type_name -> fitglue.models.user.NotificationTypePreference
-	2,  // 4: fitglue.models.user.NotificationPreferences.pipeline_success:type_name -> fitglue.models.user.NotificationTypePreference
-	2,  // 5: fitglue.models.user.NotificationPreferences.pipeline_failure:type_name -> fitglue.models.user.NotificationTypePreference
-	2,  // 6: fitglue.models.user.NotificationPreferences.connection_action:type_name -> fitglue.models.user.NotificationTypePreference
-	2,  // 7: fitglue.models.user.NotificationPreferences.showcase_roundup:type_name -> fitglue.models.user.NotificationTypePreference
-	2,  // 8: fitglue.models.user.NotificationPreferences.pipeline_cancelled:type_name -> fitglue.models.user.NotificationTypePreference
-	6,  // 9: fitglue.models.user.Counter.last_updated:type_name -> google.protobuf.Timestamp
-	6,  // 10: fitglue.models.user.PersonalRecord.achieved_at:type_name -> google.protobuf.Timestamp
-	7,  // 11: fitglue.models.user.PersonalRecord.activity_type:type_name -> fitglue.models.activity.ActivityType
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	3, // 0: fitglue.models.user.UserProfile.created_at:type_name -> google.protobuf.Timestamp
+	3, // 1: fitglue.models.user.Counter.last_updated:type_name -> google.protobuf.Timestamp
+	3, // 2: fitglue.models.user.PersonalRecord.achieved_at:type_name -> google.protobuf.Timestamp
+	4, // 3: fitglue.models.user.PersonalRecord.activity_type:type_name -> fitglue.models.activity.ActivityType
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_models_user_profile_proto_init() }
@@ -590,20 +365,19 @@ func file_models_user_profile_proto_init() {
 		return
 	}
 	file_models_user_profile_proto_msgTypes[0].OneofWrappers = []any{}
-	file_models_user_profile_proto_msgTypes[4].OneofWrappers = []any{}
+	file_models_user_profile_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_models_user_profile_proto_rawDesc), len(file_models_user_profile_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   5,
+			NumEnums:      0,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_models_user_profile_proto_goTypes,
 		DependencyIndexes: file_models_user_profile_proto_depIdxs,
-		EnumInfos:         file_models_user_profile_proto_enumTypes,
 		MessageInfos:      file_models_user_profile_proto_msgTypes,
 	}.Build()
 	File_models_user_profile_proto = out.File

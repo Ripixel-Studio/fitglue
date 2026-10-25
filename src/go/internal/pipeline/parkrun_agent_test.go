@@ -53,7 +53,7 @@ func newarkUser() *user.Record {
 
 // Both agent endpoints enforce the identity token exactly like the recheck endpoint.
 func TestParkrunAgent_Auth(t *testing.T) {
-	c := NewParkrunChecker(&mocks.MockDatabase{}, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(&mocks.MockDatabase{}, nil, infra.NewLogger())
 
 	w := httptest.NewRecorder()
 	c.HandlePending(w, agentRequest(http.MethodGet, "/internal/parkrun-pending", "", nil))
@@ -108,7 +108,7 @@ func TestParkrunAgent_Pending(t *testing.T) {
 			return newarkUser(), nil
 		},
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
 
 	w := httptest.NewRecorder()
@@ -155,7 +155,7 @@ func TestParkrunAgent_SubmitHTML_ResolvesRealPage(t *testing.T) {
 			return input, nil
 		},
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
 	c.submit = func(_ context.Context, req *pbsvc.SubmitInputRequest) error { submitted = req; return nil }
 
@@ -195,7 +195,7 @@ func TestParkrunAgent_SubmitHTML_BotChallenge(t *testing.T) {
 	db := &mocks.MockDatabase{
 		GetPendingInputFunc: func(_ context.Context, _, _ string) (*pbpipeline.PendingInput, error) { return input, nil },
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
 	c.submit = func(_ context.Context, _ *pbsvc.SubmitInputRequest) error { t.Fatal("must not submit"); return nil }
 
@@ -218,7 +218,7 @@ func TestParkrunAgent_SubmitHTML_NotPublished(t *testing.T) {
 	db := &mocks.MockDatabase{
 		GetPendingInputFunc: func(_ context.Context, _, _ string) (*pbpipeline.PendingInput, error) { return input, nil },
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
 	c.submit = func(_ context.Context, _ *pbsvc.SubmitInputRequest) error { t.Fatal("must not submit"); return nil }
 
@@ -237,7 +237,7 @@ func TestParkrunAgent_SubmitHTML_NotPublished(t *testing.T) {
 func TestParkrunAgent_SubmitHTML_BadRequests(t *testing.T) {
 	c := NewParkrunChecker(&mocks.MockDatabase{
 		GetPendingInputFunc: func(_ context.Context, _, _ string) (*pbpipeline.PendingInput, error) { return nil, errors.New("nope") },
-	}, nil, infra.NewLogger(), nil)
+	}, nil, infra.NewLogger())
 	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
 
 	w := httptest.NewRecorder()

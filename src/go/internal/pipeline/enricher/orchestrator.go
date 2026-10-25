@@ -15,8 +15,6 @@ import (
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 
 	shared "github.com/fitglue/server/src/go/pkg"
-	"github.com/fitglue/server/src/go/pkg/notificationpub"
-	pbnotification "github.com/fitglue/server/src/go/pkg/types/pb/models/notification"
 
 	fit "github.com/fitglue/server/src/go/pkg/domain/file_generators"
 
@@ -53,7 +51,6 @@ type Orchestrator struct {
 	bucketName      string
 	providersByName map[string]providers.Provider
 	providersByType map[pbplugin.EnricherProviderType]providers.Provider
-	publisher       shared.Publisher
 	// geocode reverse-geocodes coordinates for the always-on implicit location step (see the
 	// finalizer). Left nil by NewOrchestrator so unit tests never make external calls; the
 	// production wiring in function.go sets it to location_naming.ReverseGeocode. When nil, the
@@ -61,14 +58,13 @@ type Orchestrator struct {
 	geocode location_naming.GeocodeFunc
 }
 
-func NewOrchestrator(db shared.Database, storage shared.BlobStore, bucketName string, publisher shared.Publisher) *Orchestrator {
+func NewOrchestrator(db shared.Database, storage shared.BlobStore, bucketName string) *Orchestrator {
 	return &Orchestrator{
 		database:        db,
 		storage:         storage,
 		bucketName:      bucketName,
 		providersByName: make(map[string]providers.Provider),
 		providersByType: make(map[pbplugin.EnricherProviderType]providers.Provider),
-		publisher:       publisher,
 	}
 }
 
@@ -574,9 +570,6 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 				fmt.Sprintf("Enricher failed: %s - %v", provider.Name(), err),
 				providerExecutions)
 
-			// Enqueue pipeline failure notification
-			o.enqueuePipelineFailureNotification(logger, ctx, payload.UserId, activityId, currentActivity.Name, provider.Name())
-
 			// Fail pipeline
 			return &ProcessResult{
 				Events:             []*pbevents.EnrichedActivityEvent{},
@@ -1034,9 +1027,6 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 	o.writeActivityRecord(ctx, logger, payload.UserId, activityId, pipeline.ID, pipelineExecutionID,
 		sourceSnapshot, finalEvent, providerExecutions, results, configs, originalPayloadUri)
 
-	// Note: Success/partial notifications are now sent by destination.UpdateStatus
-	// when all destinations have reported their final status (SYNCED or PARTIAL).
-
 	// --- Destination-specific enricher exclusions ---
 	// Group destinations by their exclusion sets. Destinations with identical
 	// ExcludedEnrichers lists share a single event; different sets get separate events
@@ -1382,12 +1372,10 @@ func (o *Orchestrator) handleWaitError(ctx context.Context, logger *slog.Logger,
 				Status:             pbpipeline.ExecutionStatus_STATUS_WAITING,
 			}, nil
 		case pbpipeline.PendingInput_STATUS_WAITING:
-			// Still WAITING — user hasn't acted yet. Re-send the notification in case it was
-			// missed on the first delivery (e.g. FCM was temporarily unavailable). The browser
-			// deduplicates via the notification tag so this won't spam the user.
-			logger.Info("Pending input already waiting - skipping duplicate creation, re-sending notification",
+			// Still WAITING — user hasn't acted yet. The pending input is already persisted
+			// and surfaces through GET /users/me/pending-inputs, so there is nothing to re-send.
+			logger.Info("Pending input already waiting - skipping duplicate creation",
 				"activity_id", waitErr.ActivityID)
-			o.sendPendingInputNotification(ctx, logger, payload.UserId, waitErr.ActivityID)
 			return &ProcessResult{
 				Events:             []*pbevents.EnrichedActivityEvent{},
 				ProviderExecutions: allExecs,
@@ -1440,49 +1428,11 @@ func (o *Orchestrator) handleWaitError(ctx context.Context, logger *slog.Logger,
 		logger.Warn("Failed to create pending input (might already exist)", "error", err)
 	}
 
-	o.sendPendingInputNotification(ctx, logger, payload.UserId, waitErr.ActivityID)
-
 	return &ProcessResult{
 		Events:             []*pbevents.EnrichedActivityEvent{},
 		ProviderExecutions: allExecs,
 		Status:             pbpipeline.ExecutionStatus_STATUS_WAITING,
 	}, nil
-}
-
-// sendPendingInputNotification enqueues a PENDING_INPUT notification.
-// Safe to call on retries — the browser deduplicates via the notification tag.
-func (o *Orchestrator) sendPendingInputNotification(ctx context.Context, logger *slog.Logger, userID, activityID string) {
-	if o.publisher == nil {
-		logger.Warn("Publisher unavailable — PENDING_INPUT notification not sent", "user_id", userID)
-		return
-	}
-	req := &pbnotification.NotificationRequest{
-		UserId: userID,
-		Type:   pbnotification.NotificationType_NOTIFICATION_TYPE_PENDING_INPUT,
-		Title:  "Action Required: FitGlue",
-		Body:   "An activity needs more information to be processed.",
-		Data:   map[string]string{"activity_id": activityID},
-	}
-	if err := notificationpub.Enqueue(ctx, o.publisher, req); err != nil {
-		logger.Error("Failed to enqueue pending input notification", "error", err, "user_id", userID)
-	}
-}
-
-// enqueuePipelineFailureNotification enqueues a PIPELINE_FAILURE notification from the enricher.
-func (o *Orchestrator) enqueuePipelineFailureNotification(logger *slog.Logger, ctx context.Context, userID, activityID, activityName, providerName string) {
-	if o.publisher == nil {
-		return
-	}
-	req := &pbnotification.NotificationRequest{
-		UserId: userID,
-		Type:   pbnotification.NotificationType_NOTIFICATION_TYPE_PIPELINE_FAILURE,
-		Title:  fmt.Sprintf("Activity Failed: %s", activityName),
-		Body:   fmt.Sprintf("Enricher '%s' encountered an error", providerName),
-		Data:   map[string]string{"activity_id": activityID},
-	}
-	if err := notificationpub.Enqueue(ctx, o.publisher, req); err != nil {
-		logger.Warn("Failed to enqueue pipeline failure notification", "error", err, "user_id", userID)
-	}
 }
 
 // createInitialPipelineRun creates a minimal PipelineRun document with RUNNING status

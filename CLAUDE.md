@@ -1,6 +1,6 @@
 # FitGlue Server
 
-Go backend — 9 Cloud Run microservices communicating via gRPC, fronted by 3 HTTP API gateways.
+Go backend — 8 Cloud Run microservices communicating via gRPC, fronted by 3 HTTP API gateways.
 
 ## Stack
 
@@ -46,7 +46,7 @@ npm run test:test       # Against test environment
 
 ## Service Architecture
 
-9 independent Cloud Run services. **3 HTTP gateways** (public-facing) + **6 domain services** (private).
+8 independent Cloud Run services. **3 HTTP gateways** (public-facing) + **5 domain services** (private).
 
 ```
 Internet
@@ -59,16 +59,14 @@ Pub/Sub
     ├── topic-raw-activity       → pipeline service (splitter + enricher)
     ├── topic-pipeline-activity  → pipeline service (per-pipeline routing)
     ├── topic-enriched-activity  → destination service
-    ├── topic-destination-upload → destination service (upload jobs)
-    └── topic-notifications      → notification service (FCM push dispatch)
+    └── topic-destination-upload → destination service (upload jobs)
 
 Domain Services (private):
     ├── user         (gRPC, port 50051) — profiles, integrations, OAuth tokens
     ├── pipeline     (gRPC, port 50053) — pipeline CRUD + enrichment orchestration
     ├── activity     (gRPC, port 50054) — activity CRUD, showcases, exports
     ├── registry     (gRPC, port 50055) — plugin manifests (sources, enrichers, destinations)
-    ├── destination  (Pub/Sub)          — uploads to Strava, TrainingPeaks, Intervals, Hevy, Fitbit, etc.
-    └── notification (Pub/Sub, HTTP)    — FCM push dispatch, per-user preference routing
+    └── destination  (Pub/Sub)          — uploads to Strava, TrainingPeaks, Intervals, Hevy, Fitbit, etc.
 ```
 
 ## Directory Structure
@@ -87,9 +85,8 @@ server/
 │   │   │   ├── pipeline/           # gRPC domain service + enrichment orchestration
 │   │   │   ├── activity/           # gRPC domain service
 │   │   │   ├── registry/           # gRPC domain service
-│   │   │   ├── destination/        # Pub/Sub domain service
-│   │   │   │   └── internal/destination/uploaders/  # strava/, trainingpeaks/, intervals/, hevy/, fitbit/, googlesheets/, github/, showcase/
-│   │   │   └── notification/       # Pub/Sub service — FCM push dispatch, per-user preference routing
+│   │   │   └── destination/        # Pub/Sub domain service
+│   │   │       └── internal/destination/uploaders/  # strava/, trainingpeaks/, intervals/, hevy/, fitbit/, googlesheets/, github/, showcase/
 │   │   ├── internal/               # Shared domain logic (used by multiple services)
 │   │   │   ├── user/               # User domain (profiles, integrations, Firestore store)
 │   │   │   ├── pipeline/           # Pipeline orchestration + enrichers (45+ providers)
@@ -102,7 +99,7 @@ server/
 │   │   │   ├── bootstrap/          # Service init helpers (Firebase, Firestore, Pub/Sub)
 │   │   │   ├── domain/             # Domain models (activity, user, FIT parser/generator)
 │   │   │   ├── integrations/       # Generated OpenAPI clients — DO NOT EDIT manually
-│   │   │   ├── infrastructure/     # Email, Pub/Sub adapter, storage, secrets, FCM
+│   │   │   ├── infrastructure/     # Email, Pub/Sub adapter, storage, secrets
 │   │   │   ├── sourceplugins/      # Historical activity sync providers (Fitbit, Hevy, Intervals, Strava)
 │   │   │   ├── storage/            # Firestore client utilities
 │   │   │   ├── errors/             # Error types + retryability

@@ -5,12 +5,11 @@ locals {
     "api-webhook" = { is_public = true }
   }
   backend_services = {
-    "user"         = { is_public = false }
-    "pipeline"     = { is_public = false }
-    "activity"     = { is_public = false }
-    "registry"     = { is_public = false }
-    "destination"  = { is_public = false }
-    "notification" = { is_public = false }
+    "user"        = { is_public = false }
+    "pipeline"    = { is_public = false }
+    "activity"    = { is_public = false }
+    "registry"    = { is_public = false }
+    "destination" = { is_public = false }
   }
   all_services = merge(local.frontend_services, local.backend_services)
 }
@@ -139,7 +138,7 @@ resource "google_cloud_run_v2_service" "backend" {
         }
       }
       dynamic "env" {
-        for_each = contains(["user", "notification"], each.key) ? [1] : []
+        for_each = each.key == "user" ? [1] : []
         content {
           name  = "SYSTEM_EMAIL"
           value = "system@fitglue.tech"
@@ -273,9 +272,9 @@ resource "google_cloud_run_v2_service" "backend" {
         }
       }
 
-      # ── User + Notification secrets (Email) ──
+      # ── User secrets (Email) ──
       dynamic "env" {
-        for_each = contains(["user", "notification"], each.key) ? [1] : []
+        for_each = each.key == "user" ? [1] : []
         content {
           name = "EMAIL_APP_PASSWORD"
           value_source {
@@ -1006,7 +1005,7 @@ resource "google_cloud_run_v2_service_iam_member" "destination_to_activity" {
 # Pub/Sub push subscriptions use OIDC tokens with each service's own SA,
 # so the SA needs run.invoker on itself to authenticate the push.
 locals {
-  pubsub_push_targets = ["pipeline", "destination", "activity", "notification"]
+  pubsub_push_targets = ["pipeline", "destination", "activity"]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "pubsub_self_invoke" {

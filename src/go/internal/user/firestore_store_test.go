@@ -90,19 +90,6 @@ func TestFirestoreStore_OfflineCoverage(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("GetNotificationPrefs", func(t *testing.T) {
-		_, err := store.GetNotificationPrefs(ctx, "user1")
-		assert.Error(t, err)
-	})
-
-	t.Run("UpdateNotificationPrefs", func(t *testing.T) {
-		err := store.UpdateNotificationPrefs(ctx, "user1", &pbuser.NotificationPreferences{})
-		assert.Error(t, err)
-
-		err = store.UpdateNotificationPrefs(ctx, "user1", nil)
-		assert.Error(t, err)
-	})
-
 	t.Run("GetBoosterData", func(t *testing.T) {
 		_, err := store.GetBoosterData(ctx, "user1", "b1")
 		assert.Error(t, err)

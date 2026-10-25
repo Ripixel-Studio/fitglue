@@ -36,8 +36,8 @@ func normalizeUserData(data map[string]interface{}) map[string]interface{} {
 	// Remove camelCase duplicates of snake_case fields. The old TypeScript
 	// backend wrote fields in camelCase; Go services write the same fields in
 	// snake_case (the proto field names) via targeted Firestore updates —
-	// AddFCMToken writes "fcm_tokens", the streak rollup writes "current_streak_days",
-	// etc. A document touched by both therefore ends up carrying both spellings
+	// the streak rollup writes "current_streak_days", etc. A document touched by
+	// both therefore ends up carrying both spellings
 	// of a field, which protojson rejects with a "duplicate field" error and
 	// fails the whole GetProfile read.
 	//
@@ -468,64 +468,6 @@ func (s *FirestoreStore) UpdateCounter(ctx context.Context, userID, counterID st
 	}, nil
 }
 
-func (s *FirestoreStore) GetNotificationPrefs(ctx context.Context, userID string) (*pbuser.NotificationPreferences, error) {
-	doc, err := s.client.Collection("users").Doc(userID).Get(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	val, err := doc.DataAt("notification_preferences")
-	if err != nil {
-		// Field doesn't exist or isn't a map, return default empty
-		return &pbuser.NotificationPreferences{}, nil
-	}
-
-	b, err := json.Marshal(val)
-	if err != nil {
-		return nil, err
-	}
-
-	var prefs pbuser.NotificationPreferences
-	err = protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(b, &prefs)
-	if err != nil {
-		return nil, err
-	}
-
-	return &prefs, nil
-}
-
-func (s *FirestoreStore) UpdateNotificationPrefs(ctx context.Context, userID string, prefs *pbuser.NotificationPreferences) error {
-	if prefs == nil {
-		return errors.New("preferences cannot be nil")
-	}
-
-	// Because prefs is a protobuf message, we can convert it to JSON or map
-	b, err := protojson.MarshalOptions{EmitUnpopulated: true, UseProtoNames: true}.Marshal(prefs)
-	if err != nil {
-		return err
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal(b, &data); err != nil {
-		return err
-	}
-
-	_, err = s.client.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
-		{
-			Path:  "notification_preferences",
-			Value: data,
-		},
-	})
-	return err
-}
-
-func (s *FirestoreStore) AddFCMToken(ctx context.Context, userID, token string) error {
-	_, err := s.client.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
-		{Path: "fcm_tokens", Value: firestore.ArrayUnion(token)},
-	})
-	return err
-}
-
 func (s *FirestoreStore) GetBoosterData(ctx context.Context, userID, boosterID string) (map[string]*structpb.Struct, error) {
 	col := s.client.Collection("users").Doc(userID).Collection("booster_data")
 	res := make(map[string]*structpb.Struct)
@@ -694,12 +636,10 @@ func (s *FirestoreStore) CreateUser(ctx context.Context, userID string) (*pbuser
 	now := time.Now()
 
 	profile := &pbuser.UserProfile{
-		UserId:                  userID,
-		CreatedAt:               timestamppb.New(now),
-		IsAdmin:                 false,
-		AccessEnabled:           false, // Waitlisted until admin enables
-		NotificationPreferences: defaultNotificationPreferences(),
-		FcmTokens:               []string{},
+		UserId:        userID,
+		CreatedAt:     timestamppb.New(now),
+		IsAdmin:       false,
+		AccessEnabled: false, // Waitlisted until admin enables
 	}
 
 	docRef := s.client.Collection("users").Doc(userID)
@@ -727,19 +667,4 @@ func (s *FirestoreStore) CreateUser(ctx context.Context, userID string) (*pbuser
 	}
 
 	return profile, nil
-}
-
-// defaultNotificationPreferences returns the push-only defaults for a new user.
-func defaultNotificationPreferences() *pbuser.NotificationPreferences {
-	push := &pbuser.NotificationTypePreference{
-		Channels: []pbuser.NotificationChannel{pbuser.NotificationChannel_NOTIFICATION_CHANNEL_PUSH},
-	}
-	return &pbuser.NotificationPreferences{
-		PendingInput:      push,
-		PipelineSuccess:   push,
-		PipelineFailure:   push,
-		ConnectionAction:  push,
-		ShowcaseRoundup:   push,
-		PipelineCancelled: push,
-	}
 }

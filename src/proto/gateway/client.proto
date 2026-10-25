@@ -95,19 +95,6 @@ service ClientGatewayService {
     };
   }
 
-  // ===================== Notification Preferences =====================
-  rpc GetNotificationPrefs(EmptyRequest) returns (fitglue.models.user.NotificationPreferences) {
-    option (google.api.http) = {
-      get: "/users/me/notification-prefs"
-    };
-  }
-  rpc UpdateNotificationPrefs(fitglue.models.user.NotificationPreferences) returns (fitglue.models.user.NotificationPreferences) {
-    option (google.api.http) = {
-      put: "/users/me/notification-prefs"
-      body: "*"
-    };
-  }
-
   // ===================== Counters =====================
   rpc ListCounters(EmptyRequest) returns (ListCountersGatewayResponse) {
     option (google.api.http) = {
@@ -195,14 +182,6 @@ service ClientGatewayService {
   rpc SendPasswordReset(SendPasswordResetGatewayRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/auth-email/send-password-reset"
-      body: "*"
-    };
-  }
-
-  // ===================== FCM Token =====================
-  rpc SetFCMToken(SetFCMTokenGatewayRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/users/me/fcm-token"
       body: "*"
     };
   }
@@ -651,12 +630,6 @@ message SendEmailChangeGatewayRequest {
 }
 message SendPasswordResetGatewayRequest {
   string email = 1;
-}
-
-// FCM Token
-message SetFCMTokenGatewayRequest {
-  string token = 1;
-  string platform = 2; // "web", "android", "ios"
 }
 
 // Pipelines

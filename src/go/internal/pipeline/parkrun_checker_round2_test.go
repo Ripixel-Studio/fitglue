@@ -13,10 +13,8 @@ import (
 	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	"github.com/fitglue/server/src/go/pkg/testing/mocks"
-	pbnotification "github.com/fitglue/server/src/go/pkg/types/pb/models/notification"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -53,7 +51,7 @@ func TestParkrunChecker_HandleCheck_ListError(t *testing.T) {
 			return nil, errors.New("firestore down")
 		},
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	code, _ := doCheck(t, c)
 	if code != http.StatusInternalServerError {
 		t.Fatalf("expected 500 on list error, got %d", code)
@@ -62,8 +60,8 @@ func TestParkrunChecker_HandleCheck_ListError(t *testing.T) {
 
 // A past-deadline input is turned into a manual-entry prompt, NOT closed: it stays
 // WAITING (so the user can still submit), auto_populated flips to false, and
-// provider_metadata.parkrun_results_state becomes EXPIRED. Exactly one PENDING_INPUT
-// notification is published.
+// provider_metadata.parkrun_results_state becomes EXPIRED. That marker is what
+// Jarvis picks up via the pending-inputs API; nothing is pushed.
 func TestParkrunChecker_ProcessInput_ExpiredByDeadline(t *testing.T) {
 	var gotUpdate map[string]interface{}
 	base := &mocks.MockDatabase{
@@ -84,18 +82,7 @@ func TestParkrunChecker_ProcessInput_ExpiredByDeadline(t *testing.T) {
 			}}, nil
 		},
 	}
-	var notifications []*pbnotification.NotificationRequest
-	pub := &mocks.MockPublisher{
-		PublishJSONFunc: func(ctx context.Context, topic string, data []byte) error {
-			var req pbnotification.NotificationRequest
-			if err := protojson.Unmarshal(data, &req); err != nil {
-				t.Fatalf("notification not valid NotificationRequest JSON: %v", err)
-			}
-			notifications = append(notifications, &req)
-			return nil
-		},
-	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), pub)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	code, body := doCheck(t, c)
 	if code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", code)
@@ -119,28 +106,10 @@ func TestParkrunChecker_ProcessInput_ExpiredByDeadline(t *testing.T) {
 	if meta["parkrun_results_state"] != "EXPIRED" {
 		t.Errorf("expected parkrun_results_state=EXPIRED, got %v", meta["parkrun_results_state"])
 	}
-
-	if len(notifications) != 1 {
-		t.Fatalf("expected exactly 1 notification, got %d", len(notifications))
-	}
-	n := notifications[0]
-	if n.Type != pbnotification.NotificationType_NOTIFICATION_TYPE_PENDING_INPUT {
-		t.Errorf("expected PENDING_INPUT notification, got %v", n.Type)
-	}
-	if n.UserId != "u1" {
-		t.Errorf("expected notification for u1, got %q", n.UserId)
-	}
-	if n.Data["activity_id"] != "act-1" {
-		t.Errorf("expected activity_id=act-1 (linked activity) for deep-link, got %q", n.Data["activity_id"])
-	}
-	if n.Data["pending_input_id"] != "i1" {
-		t.Errorf("expected pending_input_id=i1 for deep-link, got %q", n.Data["pending_input_id"])
-	}
 }
 
 // Once an input is EXPIRED it stays WAITING for manual submit but must leave the
-// auto-poll set: a later checker run skips it entirely — no second notification,
-// no re-expire, no fetch.
+// auto-poll set: a later checker run skips it entirely — no re-expire, no fetch.
 func TestParkrunChecker_ProcessInput_AlreadyExpiredSkips(t *testing.T) {
 	base := &mocks.MockDatabase{
 		UpdatePendingInputFunc: func(ctx context.Context, userID, id string, data map[string]interface{}) error {
@@ -166,13 +135,7 @@ func TestParkrunChecker_ProcessInput_AlreadyExpiredSkips(t *testing.T) {
 			}}, nil
 		},
 	}
-	pub := &mocks.MockPublisher{
-		PublishJSONFunc: func(ctx context.Context, topic string, data []byte) error {
-			t.Error("EXPIRED input must not publish a second notification")
-			return nil
-		},
-	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), pub)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	code, body := doCheck(t, c)
 	if code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", code)
@@ -198,7 +161,7 @@ func TestParkrunChecker_ProcessInput_DeadlineUpdateErrorStillExpires(t *testing.
 			return []*pbpipeline.PendingInput{{ActivityId: "i1", UserId: "u1", AutoDeadline: past}}, nil
 		},
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	code, body := doCheck(t, c)
 	if code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", code)
@@ -220,7 +183,7 @@ func TestParkrunChecker_ProcessInput_GetUserError(t *testing.T) {
 			return []*pbpipeline.PendingInput{{ActivityId: "i1", UserId: "u1"}}, nil
 		},
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	code, body := doCheck(t, c)
 	if code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", code)
@@ -248,7 +211,7 @@ func TestParkrunChecker_ProcessInput_NoIntegrationExpires(t *testing.T) {
 			return []*pbpipeline.PendingInput{{ActivityId: "i1", UserId: "u1"}}, nil
 		},
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	code, body := doCheck(t, c)
 	if code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", code)
@@ -287,7 +250,7 @@ func TestParkrunChecker_ProcessInput_MissingMetadataSkips(t *testing.T) {
 			}}, nil
 		},
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	code, body := doCheck(t, c)
 	if code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", code)
@@ -314,7 +277,7 @@ func TestParkrunChecker_ProcessInput_BadDateSkips(t *testing.T) {
 			}}, nil
 		},
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	code, body := doCheck(t, c)
 	if code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", code)

@@ -286,10 +286,6 @@ func (m *MockActivityStore) ListAllShowcaseUserIDs(ctx context.Context) ([]strin
 	return nil, nil
 }
 
-func (m *MockActivityStore) GetUserNotificationData(ctx context.Context, userID string) (fcmTokens []string, notifyRoundup bool, err error) {
-	return nil, false, nil
-}
-
 // MockBlobStore implements BlobStore for testing
 type MockBlobStore struct {
 	GetFunc       func(ctx context.Context, bucket, object string) ([]byte, error)

@@ -35,41 +35,6 @@ func (s *APIServer) handleGetWebAuthToken(w http.ResponseWriter, r *http.Request
 	WriteJSON(w, map[string]string{"customToken": customToken})
 }
 
-// handleSetFCMToken registers or updates a device's FCM token for push notifications
-func (s *APIServer) handleSetFCMToken(w http.ResponseWriter, r *http.Request) {
-	token := getUserToken(r)
-	if token == nil {
-		WriteError(w, statusError(http.StatusUnauthorized, "missing user context"))
-		return
-	}
-
-	var body struct {
-		Token    string `json:"token"`
-		Platform string `json:"platform"` // "web", "android", "ios"
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		WriteError(w, statusError(http.StatusBadRequest, "invalid request body"))
-		return
-	}
-
-	if body.Token == "" {
-		WriteError(w, statusError(http.StatusBadRequest, "token is required"))
-		return
-	}
-
-	_, err := s.userService.SetFCMToken(r.Context(), &userpb.SetFCMTokenRequest{
-		UserId:   token.UID,
-		Token:    body.Token,
-		Platform: body.Platform,
-	})
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
 type mobileSyncActivity struct {
 	ExternalID       string             `json:"externalId"`
 	ActivityName     string             `json:"activityName"`

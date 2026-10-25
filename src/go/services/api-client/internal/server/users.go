@@ -4,7 +4,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"firebase.google.com/go/v4/auth"
@@ -41,9 +39,6 @@ func (s *APIServer) registerUserRoutes(r chi.Router) {
 	r.Get("/users/me/integrations/{provider}", s.handleGetIntegration)
 	r.Put("/users/me/integrations/{provider}", s.handleSetIntegration)
 	r.Delete("/users/me/integrations/{provider}", s.handleDeleteIntegration)
-
-	r.Get("/users/me/notification-prefs", s.handleGetNotificationPrefs)
-	r.Put("/users/me/notification-prefs", s.handleUpdateNotificationPrefs)
 
 	r.Get("/users/me/counters", s.handleListCounters)
 	r.Put("/users/me/counters/{name}", s.handleUpdateCounter)
@@ -71,9 +66,6 @@ func (s *APIServer) registerUserRoutes(r chi.Router) {
 
 	// Delete counter
 	r.Delete("/users/me/counters/{name}", s.handleDeleteCounter)
-
-	// FCM Token (push notifications)
-	r.Post("/users/me/fcm-token", s.handleSetFCMToken)
 
 	// Web auth token — allows mobile WebView to sign in to the web app without a second login
 	r.Get("/users/me/web-auth-token", s.handleGetWebAuthToken)
@@ -288,77 +280,6 @@ func (s *APIServer) handleDeleteIntegration(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	WriteJSON(w, res)
-}
-
-func (s *APIServer) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Request) {
-	token := getUserToken(r)
-	req := &userpb.GetNotificationPrefsRequest{
-		UserId: token.UID,
-	}
-	res, err := s.userService.GetNotificationPrefs(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-	WriteJSON(w, res)
-}
-
-func (s *APIServer) handleUpdateNotificationPrefs(w http.ResponseWriter, r *http.Request) {
-	token := getUserToken(r)
-
-	// Read current prefs (empty struct = all defaults if not yet saved)
-	current, err := s.userService.GetNotificationPrefs(r.Context(), &userpb.GetNotificationPrefsRequest{UserId: token.UID})
-	if err != nil {
-		st, _ := status.FromError(err)
-		if st.Code() != codes.NotFound {
-			WriteError(w, err)
-			return
-		}
-		current = &pbuser.NotificationPreferences{}
-	}
-
-	// Decode body as protojson NotificationPreferences.
-	// Only fields present in the body override the current prefs (nil = unchanged).
-	body, readErr := io.ReadAll(r.Body)
-	if readErr != nil {
-		WriteError(w, statusError(http.StatusBadRequest, "invalid request body"))
-		return
-	}
-	var update pbuser.NotificationPreferences
-	prefsUnmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
-	if err := prefsUnmarshaler.Unmarshal(body, &update); err != nil {
-		WriteError(w, statusError(http.StatusBadRequest, "invalid request body"))
-		return
-	}
-
-	if update.PendingInput != nil {
-		current.PendingInput = update.PendingInput
-	}
-	if update.PipelineSuccess != nil {
-		current.PipelineSuccess = update.PipelineSuccess
-	}
-	if update.PipelineFailure != nil {
-		current.PipelineFailure = update.PipelineFailure
-	}
-	if update.ConnectionAction != nil {
-		current.ConnectionAction = update.ConnectionAction
-	}
-	if update.ShowcaseRoundup != nil {
-		current.ShowcaseRoundup = update.ShowcaseRoundup
-	}
-	if update.PipelineCancelled != nil {
-		current.PipelineCancelled = update.PipelineCancelled
-	}
-
-	res, err := s.userService.UpdateNotificationPrefs(r.Context(), &userpb.UpdateNotificationPrefsRequest{
-		UserId: token.UID,
-		Prefs:  current,
-	})
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
 	WriteJSON(w, res)
 }
 

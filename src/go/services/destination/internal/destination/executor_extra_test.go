@@ -113,7 +113,7 @@ func newTestExecutor(reg *Registry, db *mocks.MockDatabase) *UploadExecutor {
 	if db == nil {
 		db = &mocks.MockDatabase{}
 	}
-	return NewUploadExecutor(reg, userClient, &mockActivityServiceClient{}, db, nil, &mocks.MockPublisher{}, infra.NewLogger())
+	return NewUploadExecutor(reg, userClient, &mockActivityServiceClient{}, db, nil, infra.NewLogger())
 }
 
 func makeCE(t *testing.T, typ string, payload *pbevents.EnrichedActivityEvent) *event.Event {
@@ -225,7 +225,7 @@ func TestProcess_ListIntegrationsError_ReturnsError(t *testing.T) {
 			return nil, fmt.Errorf("integrations unavailable")
 		},
 	}
-	exec := NewUploadExecutor(reg, userClient, &mockActivityServiceClient{}, &mocks.MockDatabase{}, nil, &mocks.MockPublisher{}, infra.NewLogger())
+	exec := NewUploadExecutor(reg, userClient, &mockActivityServiceClient{}, &mocks.MockDatabase{}, nil, infra.NewLogger())
 
 	runID := "run-1"
 	ce := makeCE(t, "com.fitglue.event.enriched", &pbevents.EnrichedActivityEvent{

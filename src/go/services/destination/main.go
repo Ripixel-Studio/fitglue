@@ -77,7 +77,7 @@ func main() {
 	registry.Register(pbplugin.DestinationType_DESTINATION_SHOWCASE, showcase.New(svc, activityClient, showcaseAssetsBucket))
 	registry.Register(pbplugin.DestinationType_DESTINATION_MOCK, mock.New())
 
-	executor := destination.NewUploadExecutor(registry, userClient, activityClient, svc.DB, svc.Store, svc.Pub, logger)
+	executor := destination.NewUploadExecutor(registry, userClient, activityClient, svc.DB, svc.Store, logger)
 
 	// Create an HTTP handler to receive Pub/Sub pushes
 	mux := http.NewServeMux()

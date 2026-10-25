@@ -36,9 +36,7 @@ src/go/
 │   │   └── main.go
 │   ├── registry/                      # Plugin manifests, categories, icons
 │   │   └── main.go
-│   ├── destination/                   # All destination uploaders
-│   │   └── main.go
-│   └── notification/                  # FCM push dispatch, per-user preference routing
+│   └── destination/                   # All destination uploaders
 │       └── main.go
 │
 ├── internal/                          # Shared internal implementations
@@ -93,7 +91,6 @@ If it compiles, it's wired correctly — no runtime dependency resolution.
 | `service.activity` | Activity records, showcases, FIT parsing, exports | gRPC + Pub/Sub | Firestore activities + GCS |
 | `service.registry` | Plugin manifests, categories | gRPC | Static config |
 | `service.destination` | Route and upload to destinations | Pub/Sub | Transient |
-| `service.notification` | FCM push dispatch, respects per-user channel preferences | Pub/Sub | Firestore `users/` (reads prefs + FCM tokens) |
 
 ## Source Provider Pattern
 

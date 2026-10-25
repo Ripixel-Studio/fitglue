@@ -14,7 +14,6 @@ resource "google_project_service" "apis" {
     "dns.googleapis.com",
     "eventarc.googleapis.com",
     "identitytoolkit.googleapis.com",
-    "fcm.googleapis.com",
     "aiplatform.googleapis.com",
     "cloudtasks.googleapis.com",
     "sheets.googleapis.com"

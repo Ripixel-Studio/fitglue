@@ -2,17 +2,12 @@ package destination
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/fitglue/server/src/go/internal/infra"
 
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 
-	shared "github.com/fitglue/server/src/go/pkg"
-	"github.com/fitglue/server/src/go/pkg/notificationpub"
 	"github.com/fitglue/server/src/go/pkg/types/formatters"
-	pbnotification "github.com/fitglue/server/src/go/pkg/types/pb/models/notification"
 
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -28,25 +23,19 @@ type Database interface {
 // UpdateStatus updates a single destination's status using the subcollection pattern.
 // Each destination is written as a separate document in the destination_outcomes subcollection,
 // eliminating race conditions between parallel uploaders.
-// When all destinations have reached a terminal status, a push notification is sent to the user.
+// The overall pipeline run status is recomputed from every destination outcome and
+// written back to the parent run; nothing is pushed to the user — Jarvis polls the API.
 // Parameters:
 //   - db: the Database interface for Firestore operations
-//   - notifications: the notification service for sending push notifications (can be nil)
 //   - userId: the user's ID
 //   - pipelineRunId: the ID of the pipeline run (same as pipelineExecutionId)
 //   - dest: the destination enum value (e.g., DESTINATION_STRAVA)
 //   - status: the new status (e.g., DESTINATION_STATUS_SUCCESS, DESTINATION_STATUS_FAILED)
 //   - externalId: optional external ID from the destination (e.g., Strava activity ID)
 //   - errMsg: optional error message if status is FAILED
-//   - activityName: the activity name for the push notification title
 //   - logger: logger for debugging
 //   - nonBlockingPendingIDs: IDs of non-blocking pending inputs still awaiting user input
-//   - alreadySynced: true when this destination already had a SUCCESS outcome before this
-//     call (a re-run: resolved resume, targeted repost, or Pub/Sub redelivery). The user was
-//     already notified about this destination once, so a full "Activity Synced" summary is
-//     replaced with a lighter "Activity Updated" notification — except on failure (PARTIAL),
-//     which always gets the full notification.
-func UpdateStatus(ctx context.Context, db Database, publisher shared.Publisher, userId string, pipelineRunId string, dest pbplugin.DestinationType, status pbpipeline.DestinationStatus, externalId string, errMsg string, activityName string, activityId string, logger infra.Logger, nonBlockingPendingIDs []string, alreadySynced bool) {
+func UpdateStatus(ctx context.Context, db Database, userId string, pipelineRunId string, dest pbplugin.DestinationType, status pbpipeline.DestinationStatus, externalId string, errMsg string, logger infra.Logger, nonBlockingPendingIDs []string) {
 	if pipelineRunId == "" {
 		return // No pipeline run to update - legacy flow
 	}
@@ -118,92 +107,6 @@ func UpdateStatus(ctx context.Context, db Database, publisher shared.Publisher, 
 		logger.Debug(ctx, "Updated pipeline run status and destinations", "pipeline_run_id", pipelineRunId, "status", newStatus.String(), "destinations_count", len(destinationsData))
 	}
 
-	// Send push notification when all destinations have reached a terminal status.
-	// SYNCED_WITH_PENDING is terminal for destinations (enricher resolution notifies separately).
-	if newStatus == pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_SYNCED ||
-		newStatus == pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_SYNCED_WITH_PENDING ||
-		newStatus == pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_PARTIAL {
-		// A re-run of a destination that already succeeded once would otherwise re-send the
-		// full "Activity Synced" summary on every resolution. Send a lighter update notice
-		// instead — except on failure (PARTIAL), which always deserves the full notification.
-		if alreadySynced && newStatus != pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_PARTIAL {
-			sendUpdateNotification(ctx, publisher, userId, activityName, activityId, dest, logger)
-		} else {
-			sendSyncNotification(ctx, publisher, userId, activityName, activityId, newStatus, outcomes, logger)
-		}
-	}
-}
-
-// sendSyncNotification enqueues a pipeline sync notification.
-// The notification service resolves the user's enabled channels and dispatches accordingly.
-func sendSyncNotification(ctx context.Context, publisher shared.Publisher, userId string, activityName string, activityId string, status pbpipeline.PipelineRunStatus, outcomes []*pbpipeline.DestinationOutcome, logger infra.Logger) {
-	if publisher == nil {
-		return
-	}
-
-	var succeeded []string
-	var failed []string
-	for _, o := range outcomes {
-		name := FormatDestinationName(o.Destination)
-		switch o.Status {
-		case pbpipeline.DestinationStatus_DESTINATION_STATUS_SUCCESS:
-			succeeded = append(succeeded, name)
-		case pbpipeline.DestinationStatus_DESTINATION_STATUS_FAILED:
-			failed = append(failed, name)
-		}
-	}
-
-	var notifType pbnotification.NotificationType
-	var title, body string
-
-	// SYNCED_WITH_PENDING means every destination synced successfully and only a
-	// non-blocking input is still outstanding (prompted via a separate PENDING_INPUT
-	// notification), so it's a success — not a "Partial Sync" failure.
-	if status == pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_SYNCED ||
-		status == pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_SYNCED_WITH_PENDING {
-		notifType = pbnotification.NotificationType_NOTIFICATION_TYPE_PIPELINE_SUCCESS
-		title = fmt.Sprintf("Activity Synced: %s", activityName)
-		body = fmt.Sprintf("Successfully synced to: %s", strings.Join(succeeded, ", "))
-	} else {
-		notifType = pbnotification.NotificationType_NOTIFICATION_TYPE_PIPELINE_FAILURE
-		title = fmt.Sprintf("Partial Sync: %s", activityName)
-		if len(succeeded) > 0 && len(failed) > 0 {
-			body = fmt.Sprintf("Synced to %s, but %s failed", strings.Join(succeeded, ", "), strings.Join(failed, ", "))
-		} else if len(failed) > 0 {
-			body = fmt.Sprintf("Failed to sync to: %s", strings.Join(failed, ", "))
-		}
-	}
-
-	req := &pbnotification.NotificationRequest{
-		UserId: userId,
-		Type:   notifType,
-		Title:  title,
-		Body:   body,
-		Data:   map[string]string{"activity_id": activityId},
-	}
-	if err := notificationpub.Enqueue(ctx, publisher, req); err != nil {
-		logger.Warn(ctx, "Failed to enqueue sync notification", "error", err, "user_id", userId)
-	}
-}
-
-// sendUpdateNotification enqueues a lighter notification for a single destination that was
-// re-synced after already succeeding once (resume, redelivery, or a targeted repost) —
-// avoids re-sending the full "Activity Synced" summary on every re-run.
-func sendUpdateNotification(ctx context.Context, publisher shared.Publisher, userId string, activityName string, activityId string, dest pbplugin.DestinationType, logger infra.Logger) {
-	if publisher == nil {
-		return
-	}
-
-	req := &pbnotification.NotificationRequest{
-		UserId: userId,
-		Type:   pbnotification.NotificationType_NOTIFICATION_TYPE_PIPELINE_SUCCESS,
-		Title:  fmt.Sprintf("Activity Updated: %s", activityName),
-		Body:   fmt.Sprintf("Successfully updated: %s", FormatDestinationName(dest)),
-		Data:   map[string]string{"activity_id": activityId},
-	}
-	if err := notificationpub.Enqueue(ctx, publisher, req); err != nil {
-		logger.Warn(ctx, "Failed to enqueue update notification", "error", err, "user_id", userId)
-	}
 }
 
 // FormatDestinationName returns a human-readable name for a destination.

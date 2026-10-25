@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -15,7 +17,6 @@ import (
 	"github.com/fitglue/server/src/go/pkg/testing/mocks"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
-	pbnotification "github.com/fitglue/server/src/go/pkg/types/pb/models/notification"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
@@ -58,12 +59,6 @@ func (m *mockUserServiceClient) ListIntegrations(ctx context.Context, in *userpb
 		return m.ListIntegrationsFunc(ctx, in, opts...)
 	}
 	return &pbuser.UserIntegrations{}, nil
-}
-func (m *mockUserServiceClient) GetNotificationPrefs(ctx context.Context, in *userpb.GetNotificationPrefsRequest, opts ...grpc.CallOption) (*pbuser.NotificationPreferences, error) {
-	return nil, nil
-}
-func (m *mockUserServiceClient) UpdateNotificationPrefs(ctx context.Context, in *userpb.UpdateNotificationPrefsRequest, opts ...grpc.CallOption) (*pbuser.NotificationPreferences, error) {
-	return nil, nil
 }
 func (m *mockUserServiceClient) ListCounters(ctx context.Context, in *userpb.ListCountersRequest, opts ...grpc.CallOption) (*userpb.ListCountersResponse, error) {
 	return nil, nil
@@ -120,9 +115,6 @@ func (m *mockUserServiceClient) DeletePluginDefaults(ctx context.Context, in *us
 	return nil, nil
 }
 func (m *mockUserServiceClient) DeleteCounter(ctx context.Context, in *userpb.DeleteCounterRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, nil
-}
-func (m *mockUserServiceClient) SetFCMToken(ctx context.Context, in *userpb.SetFCMTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	return nil, nil
 }
 
@@ -241,10 +233,9 @@ func TestUploadExecutor_Process(t *testing.T) {
 	}
 	activityClient := &mockActivityServiceClient{}
 	db := &mocks.MockDatabase{}
-	publisher := &mocks.MockPublisher{}
 	logger := infra.NewLogger()
 
-	executor := NewUploadExecutor(registry, userClient, activityClient, db, nil, publisher, logger)
+	executor := NewUploadExecutor(registry, userClient, activityClient, db, nil, logger)
 
 	// Create a test payload
 	payload := &pbevents.EnrichedActivityEvent{
@@ -305,8 +296,7 @@ func TestUploadExecutor_ConcurrentResume_SingleCreate(t *testing.T) {
 	activityClient := &mockActivityServiceClient{}
 	// One shared DB so the claim written by the first execution is visible to the second.
 	db := &mocks.MockDatabase{}
-	publisher := &mocks.MockPublisher{}
-	executor := NewUploadExecutor(registry, userClient, activityClient, db, nil, publisher, infra.NewLogger())
+	executor := NewUploadExecutor(registry, userClient, activityClient, db, nil, infra.NewLogger())
 
 	run := func(execID string) {
 		payload := &pbevents.EnrichedActivityEvent{
@@ -358,7 +348,7 @@ func TestUploadExecutor_CancelledRun_SkipsUploads(t *testing.T) {
 			}, nil
 		},
 	}
-	executor := NewUploadExecutor(registry, userClient, &mockActivityServiceClient{}, db, nil, &mocks.MockPublisher{}, infra.NewLogger())
+	executor := NewUploadExecutor(registry, userClient, &mockActivityServiceClient{}, db, nil, infra.NewLogger())
 
 	payload := &pbevents.EnrichedActivityEvent{
 		UserId:              "user-1",
@@ -428,7 +418,7 @@ func TestUploadExecutor_TargetedRepost_BypassesIdempotencyGuard(t *testing.T) {
 			},
 		}
 		db := &mocks.MockDatabase{GetDestinationOutcomesFunc: outcomes}
-		executor := NewUploadExecutor(registry, userClient, &mockActivityServiceClient{}, db, nil, &mocks.MockPublisher{}, infra.NewLogger())
+		executor := NewUploadExecutor(registry, userClient, &mockActivityServiceClient{}, db, nil, infra.NewLogger())
 
 		payloadBytes, err := protojson.Marshal(newPayload(meta))
 		assert.NoError(t, err)
@@ -489,7 +479,7 @@ func TestUploadExecutor_Resume_UpdatesAlreadySucceededDestination(t *testing.T) 
 		}
 	}
 
-	run := func(t *testing.T, meta map[string]string) (int32, int32, []string) {
+	run := func(t *testing.T, meta map[string]string) (int32, int32) {
 		t.Helper()
 		registry := NewRegistry()
 		uploader := &countingUploader{name: "showcase", id: "showcase-1"}
@@ -501,16 +491,7 @@ func TestUploadExecutor_Resume_UpdatesAlreadySucceededDestination(t *testing.T) 
 			},
 		}
 		db := &mocks.MockDatabase{GetDestinationOutcomesFunc: priorShowcaseSuccess}
-		var notificationTitles []string
-		pub := &mocks.MockPublisher{PublishJSONFunc: func(ctx context.Context, topic string, data []byte) error {
-			var req pbnotification.NotificationRequest
-			if err := protojson.Unmarshal(data, &req); err != nil {
-				return err
-			}
-			notificationTitles = append(notificationTitles, req.Title)
-			return nil
-		}}
-		executor := NewUploadExecutor(registry, userClient, &mockActivityServiceClient{}, db, nil, pub, infra.NewLogger())
+		executor := NewUploadExecutor(registry, userClient, &mockActivityServiceClient{}, db, nil, infra.NewLogger())
 
 		payloadBytes, err := protojson.Marshal(newPayload(meta))
 		assert.NoError(t, err)
@@ -520,35 +501,31 @@ func TestUploadExecutor_Resume_UpdatesAlreadySucceededDestination(t *testing.T) 
 		ce.SetSource("test")
 		ce.SetData("application/json", payloadBytes)
 		assert.NoError(t, executor.Process(context.Background(), &ce))
-		return atomic.LoadInt32(&uploader.createCalls), atomic.LoadInt32(&uploader.updateCalls), notificationTitles
+		return atomic.LoadInt32(&uploader.createCalls), atomic.LoadInt32(&uploader.updateCalls)
 	}
 
 	// Plain redelivery (no resume flag): prior SUCCESS must short-circuit — no Create, no Update.
-	if c, u, _ := run(t, nil); c != 0 || u != 0 {
+	if c, u := run(t, nil); c != 0 || u != 0 {
 		t.Errorf("expected redelivery to skip (0 create, 0 update), got %d create, %d update", c, u)
 	}
 
 	// Resume: the already-succeeded destination must be Updated with refreshed data, not skipped or
 	// duplicated. This is a *blocking* pending input resolution (no use_update_method metadata set —
-	// only pipeline_resumed), so it must still be recognized as a re-run and get the lighter "Activity
-	// Updated" notice, not a full "Activity Synced" re-notification.
-	c, u, titles := run(t, map[string]string{"pipeline_resumed": "true"})
+	// only pipeline_resumed), so it must still be recognized as a re-run.
+	c, u := run(t, map[string]string{"pipeline_resumed": "true"})
 	if c != 0 || u != 1 {
 		t.Errorf("expected resume to update once (0 create, 1 update), got %d create, %d update", c, u)
 	}
-	if len(titles) != 1 || titles[0] != "Activity Updated: " {
-		t.Errorf("expected a single lighter 'Activity Updated' notification, got %v", titles)
-	}
 }
 
-// TestUploadExecutor_AuthFailure_PromptsReconnect reproduces the reported SERVER-B symptom: a
+// TestUploadExecutor_AuthFailure_LogsAtWarn reproduces the reported SERVER-B symptom: a
 // destination upload failing on an expired/revoked credential. Destination APIs surface this as
-// HTTP 401/403, which uploaders return as *httputil.HTTPError. The executor must recognise it,
-// prompt the user to reconnect (previously dead code — no uploader set CodeIntegrationAuthFailed),
+// HTTP 401/403, which uploaders return as *httputil.HTTPError. The executor must recognise it
 // and log at Warn so it is not alerted to Sentry as a code fault. Genuine faults (500) and
-// unclassified errors must NOT trigger a reconnect prompt (they still log at Error → Sentry).
-func TestUploadExecutor_AuthFailure_PromptsReconnect(t *testing.T) {
-	run := func(t *testing.T, uploadErr error) []pbnotification.NotificationType {
+// unclassified errors still log at Error → Sentry. (The reconnect push prompt that used to
+// accompany this is gone — the FAILED outcome is what surfaces it to the user.)
+func TestUploadExecutor_AuthFailure_LogsAtWarn(t *testing.T) {
+	run := func(t *testing.T, uploadErr error) (warns, errs int) {
 		t.Helper()
 		registry := NewRegistry()
 		registry.Register(pbplugin.DestinationType_DESTINATION_STRAVA, &mockUploader{name: "strava", err: uploadErr})
@@ -558,18 +535,8 @@ func TestUploadExecutor_AuthFailure_PromptsReconnect(t *testing.T) {
 				return &pbuser.UserProfile{UserId: in.UserId}, nil
 			},
 		}
-		var notifTypes []pbnotification.NotificationType
-		pub := &mocks.MockPublisher{PublishJSONFunc: func(ctx context.Context, topic string, data []byte) error {
-			var req pbnotification.NotificationRequest
-			if err := protojson.Unmarshal(data, &req); err != nil {
-				return err
-			}
-			notifTypes = append(notifTypes, req.Type)
-			return nil
-		}}
-		// No pipelineRunId on the payload, so UpdateStatus is skipped and the only publish that can
-		// occur is the reconnect prompt — isolating the behaviour under test.
-		executor := NewUploadExecutor(registry, userClient, &mockActivityServiceClient{}, &mocks.MockDatabase{}, nil, pub, infra.NewLogger())
+		rec := &levelRecordingLogger{Logger: infra.NewLogger()}
+		executor := NewUploadExecutor(registry, userClient, &mockActivityServiceClient{}, &mocks.MockDatabase{}, nil, rec)
 
 		payload := &pbevents.EnrichedActivityEvent{
 			UserId:       "user-1",
@@ -585,34 +552,74 @@ func TestUploadExecutor_AuthFailure_PromptsReconnect(t *testing.T) {
 		ce.SetSource("test")
 		ce.SetData("application/json", payloadBytes)
 		assert.NoError(t, executor.Process(context.Background(), &ce))
-		return notifTypes
+		return rec.warnCount("credential needs reconnection"), rec.errorCount("Destination uploader failed")
 	}
 
-	hasReconnect := func(types []pbnotification.NotificationType) bool {
-		for _, ty := range types {
-			if ty == pbnotification.NotificationType_NOTIFICATION_TYPE_CONNECTION_ACTION {
-				return true
-			}
+	// 401 = expired/revoked credential → Warn, not Error.
+	if w, e := run(t, &httputil.HTTPError{StatusCode: http.StatusUnauthorized, Status: "Unauthorized", Message: "Strava upload failed"}); w != 1 || e != 0 {
+		t.Errorf("401 auth failure: expected 1 reconnect warn and 0 errors, got %d/%d", w, e)
+	}
+	// 403 = revoked access → Warn, not Error.
+	if w, e := run(t, &httputil.HTTPError{StatusCode: http.StatusForbidden, Status: "Forbidden"}); w != 1 || e != 0 {
+		t.Errorf("403 auth failure: expected 1 reconnect warn and 0 errors, got %d/%d", w, e)
+	}
+	// 500 = genuine fault → Error-level (Sentry), no reconnect warn.
+	if w, e := run(t, &httputil.HTTPError{StatusCode: http.StatusInternalServerError, Status: "Internal Server Error"}); w != 0 || e != 1 {
+		t.Errorf("500 fault: expected 0 reconnect warns and 1 error, got %d/%d", w, e)
+	}
+	// Plain unclassified error → Error-level, no reconnect warn.
+	if w, e := run(t, fmt.Errorf("upstream boom")); w != 0 || e != 1 {
+		t.Errorf("plain error: expected 0 reconnect warns and 1 error, got %d/%d", w, e)
+	}
+}
+
+// levelRecordingLogger counts Warn/Error calls by message so tests can assert on the
+// level a condition was logged at.
+type levelRecordingLogger struct {
+	infra.Logger
+	mu    sync.Mutex
+	warns []string
+	errs  []string
+}
+
+func (l *levelRecordingLogger) Warn(ctx context.Context, msg string, args ...any) {
+	l.mu.Lock()
+	l.warns = append(l.warns, msg)
+	l.mu.Unlock()
+	l.Logger.Warn(ctx, msg, args...)
+}
+
+func (l *levelRecordingLogger) Error(ctx context.Context, msg string, args ...any) {
+	l.mu.Lock()
+	l.errs = append(l.errs, msg)
+	l.mu.Unlock()
+	l.Logger.Error(ctx, msg, args...)
+}
+
+func (l *levelRecordingLogger) With(args ...any) infra.Logger { return l }
+
+func (l *levelRecordingLogger) warnCount(substr string) int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	n := 0
+	for _, m := range l.warns {
+		if strings.Contains(m, substr) {
+			n++
 		}
-		return false
 	}
+	return n
+}
 
-	// 401 = expired/revoked credential → prompt reconnect.
-	if got := run(t, &httputil.HTTPError{StatusCode: http.StatusUnauthorized, Status: "Unauthorized", Message: "Strava upload failed"}); !hasReconnect(got) {
-		t.Errorf("401 auth failure: expected a reconnect (CONNECTION_ACTION) notification, got %v", got)
+func (l *levelRecordingLogger) errorCount(substr string) int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	n := 0
+	for _, m := range l.errs {
+		if strings.Contains(m, substr) {
+			n++
+		}
 	}
-	// 403 = revoked access → prompt reconnect.
-	if got := run(t, &httputil.HTTPError{StatusCode: http.StatusForbidden, Status: "Forbidden"}); !hasReconnect(got) {
-		t.Errorf("403 auth failure: expected a reconnect (CONNECTION_ACTION) notification, got %v", got)
-	}
-	// 500 = genuine fault → no reconnect prompt (still an Error-level Sentry alert).
-	if got := run(t, &httputil.HTTPError{StatusCode: http.StatusInternalServerError, Status: "Internal Server Error"}); hasReconnect(got) {
-		t.Errorf("500 fault: expected no reconnect notification, got %v", got)
-	}
-	// Plain unclassified error → no reconnect prompt.
-	if got := run(t, fmt.Errorf("upstream boom")); hasReconnect(got) {
-		t.Errorf("plain error: expected no reconnect notification, got %v", got)
-	}
+	return n
 }
 
 func TestUploadExecutor_Process_GetProfileError_WritesFailure(t *testing.T) {
@@ -630,10 +637,9 @@ func TestUploadExecutor_Process_GetProfileError_WritesFailure(t *testing.T) {
 	// Track SetDestinationOutcome calls
 	var writtenOutcomes []*pbpipeline.DestinationOutcome
 	db := &mocks.MockDatabase{}
-	publisher := &mocks.MockPublisher{}
 	logger := infra.NewLogger()
 
-	executor := NewUploadExecutor(registry, userClient, activityClient, db, nil, publisher, logger)
+	executor := NewUploadExecutor(registry, userClient, activityClient, db, nil, logger)
 
 	// Override the DB to track outcomes written by writeFailureForAllDestinations
 	type outcomeTracker struct {

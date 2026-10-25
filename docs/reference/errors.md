@@ -60,7 +60,6 @@ All codes are strings matching between Go and TypeScript.
 | `STORAGE_ERROR` | ✅ | Firestore/GCS issue |
 | `PUBSUB_ERROR` | ✅ | Pub/Sub issue |
 | `SECRET_ERROR` | ✅ | Secret Manager issue |
-| `NOTIFICATION_ERROR` | ✅ | FCM issue |
 
 ### General Errors
 

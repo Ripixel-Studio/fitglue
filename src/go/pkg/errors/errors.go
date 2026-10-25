@@ -39,10 +39,9 @@ const (
 	CodeActivityInvalidFormat ErrorCode = "ACTIVITY_INVALID_FORMAT"
 
 	// Infrastructure errors
-	CodeStorageError      ErrorCode = "STORAGE_ERROR"
-	CodePubSubError       ErrorCode = "PUBSUB_ERROR"
-	CodeSecretError       ErrorCode = "SECRET_ERROR"
-	CodeNotificationError ErrorCode = "NOTIFICATION_ERROR"
+	CodeStorageError ErrorCode = "STORAGE_ERROR"
+	CodePubSubError  ErrorCode = "PUBSUB_ERROR"
+	CodeSecretError  ErrorCode = "SECRET_ERROR"
 
 	// General errors
 	CodeValidationError ErrorCode = "VALIDATION_ERROR"
@@ -141,10 +140,9 @@ var (
 	ErrActivityInvalidFormat = &FitGlueError{Code: CodeActivityInvalidFormat, Message: "invalid activity format", Retryable: false}
 
 	// Infrastructure errors
-	ErrStorageError      = &FitGlueError{Code: CodeStorageError, Message: "storage error", Retryable: true}
-	ErrPubSubError       = &FitGlueError{Code: CodePubSubError, Message: "pubsub error", Retryable: true}
-	ErrSecretError       = &FitGlueError{Code: CodeSecretError, Message: "secret access error", Retryable: true}
-	ErrNotificationError = &FitGlueError{Code: CodeNotificationError, Message: "notification error", Retryable: true}
+	ErrStorageError = &FitGlueError{Code: CodeStorageError, Message: "storage error", Retryable: true}
+	ErrPubSubError  = &FitGlueError{Code: CodePubSubError, Message: "pubsub error", Retryable: true}
+	ErrSecretError  = &FitGlueError{Code: CodeSecretError, Message: "secret access error", Retryable: true}
 
 	// General errors
 	ErrValidation = &FitGlueError{Code: CodeValidationError, Message: "validation error", Retryable: false}

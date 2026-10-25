@@ -277,7 +277,7 @@ func TestOrchestrator_Process(t *testing.T) {
 			},
 		}
 
-		orchestrator := NewOrchestrator(mockDB, mockStorage, "test-bucket", nil)
+		orchestrator := NewOrchestrator(mockDB, mockStorage, "test-bucket")
 
 		mockProvider := &MockProvider{
 			NameFunc: func() string { return "mock-enricher" },
@@ -349,7 +349,7 @@ func TestOrchestrator_Process(t *testing.T) {
 			},
 		}
 
-		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket", nil)
+		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket")
 
 		nonExistentPipelineID := "non-existent-pipeline"
 		payload := &pbevents.ActivityPayload{
@@ -388,7 +388,7 @@ func TestOrchestrator_Process(t *testing.T) {
 				return &user.Record{UserProfile: &pbuser.UserProfile{UserId: id}}, nil
 			},
 		}
-		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket", nil)
+		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket")
 		payload := &pbevents.ActivityPayload{
 			UserId: "user-1",
 			StandardizedActivity: &pbactivity.StandardizedActivity{
@@ -407,7 +407,7 @@ func TestOrchestrator_Process(t *testing.T) {
 				return &user.Record{UserProfile: &pbuser.UserProfile{UserId: id}}, nil
 			},
 		}
-		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket", nil)
+		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket")
 		payload := &pbevents.ActivityPayload{
 			UserId: "user-1",
 			StandardizedActivity: &pbactivity.StandardizedActivity{
@@ -447,7 +447,7 @@ func TestOrchestrator_Process(t *testing.T) {
 				}, nil
 			},
 		}
-		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket", nil)
+		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket")
 		orchestrator.Register(mockProvider)
 
 		pipelineID := "p1"
@@ -541,7 +541,7 @@ func TestOrchestrator_Process(t *testing.T) {
 			},
 		}
 
-		orchestrator := NewOrchestrator(mockDB, mockStorage, "test-bucket", nil)
+		orchestrator := NewOrchestrator(mockDB, mockStorage, "test-bucket")
 
 		// Mock provider returns a description based on its config ID
 		mockProvider := &MockProvider{
@@ -633,7 +633,7 @@ func TestOrchestrator_Process(t *testing.T) {
 			},
 		}
 
-		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket", nil)
+		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket")
 		orchestrator.Register(&MockProvider{})
 
 		pipelineID := "pipeline-repost"
@@ -764,7 +764,7 @@ func TestOrchestrator_DeferredExecution(t *testing.T) {
 			},
 		}
 
-		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket", nil)
+		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket")
 		orchestrator.Register(normalProvider)
 		orchestrator.Register(deferredProvider)
 
@@ -862,7 +862,7 @@ func TestOrchestrator_DeferredExecution(t *testing.T) {
 			},
 		}
 
-		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket", nil)
+		orchestrator := NewOrchestrator(mockDB, &MockBlobStore{}, "test-bucket")
 		orchestrator.Register(deferredProvider)
 		orchestrator.Register(normalProvider)
 

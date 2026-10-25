@@ -227,10 +227,6 @@ func UserToFirestore(u *user.Record) map[string]interface{} {
 		m["integrations"] = integrations
 	}
 
-	if len(u.FcmTokens) > 0 {
-		m["fcm_tokens"] = u.FcmTokens
-	}
-
 	// Pipelines moved to sub-collection users/{userId}/pipelines
 
 	m["is_admin"] = u.IsAdmin
@@ -401,17 +397,6 @@ func FirestoreToUser(m map[string]interface{}) *user.Record {
 
 	u.IsAdmin = getBool(m, "is_admin")
 	u.AccessEnabled = getBool(m, "access_enabled")
-
-	if tokens, ok := m["fcm_tokens"].([]interface{}); ok {
-		u.FcmTokens = make([]string, len(tokens))
-		for i, v := range tokens {
-			if s, ok := v.(string); ok {
-				u.FcmTokens[i] = s
-			}
-		}
-	} else if tokens, ok := m["fcm_tokens"].([]string); ok {
-		u.FcmTokens = tokens
-	}
 
 	// Pipelines moved to sub-collection users/{userId}/pipelines
 

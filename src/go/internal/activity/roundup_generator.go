@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
-	"github.com/fitglue/server/src/go/pkg/notificationpub"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
-	pbnotification "github.com/fitglue/server/src/go/pkg/types/pb/models/notification"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -319,37 +316,7 @@ func (s *Service) generateRoundup(ctx context.Context, userID string, periodType
 		return nil, fmt.Errorf("save roundup: %w", err)
 	}
 
-	// Only tell the user about a roundup for a period that just ended. Backfilled
-	// or recomputed history (a period that closed more than two weeks ago) is
-	// silent — nobody wants forty pushes for last spring.
-	if time.Since(periodEnd) <= 14*24*time.Hour {
-		s.sendRoundupNotification(ctx, userID, roundup)
-	}
-
 	return roundup, nil
-}
-
-func (s *Service) sendRoundupNotification(ctx context.Context, userID string, roundup *pbactivity.ShowcaseRoundup) {
-	if s.publisher == nil {
-		return
-	}
-	period := "Weekly"
-	switch roundup.PeriodType {
-	case pbactivity.RoundupPeriodType_ROUNDUP_PERIOD_TYPE_MONTH:
-		period = "Monthly"
-	case pbactivity.RoundupPeriodType_ROUNDUP_PERIOD_TYPE_YEAR:
-		period = "Yearly"
-	}
-	req := &pbnotification.NotificationRequest{
-		UserId: userID,
-		Type:   pbnotification.NotificationType_NOTIFICATION_TYPE_SHOWCASE_ROUNDUP,
-		Title:  fmt.Sprintf("%s Showcase Roundup Ready", period),
-		Body:   fmt.Sprintf("%d activities · view your %s summary", roundup.TotalActivities, strings.ToLower(period)),
-		Data:   map[string]string{"slug": roundup.Slug, "period": roundup.PeriodKey},
-	}
-	if err := notificationpub.Enqueue(ctx, s.publisher, req); err != nil {
-		s.logger.Warn(ctx, "Failed to enqueue roundup notification", "error", err, "user_id", userID)
-	}
 }
 
 func periodKey(t pbactivity.RoundupPeriodType, start time.Time) string {

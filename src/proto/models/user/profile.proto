@@ -18,16 +18,15 @@ message UserProfile {
 
   string user_id = 1;
   google.protobuf.Timestamp created_at = 2;
-  repeated string fcm_tokens = 3;
+  reserved 3; // was the push-token list (removed, single-user conversion F1.3)
 
   bool is_admin = 5;
   
   // Waitlist gate - false until admin enables access
   bool access_enabled = 9;
   
-  // User's push notification preferences
-  NotificationPreferences notification_preferences = 10;
-  
+  reserved 10; // was push notification preferences (removed, single-user conversion F1.3)
+
   string email = 12;
   string display_name = 13;
 
@@ -36,28 +35,6 @@ message UserProfile {
   // Optional; absent means not yet computed.
   optional int32 current_streak_days = 14;
   optional int32 longest_streak_days = 15;
-}
-
-enum NotificationChannel {
-  NOTIFICATION_CHANNEL_UNSPECIFIED = 0;
-  NOTIFICATION_CHANNEL_PUSH = 1;
-  NOTIFICATION_CHANNEL_EMAIL = 2;
-}
-
-// NotificationTypePreference holds which channels are active for one notification type.
-// An empty channels list means the notification type is disabled entirely.
-// A nil/absent preference means "use the default" which is [PUSH].
-message NotificationTypePreference {
-  repeated NotificationChannel channels = 1;
-}
-
-message NotificationPreferences {
-  NotificationTypePreference pending_input = 1;
-  NotificationTypePreference pipeline_success = 2;
-  NotificationTypePreference pipeline_failure = 3;
-  NotificationTypePreference connection_action = 4;
-  NotificationTypePreference showcase_roundup = 5;
-  NotificationTypePreference pipeline_cancelled = 6;
 }
 
 message Counter {

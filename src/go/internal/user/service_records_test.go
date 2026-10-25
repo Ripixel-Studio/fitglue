@@ -137,23 +137,3 @@ func TestPluginDefaultsRPCs(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
-
-func TestSetFCMTokenRPC(t *testing.T) {
-	svc, store, _, _ := setupTest()
-	ctx := context.Background()
-
-	t.Run("EmptyFields", func(t *testing.T) {
-		_, err := svc.SetFCMToken(ctx, &pbsvc.SetFCMTokenRequest{UserId: "u1"})
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-	t.Run("StoreError", func(t *testing.T) {
-		store.err = errors.New("boom")
-		_, err := svc.SetFCMToken(ctx, &pbsvc.SetFCMTokenRequest{UserId: "u1", Token: "t1"})
-		assert.Equal(t, codes.Internal, status.Code(err))
-		store.err = nil
-	})
-	t.Run("Success", func(t *testing.T) {
-		_, err := svc.SetFCMToken(ctx, &pbsvc.SetFCMTokenRequest{UserId: "u1", Token: "t1"})
-		assert.NoError(t, err)
-	})
-}
