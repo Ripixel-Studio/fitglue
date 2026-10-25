@@ -620,39 +620,8 @@ func (s *FirestoreStore) SetRoundup(ctx context.Context, roundup *pbactivity.Sho
 	return err
 }
 
-func (s *FirestoreStore) ListRecentRoundups(ctx context.Context, slug string, limit int) ([]*pbactivity.ShowcaseRoundup, error) {
-	if limit <= 0 {
-		limit = 3
-	}
-	iter := s.client.Collection("showcased_roundups").
-		Where("slug", "==", slug).
-		OrderBy("period_end", firestore.Desc).
-		Limit(limit).
-		Documents(ctx)
-	defer iter.Stop()
-
-	var results []*pbactivity.ShowcaseRoundup
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		var r pbactivity.ShowcaseRoundup
-		if err := decodeProtoMap(doc.Data(), &r); err != nil {
-			return nil, err
-		}
-		results = append(results, &r)
-	}
-	return results, nil
-}
-
-// ListAllRoundups returns every roundup for slug, newest first — used for
-// in-memory pagination in GetRecentPublicRoundups, mirroring the
-// GetPublicShowcaseProfile pattern until real Firestore offset pagination
-// is needed here.
+// ListAllRoundups returns every roundup for slug, newest first — the site
+// exporter reads the whole set to write roundup/<key>.json files.
 func (s *FirestoreStore) ListAllRoundups(ctx context.Context, slug string) ([]*pbactivity.ShowcaseRoundup, error) {
 	iter := s.client.Collection("showcased_roundups").
 		Where("slug", "==", slug).

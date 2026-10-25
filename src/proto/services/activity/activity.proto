@@ -163,16 +163,6 @@ service ActivityService {
     };
   }
 
-  rpc GetPublicRoundup(GetPublicRoundupRequest) returns (fitglue.models.activity.ShowcaseRoundup) {
-    option (google.api.http) = {
-      get: "/v2/public/showcase/{slug}/roundup/{period_key}"
-    };
-  }
-  rpc GetRecentPublicRoundups(GetRecentPublicRoundupsRequest) returns (GetRecentPublicRoundupsResponse) {
-    option (google.api.http) = {
-      get: "/v2/public/showcase/{slug}/roundups/recent"
-    };
-  }
   rpc UpdateRoundupSettings(UpdateRoundupSettingsRequest) returns (fitglue.models.activity.ShowcaseProfile) {
     option (google.api.http) = {
       put: "/v2/users/{user_id}/showcase-management/roundup-settings"
@@ -391,22 +381,6 @@ message GetActivityStatsResponse {
   int32 current_streak_days = 8;
   int32 longest_streak_days = 9;
   int32 uploads_this_week = 10;   // Total destination posts this week (one per destination per activity)
-}
-
-message GetPublicRoundupRequest {
-  string slug = 1;
-  string period_key = 2;
-}
-
-message GetRecentPublicRoundupsRequest {
-  string slug = 1;
-  int32 page = 2; // optional query param — 1-indexed, defaults to 1
-}
-
-message GetRecentPublicRoundupsResponse {
-  repeated fitglue.models.activity.ShowcaseRoundup roundups = 1;
-  int32 total_pages = 2;
-  int32 current_page = 3;
 }
 
 message UpdateRoundupSettingsRequest {

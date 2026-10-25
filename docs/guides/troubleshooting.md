@@ -415,7 +415,7 @@ severity>=WARNING
 jsonPayload.destination="<DESTINATION_NAME>"
 ```
 
-**Service name values**: `api-client`, `api-public`, `api-webhook`, `user`, `pipeline`, `activity`, `destination`
+**Service name values**: `api-client`, `api-webhook`, `user`, `pipeline`, `activity`, `destination`
 
 ### Sentry (optional)
 

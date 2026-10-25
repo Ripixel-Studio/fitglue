@@ -101,7 +101,7 @@ so none of the above needs sudo.
   server, no admin TCP port (admin API is a unix socket under
   `$XDG_RUNTIME_DIR`, mode 0600), and returns an empty 404 for everything else.
 - **Not exposed:** the home screen (8790), the dashboard (8787), the voicebox
-  (8788), the gateway, api-public (8107), user (8103), and pipeline's
+  (8788), the gateway, user (8103), and pipeline's
   `/internal/*` endpoints. Funnel forwards 443 to 8100 and nothing else; those
   services bind to loopback/tailnet addresses and Tailscale remains their auth.
   Caddy itself binds `127.0.0.1:8100` only.

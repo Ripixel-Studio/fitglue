@@ -55,13 +55,12 @@ npm run test:test       # Against test environment
 
 ## Service Architecture
 
-8 independent Cloud Run services. **3 HTTP gateways** (public-facing) + **5 domain services** (private).
+6 independent Cloud Run services. **2 HTTP gateways** (public-facing) + **4 domain services** (private).
 
 ```
 Internet
     │
     ├── api-client   (HTTP, static bearer)   → user, pipeline, activity
-    ├── api-public   (HTTP, no auth)          → activity (showcases)
     └── api-webhook  (HTTP, HMAC/OAuth)       → pipeline (via Pub/Sub)
                                                 user (resolve integration)
 Pub/Sub
@@ -86,7 +85,6 @@ server/
 │   │   ├── go.mod, go.sum          # Single root module (all services share it)
 │   │   ├── services/               # One directory per Cloud Run service
 │   │   │   ├── api-client/         # HTTP gateway (static bearer token, one user)
-│   │   │   ├── api-public/         # HTTP gateway (no auth)
 │   │   │   ├── api-webhook/        # HTTP gateway (HMAC/OAuth)
 │   │   │   │   └── internal/webhook/sources/  # strava/, fitbit/, hevy/, intervals/, github/, parkrun/
 │   │   │   ├── user/               # gRPC domain service

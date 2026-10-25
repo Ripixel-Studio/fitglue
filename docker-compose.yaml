@@ -15,16 +15,6 @@ services:
       - FITGLUE_API_TOKEN=${FITGLUE_API_TOKEN:-local-dev-token}
       - FITGLUE_OWNER_UID=${FITGLUE_OWNER_UID:-local-owner}
 
-  api-public:
-    build:
-      context: .
-      args:
-        SERVICE_NAME: api-public
-    ports:
-      - "8082:8080"
-    environment:
-      - PORT=8080
-
   api-webhook:
     build:
       context: .

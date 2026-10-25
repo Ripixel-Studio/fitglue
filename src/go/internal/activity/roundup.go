@@ -13,67 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *Service) GetPublicRoundup(ctx context.Context, req *pbsvc.GetPublicRoundupRequest) (*pbactivity.ShowcaseRoundup, error) {
-	if req.Slug == "" || req.PeriodKey == "" {
-		return nil, status.Error(codes.InvalidArgument, "slug and period_key are required")
-	}
-	roundup, err := s.store.GetRoundup(ctx, req.Slug, req.PeriodKey)
-	if err != nil {
-		s.logger.Error(ctx, "failed to get roundup", "error", err)
-		return nil, status.Error(codes.Internal, "failed to read roundup")
-	}
-	if roundup == nil {
-		return nil, status.Error(codes.NotFound, "roundup not found")
-	}
-	return roundup, nil
-}
-
-// roundupsPageSize mirrors the profile activity feed's page size, so both
-// "load more" affordances on the showcase profile page paginate consistently.
-const roundupsPageSize = 12
-
-func (s *Service) GetRecentPublicRoundups(ctx context.Context, req *pbsvc.GetRecentPublicRoundupsRequest) (*pbsvc.GetRecentPublicRoundupsResponse, error) {
-	if req.Slug == "" {
-		return nil, status.Error(codes.InvalidArgument, "slug is required")
-	}
-
-	all, err := s.store.ListAllRoundups(ctx, req.Slug)
-	if err != nil {
-		s.logger.Error(ctx, "failed to list roundups", "error", err)
-		return nil, status.Error(codes.Internal, "failed to list roundups")
-	}
-
-	page := req.Page
-	if page < 1 {
-		page = 1
-	}
-	start := int(page-1) * roundupsPageSize
-	if start < 0 {
-		start = 0
-	}
-
-	var pageRoundups []*pbactivity.ShowcaseRoundup
-	if start < len(all) {
-		end := start + roundupsPageSize
-		if end > len(all) {
-			end = len(all)
-		}
-		pageRoundups = all[start:end]
-	}
-
-	total := int32(len(all))
-	totalPages := (total + int32(roundupsPageSize) - 1) / int32(roundupsPageSize)
-	if totalPages < 1 {
-		totalPages = 1
-	}
-
-	return &pbsvc.GetRecentPublicRoundupsResponse{
-		Roundups:    pageRoundups,
-		TotalPages:  totalPages,
-		CurrentPage: page,
-	}, nil
-}
-
 func (s *Service) RecomputeRoundup(ctx context.Context, req *pbsvc.RecomputeRoundupRequest) (*pbactivity.ShowcaseRoundup, error) {
 	if req.UserId == "" || req.PeriodKey == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id and period_key are required")

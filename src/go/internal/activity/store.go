@@ -51,7 +51,6 @@ type ActivityStore interface {
 	// Roundup — snapshot storage
 	GetRoundup(ctx context.Context, slug, periodKey string) (*pbactivity.ShowcaseRoundup, error)
 	SetRoundup(ctx context.Context, roundup *pbactivity.ShowcaseRoundup) error
-	ListRecentRoundups(ctx context.Context, slug string, limit int) ([]*pbactivity.ShowcaseRoundup, error)
 	ListAllRoundups(ctx context.Context, slug string) ([]*pbactivity.ShowcaseRoundup, error)
 
 	// Roundup — generation inputs
