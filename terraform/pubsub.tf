@@ -6,15 +6,6 @@ resource "google_pubsub_topic" "raw_activity" {
   message_retention_duration = "3600s"
 }
 
-# Mobile activity topic - carries mobile health activities from mobile-sync-handler
-# mobile-source-handler subscribes to process into StandardizedActivity
-resource "google_pubsub_topic" "mobile_activity" {
-  name    = "topic-mobile-activity"
-  project = var.project_id
-
-  message_retention_duration = "3600s"
-}
-
 resource "google_pubsub_topic" "enriched_activity" {
   name    = "topic-enriched-activity"
   project = var.project_id

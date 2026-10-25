@@ -8,7 +8,7 @@ FitGlue has three distinct HTTP gateway services, each with its own auth policy 
 |---------|---------|------|-------------|
 | `service.api.client` | Web app, mobile app | Firebase Auth JWT | user, pipeline, activity |
 | `service.api.public` | Unauthenticated browser | None (rate-limited) | activity |
-| `service.api.webhook` | Third-party services (Strava, Fitbit, etc.) | Provider HMAC / Mobile JWT | user (via RPC), Pub/Sub |
+| `service.api.webhook` | Third-party services (Strava, Fitbit, etc.) | Provider HMAC / signature | user (via RPC), Pub/Sub |
 
 ## service.api.client
 
@@ -54,7 +54,7 @@ Unauthenticated endpoints for public-facing consumers.
 
 Inbound webhook processor for all third-party sources.
 
-**Auth:** Per-provider HMAC or signature verification (no Firebase JWT). Mobile push endpoints use a separate mobile JWT.
+**Auth:** Per-provider HMAC or signature verification (no Firebase JWT).
 
 **Architecture:** Uses a `SourceProvider` interface + `WebhookProcessor` orchestrator. Each source provider is an isolated Go package:
 
@@ -63,11 +63,9 @@ internal/webhook/sources/
 ├── strava/provider.go      # Implements SourceProvider
 ├── fitbit/provider.go
 ├── hevy/provider.go
-├── polar/provider.go
-├── wahoo/provider.go
-├── oura/provider.go
-├── mobile/provider.go      # Apple Health + Health Connect
-└── mock/provider.go        # Testing
+├── intervals/provider.go
+├── github/provider.go
+└── parkrun/provider.go
 ```
 
 **Webhook request lifecycle:**
@@ -80,9 +78,9 @@ internal/webhook/sources/
 
 **Adding a new source:**
 ```bash
-make plugin-source name=wahoo
+make plugin-source name=garmin
 ```
-Creates `internal/webhook/sources/wahoo/provider.go` with stub implementation. Implement `SourceProvider`, register in `init()`. No router changes needed.
+Creates `internal/webhook/sources/garmin/provider.go` with stub implementation. Implement `SourceProvider`, register in `init()`. No router changes needed.
 
 ## OpenAPI Spec
 

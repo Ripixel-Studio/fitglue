@@ -49,11 +49,6 @@ Data enters via `service.api.webhook`, which hosts a generic `WebhookProcessor` 
 | Hevy | API Key / HMAC | Webhook push |
 | Strava | OAuth | Webhook push |
 | Fitbit | OAuth | Notification + poll |
-| Polar | OAuth | Webhook push |
-| Wahoo | OAuth | Webhook push |
-| Oura | OAuth | Notification + poll |
-| Apple Health | Mobile push (JWT) | Direct API call |
-| Health Connect | Mobile push (JWT) | Direct API call |
 | FIT Upload | Firebase JWT | Direct file upload |
 
 Each source:

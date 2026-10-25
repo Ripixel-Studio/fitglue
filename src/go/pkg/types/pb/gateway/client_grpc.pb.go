@@ -49,7 +49,6 @@ const (
 	ClientGatewayService_SendVerificationEmail_FullMethodName              = "/fitglue.gateway.ClientGatewayService/SendVerificationEmail"
 	ClientGatewayService_SendEmailChangeVerification_FullMethodName        = "/fitglue.gateway.ClientGatewayService/SendEmailChangeVerification"
 	ClientGatewayService_SendPasswordReset_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/SendPasswordReset"
-	ClientGatewayService_MobileSync_FullMethodName                         = "/fitglue.gateway.ClientGatewayService/MobileSync"
 	ClientGatewayService_ListPipelines_FullMethodName                      = "/fitglue.gateway.ClientGatewayService/ListPipelines"
 	ClientGatewayService_GetPipeline_FullMethodName                        = "/fitglue.gateway.ClientGatewayService/GetPipeline"
 	ClientGatewayService_CreatePipeline_FullMethodName                     = "/fitglue.gateway.ClientGatewayService/CreatePipeline"
@@ -146,8 +145,6 @@ type ClientGatewayServiceClient interface {
 	SendVerificationEmail(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	SendEmailChangeVerification(ctx context.Context, in *SendEmailChangeGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	SendPasswordReset(ctx context.Context, in *SendPasswordResetGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// ===================== Mobile Sync =====================
-	MobileSync(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// ===================== Pipelines =====================
 	ListPipelines(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListPipelinesGatewayResponse, error)
 	GetPipeline(ctx context.Context, in *PipelineIdRequest, opts ...grpc.CallOption) (*pipeline.PipelineConfig, error)
@@ -488,16 +485,6 @@ func (c *clientGatewayServiceClient) SendPasswordReset(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, ClientGatewayService_SendPasswordReset_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) MobileSync(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, ClientGatewayService_MobileSync_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1039,8 +1026,6 @@ type ClientGatewayServiceServer interface {
 	SendVerificationEmail(context.Context, *EmptyRequest) (*emptypb.Empty, error)
 	SendEmailChangeVerification(context.Context, *SendEmailChangeGatewayRequest) (*emptypb.Empty, error)
 	SendPasswordReset(context.Context, *SendPasswordResetGatewayRequest) (*emptypb.Empty, error)
-	// ===================== Mobile Sync =====================
-	MobileSync(context.Context, *EmptyRequest) (*emptypb.Empty, error)
 	// ===================== Pipelines =====================
 	ListPipelines(context.Context, *EmptyRequest) (*ListPipelinesGatewayResponse, error)
 	GetPipeline(context.Context, *PipelineIdRequest) (*pipeline.PipelineConfig, error)
@@ -1204,9 +1189,6 @@ func (UnimplementedClientGatewayServiceServer) SendEmailChangeVerification(conte
 }
 func (UnimplementedClientGatewayServiceServer) SendPasswordReset(context.Context, *SendPasswordResetGatewayRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendPasswordReset not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) MobileSync(context.Context, *EmptyRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method MobileSync not implemented")
 }
 func (UnimplementedClientGatewayServiceServer) ListPipelines(context.Context, *EmptyRequest) (*ListPipelinesGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPipelines not implemented")
@@ -1840,24 +1822,6 @@ func _ClientGatewayService_SendPasswordReset_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClientGatewayServiceServer).SendPasswordReset(ctx, req.(*SendPasswordResetGatewayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_MobileSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).MobileSync(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_MobileSync_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).MobileSync(ctx, req.(*EmptyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2854,10 +2818,6 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendPasswordReset",
 			Handler:    _ClientGatewayService_SendPasswordReset_Handler,
-		},
-		{
-			MethodName: "MobileSync",
-			Handler:    _ClientGatewayService_MobileSync_Handler,
 		},
 		{
 			MethodName: "ListPipelines",

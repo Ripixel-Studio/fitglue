@@ -6,7 +6,7 @@ FitGlue uses a **type-safe, self-registering plugin architecture** for extensibl
 
 | Type | Language | Purpose | Examples |
 |------|----------|---------|----------|
-| **Source** | Go | Ingests data via webhooks from external services | Hevy, Fitbit, Strava, Polar, Oura, Wahoo |
+| **Source** | Go | Ingests data via webhooks from external services | Hevy, Fitbit, Strava, Intervals.icu, GitHub, Parkrun |
 | **Enricher** | Go | Transforms/enhances activities in pipeline | HR Summary, Weather, Parkrun, AI Companion |
 | **Destination** | Go | Uploads processed activities to external services | Strava, TrainingPeaks, Intervals.icu, Hevy, Fitbit, Google Sheets, GitHub, Showcase |
 
@@ -18,11 +18,6 @@ FitGlue uses a **type-safe, self-registering plugin architecture** for extensibl
 | Hevy | API Key / HMAC | Strength workouts, webhook sync |
 | Fitbit | OAuth | Activity notifications, polling |
 | Strava | OAuth | Activity webhooks |
-| Polar | OAuth | Activity webhooks |
-| Oura | OAuth | Sleep, readiness data |
-| Wahoo | OAuth | Cycling/running data |
-| Apple Health | Mobile JWT | iOS health data |
-| Health Connect | Mobile JWT | Android health data |
 | FIT Upload | Firebase JWT | Manual FIT file upload |
 | Parkrun Results | Public ID | Race results via athlete ID |
 

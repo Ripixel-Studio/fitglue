@@ -25,11 +25,11 @@ func TestGetSecret_ReadsClientSecret(t *testing.T) {
 }
 
 func TestGetSecret_ErrorWhenMissing(t *testing.T) {
-	src := &FirestoreTokenSource{provider: "polar"}
+	src := &FirestoreTokenSource{provider: "trainingpeaks"}
 	// Make sure the env var is not set
-	t.Setenv("POLAR_CLIENT_ID", "")
+	t.Setenv("TRAININGPEAKS_CLIENT_ID", "")
 	_, err := src.getSecret("client-id")
-	assert.ErrorContains(t, err, "POLAR_CLIENT_ID")
+	assert.ErrorContains(t, err, "TRAININGPEAKS_CLIENT_ID")
 }
 
 func TestGetSecret_HandlesHyphenatedProvider(t *testing.T) {

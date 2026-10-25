@@ -19,6 +19,9 @@ enum ActivitySource {
   SOURCE_PARKRUN_RESULTS = 4; 
   SOURCE_FILE_UPLOAD = 5;     
   SOURCE_STRAVA = 6 [(corresponding_destination) = "DESTINATION_STRAVA"];
+  // 8-12 have no live source since F1.6 (mobile app, Oura, Polar, Wahoo removed) but
+  // stay defined: stored activities and pipeline_runs are read back with protojson,
+  // which rejects unknown enum names.
   SOURCE_APPLE_HEALTH = 8;
   SOURCE_HEALTH_CONNECT = 9;
   SOURCE_OURA = 10;

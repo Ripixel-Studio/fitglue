@@ -102,14 +102,8 @@ const (
 	CloudEventSource_CLOUD_EVENT_SOURCE_PARKRUN_RESULTS   CloudEventSource = 7
 	CloudEventSource_CLOUD_EVENT_SOURCE_FILE_UPLOAD       CloudEventSource = 8
 	CloudEventSource_CLOUD_EVENT_SOURCE_STRAVA            CloudEventSource = 9
-	CloudEventSource_CLOUD_EVENT_SOURCE_OURA              CloudEventSource = 10
-	CloudEventSource_CLOUD_EVENT_SOURCE_POLAR_WEBHOOK     CloudEventSource = 11
-	CloudEventSource_CLOUD_EVENT_SOURCE_WAHOO             CloudEventSource = 12
 	CloudEventSource_CLOUD_EVENT_SOURCE_PIPELINE_SPLITTER CloudEventSource = 13
 	CloudEventSource_CLOUD_EVENT_SOURCE_GITHUB            CloudEventSource = 14
-	CloudEventSource_CLOUD_EVENT_SOURCE_APPLE_HEALTH      CloudEventSource = 15
-	CloudEventSource_CLOUD_EVENT_SOURCE_HEALTH_CONNECT    CloudEventSource = 16
-	CloudEventSource_CLOUD_EVENT_SOURCE_MOCK              CloudEventSource = 99
 )
 
 // Enum value maps for CloudEventSource.
@@ -125,14 +119,8 @@ var (
 		7:  "CLOUD_EVENT_SOURCE_PARKRUN_RESULTS",
 		8:  "CLOUD_EVENT_SOURCE_FILE_UPLOAD",
 		9:  "CLOUD_EVENT_SOURCE_STRAVA",
-		10: "CLOUD_EVENT_SOURCE_OURA",
-		11: "CLOUD_EVENT_SOURCE_POLAR_WEBHOOK",
-		12: "CLOUD_EVENT_SOURCE_WAHOO",
 		13: "CLOUD_EVENT_SOURCE_PIPELINE_SPLITTER",
 		14: "CLOUD_EVENT_SOURCE_GITHUB",
-		15: "CLOUD_EVENT_SOURCE_APPLE_HEALTH",
-		16: "CLOUD_EVENT_SOURCE_HEALTH_CONNECT",
-		99: "CLOUD_EVENT_SOURCE_MOCK",
 	}
 	CloudEventSource_value = map[string]int32{
 		"CLOUD_EVENT_SOURCE_UNSPECIFIED":       0,
@@ -145,14 +133,8 @@ var (
 		"CLOUD_EVENT_SOURCE_PARKRUN_RESULTS":   7,
 		"CLOUD_EVENT_SOURCE_FILE_UPLOAD":       8,
 		"CLOUD_EVENT_SOURCE_STRAVA":            9,
-		"CLOUD_EVENT_SOURCE_OURA":              10,
-		"CLOUD_EVENT_SOURCE_POLAR_WEBHOOK":     11,
-		"CLOUD_EVENT_SOURCE_WAHOO":             12,
 		"CLOUD_EVENT_SOURCE_PIPELINE_SPLITTER": 13,
 		"CLOUD_EVENT_SOURCE_GITHUB":            14,
-		"CLOUD_EVENT_SOURCE_APPLE_HEALTH":      15,
-		"CLOUD_EVENT_SOURCE_HEALTH_CONNECT":    16,
-		"CLOUD_EVENT_SOURCE_MOCK":              99,
 	}
 )
 
@@ -705,7 +687,7 @@ const file_models_events_pipeline_proto_rawDesc = "" +
 	"$CLOUD_EVENT_TYPE_FITBIT_NOTIFICATION\x10\x04\x1a#\x82\xb5\x18\x1fcom.fitglue.fitbit.notification\x12C\n" +
 	"\x1fCLOUD_EVENT_TYPE_ENRICHMENT_LAG\x10\x05\x1a\x1e\x82\xb5\x18\x1acom.fitglue.enrichment.lag\x12C\n" +
 	"\x1fCLOUD_EVENT_TYPE_INPUT_RESOLVED\x10\x06\x1a\x1e\x82\xb5\x18\x1acom.fitglue.input.resolved\x12E\n" +
-	" CLOUD_EVENT_TYPE_PARKRUN_RESULTS\x10\a\x1a\x1f\x82\xb5\x18\x1bcom.fitglue.parkrun.results*\xdf\b\n" +
+	" CLOUD_EVENT_TYPE_PARKRUN_RESULTS\x10\a\x1a\x1f\x82\xb5\x18\x1bcom.fitglue.parkrun.results*\x8d\x06\n" +
 	"\x10CloudEventSource\x12\"\n" +
 	"\x1eCLOUD_EVENT_SOURCE_UNSPECIFIED\x10\x00\x123\n" +
 	"\x17CLOUD_EVENT_SOURCE_HEVY\x10\x01\x1a\x16\x8a\xb5\x18\x12/integrations/hevy\x12G\n" +
@@ -716,16 +698,11 @@ const file_models_events_pipeline_proto_rawDesc = "" +
 	"!CLOUD_EVENT_SOURCE_INPUTS_HANDLER\x10\x06\x1a\x18\x8a\xb5\x18\x14/core/inputs-handler\x12I\n" +
 	"\"CLOUD_EVENT_SOURCE_PARKRUN_RESULTS\x10\a\x1a!\x8a\xb5\x18\x1d/integrations/parkrun/results\x12A\n" +
 	"\x1eCLOUD_EVENT_SOURCE_FILE_UPLOAD\x10\b\x1a\x1d\x8a\xb5\x18\x19/integrations/file-upload\x127\n" +
-	"\x19CLOUD_EVENT_SOURCE_STRAVA\x10\t\x1a\x18\x8a\xb5\x18\x14/integrations/strava\x123\n" +
-	"\x17CLOUD_EVENT_SOURCE_OURA\x10\n" +
-	"\x1a\x16\x8a\xb5\x18\x12/integrations/oura\x12E\n" +
-	" CLOUD_EVENT_SOURCE_POLAR_WEBHOOK\x10\v\x1a\x1f\x8a\xb5\x18\x1b/integrations/polar/webhook\x125\n" +
-	"\x18CLOUD_EVENT_SOURCE_WAHOO\x10\f\x1a\x17\x8a\xb5\x18\x13/integrations/wahoo\x12E\n" +
+	"\x19CLOUD_EVENT_SOURCE_STRAVA\x10\t\x1a\x18\x8a\xb5\x18\x14/integrations/strava\x12E\n" +
 	"$CLOUD_EVENT_SOURCE_PIPELINE_SPLITTER\x10\r\x1a\x1b\x8a\xb5\x18\x17/core/pipeline-splitter\x127\n" +
-	"\x19CLOUD_EVENT_SOURCE_GITHUB\x10\x0e\x1a\x18\x8a\xb5\x18\x14/integrations/github\x12C\n" +
-	"\x1fCLOUD_EVENT_SOURCE_APPLE_HEALTH\x10\x0f\x1a\x1e\x8a\xb5\x18\x1a/integrations/apple-health\x12G\n" +
-	"!CLOUD_EVENT_SOURCE_HEALTH_CONNECT\x10\x10\x1a \x8a\xb5\x18\x1c/integrations/health-connect\x123\n" +
-	"\x17CLOUD_EVENT_SOURCE_MOCK\x10c\x1a\x16\x8a\xb5\x18\x12/integrations/mock:<\n" +
+	"\x19CLOUD_EVENT_SOURCE_GITHUB\x10\x0e\x1a\x18\x8a\xb5\x18\x14/integrations/github\"\x04\b\n" +
+	"\x10\n" +
+	"\"\x04\b\v\x10\v\"\x04\b\f\x10\f\"\x04\b\x0f\x10\x0f\"\x04\b\x10\x10\x10\"\x04\bc\x10c:<\n" +
 	"\ace_type\x12!.google.protobuf.EnumValueOptions\x18І\x03 \x01(\tR\x06ceType:@\n" +
 	"\tce_source\x12!.google.protobuf.EnumValueOptions\x18ц\x03 \x01(\tR\bceSourceB=Z;github.com/fitglue/server/src/go/pkg/types/pb/models/eventsb\x06proto3"
 

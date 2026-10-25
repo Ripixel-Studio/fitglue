@@ -92,7 +92,6 @@ Event-driven messaging between functions:
 | Topic | Publisher | Subscriber |
 |-------|-----------|------------|
 | `topic-raw-activity` | Webhook sources | Pipeline (splitter) |
-| `topic-mobile-activity` | Mobile webhook source | Pipeline |
 | `topic-pipeline-activity` | Pipeline (splitter) | Pipeline (enricher) |
 | `topic-enriched-activity` | Pipeline (enricher) | Destination |
 | `topic-destination-upload` | Pipeline (router) | Destination |

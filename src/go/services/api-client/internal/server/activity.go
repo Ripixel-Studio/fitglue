@@ -10,6 +10,7 @@ import (
 
 	pbactivitym "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
+	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"github.com/go-chi/chi/v5"
 	"google.golang.org/grpc/metadata"
 )
@@ -666,5 +667,38 @@ func (s *APIServer) handleRecomputeRoundup(w http.ResponseWriter, r *http.Reques
 		WriteError(w, err)
 		return
 	}
+	WriteJSON(w, res)
+}
+
+// handleGetActivityStats returns aggregate activity statistics for the dashboard.
+// It merges counts from the activity service with streak data from the user profile.
+func (s *APIServer) handleGetActivityStats(w http.ResponseWriter, r *http.Request) {
+	token := getUserToken(r)
+	if token == nil {
+		WriteError(w, statusError(http.StatusUnauthorized, "missing user context"))
+		return
+	}
+
+	res, err := s.activitySvc.GetActivityStats(r.Context(), &activitypb.GetActivityStatsRequest{
+		UserId: token.UID,
+	})
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	// Augment with streak data from user profile (best-effort; failures don't block the response).
+	profile, profileErr := s.userService.GetProfile(r.Context(), &userpb.GetProfileRequest{
+		UserId: token.UID,
+	})
+	if profileErr == nil && profile != nil {
+		if profile.CurrentStreakDays != nil {
+			res.CurrentStreakDays = *profile.CurrentStreakDays
+		}
+		if profile.LongestStreakDays != nil {
+			res.LongestStreakDays = *profile.LongestStreakDays
+		}
+	}
+
 	WriteJSON(w, res)
 }

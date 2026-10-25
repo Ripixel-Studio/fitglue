@@ -200,41 +200,6 @@ resource "google_secret_manager_secret_version" "trainingpeaks_client_secret_ini
 }
 
 # =============================================================================
-# Wahoo OAuth Credentials
-# =============================================================================
-resource "google_secret_manager_secret" "wahoo_client_id" {
-  secret_id = "wahoo-client-id"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "wahoo_client_id_initial" {
-  secret      = google_secret_manager_secret.wahoo_client_id.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-resource "google_secret_manager_secret" "wahoo_client_secret" {
-  secret_id = "wahoo-client-secret"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "wahoo_client_secret_initial" {
-  secret      = google_secret_manager_secret.wahoo_client_secret.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-# =============================================================================
 # Gemini API key for AI description enricher
 # =============================================================================
 resource "google_secret_manager_secret" "gemini_api_key" {
@@ -246,76 +211,6 @@ resource "google_secret_manager_secret" "gemini_api_key" {
 
 resource "google_secret_manager_secret_version" "gemini_api_key_initial" {
   secret      = google_secret_manager_secret.gemini_api_key.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-# =============================================================================
-# Polar OAuth Credentials
-# =============================================================================
-resource "google_secret_manager_secret" "polar_client_id" {
-  secret_id = "polar-client-id"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "polar_client_id_initial" {
-  secret      = google_secret_manager_secret.polar_client_id.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-resource "google_secret_manager_secret" "polar_client_secret" {
-  secret_id = "polar-client-secret"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "polar_client_secret_initial" {
-  secret      = google_secret_manager_secret.polar_client_secret.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-# =============================================================================
-# Oura OAuth Credentials
-# =============================================================================
-resource "google_secret_manager_secret" "oura_client_id" {
-  secret_id = "oura-client-id"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "oura_client_id_initial" {
-  secret      = google_secret_manager_secret.oura_client_id.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-resource "google_secret_manager_secret" "oura_client_secret" {
-  secret_id = "oura-client-secret"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "oura_client_secret_initial" {
-  secret      = google_secret_manager_secret.oura_client_secret.id
   secret_data = "PLACEHOLDER_REPLACE_ME"
 
   lifecycle {

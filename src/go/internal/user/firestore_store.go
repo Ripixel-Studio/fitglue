@@ -355,12 +355,6 @@ func (s *FirestoreStore) FindUserByIntegration(ctx context.Context, provider str
 	case "hevy":
 		// Fallback for legacy data, but primary resolution goes through ingress_api_keys
 		fieldPath = "integrations.hevy.user_id"
-	case "polar":
-		fieldPath = "integrations.polar.polar_user_id"
-	case "wahoo":
-		fieldPath = "integrations.wahoo.wahoo_user_id"
-	case "oura":
-		fieldPath = "integrations.oura.oura_user_id"
 	case "github":
 		fieldPath = "integrations.github.github_user_id"
 	case "spotify":

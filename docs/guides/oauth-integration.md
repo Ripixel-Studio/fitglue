@@ -44,7 +44,7 @@ FitGlue uses OAuth 2.0 to securely connect user accounts from external fitness s
 4. Save the **Client ID** and **Client Secret**
 
 > [!NOTE]
-> The same registration pattern applies for all OAuth providers: Strava, Fitbit, Polar, Wahoo, Oura, Intervals.icu, TrainingPeaks, Google (Sheets), GitHub, and Spotify. Each provider has its own developer portal.
+> The same registration pattern applies for all OAuth providers: Strava, Fitbit, Intervals.icu, TrainingPeaks, Google (Sheets), GitHub, and Spotify. Each provider has its own developer portal.
 
 ### 2. Store Secrets in Google Secret Manager
 

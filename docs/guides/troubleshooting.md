@@ -175,7 +175,6 @@ Use this table to jump straight to the right service, code, and logs for any fai
 | User not found | Identity mapping missing | Check `integrations/{provider}/ids/{externalId}` exists |
 | Activity fetched but not published | Source API returned empty/error | Check provider-specific API status |
 | Duplicate activity skipped | Dedup check triggered | Expected — check activity already exists in Firestore |
-| Mobile source (Apple Health / Health Connect) fails | JWT validation error | Check mobile auth configuration |
 
 ### Provider-Specific Webhook Endpoints
 
@@ -184,10 +183,6 @@ Use this table to jump straight to the right service, code, and logs for any fai
 | Strava | `/hooks/strava` | HMAC signature |
 | Hevy | `/hooks/hevy` | API key + HMAC |
 | Fitbit | `/hooks/fitbit` | Subscriber verification + HMAC |
-| Polar | `/hooks/polar` | OAuth signature |
-| Wahoo | `/hooks/wahoo` | OAuth signature |
-| Oura | `/hooks/oura` | HMAC |
-| Mobile | `/hooks/mobile` | Mobile JWT |
 
 ### Key Code Paths
 
@@ -305,7 +300,6 @@ Use this table to jump straight to the right service, code, and logs for any fai
 | Topic | Producer | Consumer | Purpose |
 |-------|----------|----------|---------|
 | `topic-raw-activity` | `api-webhook` | `pipeline` (splitter) | Raw ingested activities |
-| `topic-mobile-activity` | `api-webhook` (mobile) | `pipeline` | Mobile health activities |
 | `topic-pipeline-activity` | `pipeline` (splitter) | `pipeline` (enricher) | Per-pipeline activity messages |
 | `topic-enriched-activity` | `pipeline` (enricher) | `destination` | Enriched activities for upload |
 | `topic-destination-upload` | `pipeline` (router) | `destination` | Targeted upload instructions |

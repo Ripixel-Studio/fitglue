@@ -153,17 +153,6 @@ func UserToFirestore(u *user.Record) map[string]interface{} {
 				"last_used_at": u.Integrations.Intervals.LastUsedAt.AsTime(),
 			}
 		}
-		if u.Integrations.Oura != nil {
-			integrations["oura"] = map[string]interface{}{
-				"enabled":       u.Integrations.Oura.Enabled,
-				"access_token":  u.Integrations.Oura.AccessToken,
-				"refresh_token": u.Integrations.Oura.RefreshToken,
-				"expires_at":    u.Integrations.Oura.ExpiresAt.AsTime(),
-				"oura_user_id":  u.Integrations.Oura.OuraUserId,
-				"created_at":    u.Integrations.Oura.CreatedAt.AsTime(),
-				"last_used_at":  u.Integrations.Oura.LastUsedAt.AsTime(),
-			}
-		}
 		if u.Integrations.Google != nil {
 			integrations["google"] = map[string]interface{}{
 				"enabled":        u.Integrations.Google.Enabled,
@@ -173,28 +162,6 @@ func UserToFirestore(u *user.Record) map[string]interface{} {
 				"google_user_id": u.Integrations.Google.GoogleUserId,
 				"created_at":     u.Integrations.Google.CreatedAt.AsTime(),
 				"last_used_at":   u.Integrations.Google.LastUsedAt.AsTime(),
-			}
-		}
-		if u.Integrations.Polar != nil {
-			integrations["polar"] = map[string]interface{}{
-				"enabled":       u.Integrations.Polar.Enabled,
-				"access_token":  u.Integrations.Polar.AccessToken,
-				"refresh_token": u.Integrations.Polar.RefreshToken,
-				"expires_at":    u.Integrations.Polar.ExpiresAt.AsTime(),
-				"polar_user_id": u.Integrations.Polar.PolarUserId,
-				"created_at":    u.Integrations.Polar.CreatedAt.AsTime(),
-				"last_used_at":  u.Integrations.Polar.LastUsedAt.AsTime(),
-			}
-		}
-		if u.Integrations.Wahoo != nil {
-			integrations["wahoo"] = map[string]interface{}{
-				"enabled":       u.Integrations.Wahoo.Enabled,
-				"access_token":  u.Integrations.Wahoo.AccessToken,
-				"refresh_token": u.Integrations.Wahoo.RefreshToken,
-				"expires_at":    u.Integrations.Wahoo.ExpiresAt.AsTime(),
-				"wahoo_user_id": u.Integrations.Wahoo.WahooUserId,
-				"created_at":    u.Integrations.Wahoo.CreatedAt.AsTime(),
-				"last_used_at":  u.Integrations.Wahoo.LastUsedAt.AsTime(),
 			}
 		}
 		if u.Integrations.Github != nil {
@@ -322,17 +289,6 @@ func FirestoreToUser(m map[string]interface{}) *user.Record {
 				LastUsedAt: getTime(ivMap, "last_used_at"),
 			}
 		}
-		if oMap, ok := iMap["oura"].(map[string]interface{}); ok {
-			u.Integrations.Oura = &pbuser.OuraIntegration{
-				Enabled:      getBool(oMap, "enabled"),
-				AccessToken:  getString(oMap, "access_token"),
-				RefreshToken: getString(oMap, "refresh_token"),
-				ExpiresAt:    getTime(oMap, "expires_at"),
-				OuraUserId:   getString(oMap, "oura_user_id"),
-				CreatedAt:    getTime(oMap, "created_at"),
-				LastUsedAt:   getTime(oMap, "last_used_at"),
-			}
-		}
 		if gMap, ok := iMap["google"].(map[string]interface{}); ok {
 			u.Integrations.Google = &pbuser.GoogleIntegration{
 				Enabled:      getBool(gMap, "enabled"),
@@ -342,28 +298,6 @@ func FirestoreToUser(m map[string]interface{}) *user.Record {
 				GoogleUserId: getString(gMap, "google_user_id"),
 				CreatedAt:    getTime(gMap, "created_at"),
 				LastUsedAt:   getTime(gMap, "last_used_at"),
-			}
-		}
-		if polMap, ok := iMap["polar"].(map[string]interface{}); ok {
-			u.Integrations.Polar = &pbuser.PolarIntegration{
-				Enabled:      getBool(polMap, "enabled"),
-				AccessToken:  getString(polMap, "access_token"),
-				RefreshToken: getString(polMap, "refresh_token"),
-				ExpiresAt:    getTime(polMap, "expires_at"),
-				PolarUserId:  getString(polMap, "polar_user_id"),
-				CreatedAt:    getTime(polMap, "created_at"),
-				LastUsedAt:   getTime(polMap, "last_used_at"),
-			}
-		}
-		if wMap, ok := iMap["wahoo"].(map[string]interface{}); ok {
-			u.Integrations.Wahoo = &pbuser.WahooIntegration{
-				Enabled:      getBool(wMap, "enabled"),
-				AccessToken:  getString(wMap, "access_token"),
-				RefreshToken: getString(wMap, "refresh_token"),
-				ExpiresAt:    getTime(wMap, "expires_at"),
-				WahooUserId:  getString(wMap, "wahoo_user_id"),
-				CreatedAt:    getTime(wMap, "created_at"),
-				LastUsedAt:   getTime(wMap, "last_used_at"),
 			}
 		}
 		if ghMap, ok := iMap["github"].(map[string]interface{}); ok {

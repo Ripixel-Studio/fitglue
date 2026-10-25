@@ -185,13 +185,6 @@ service ClientGatewayService {
     };
   }
 
-  // ===================== Mobile Sync =====================
-  rpc MobileSync(EmptyRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/users/me/mobile/sync"
-    };
-  }
-
   // ===================== Pipelines =====================
   rpc ListPipelines(EmptyRequest) returns (ListPipelinesGatewayResponse) {
     option (google.api.http) = {
