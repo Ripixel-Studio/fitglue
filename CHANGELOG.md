@@ -108,6 +108,20 @@ Public HTTPS for the box-hosted services, replacing Cloud Run's public ingress.
   refresh; set on the box only). `fitgluectl export-site --all` remains the
   repair path. See `docs/guides/site-export.md`.
 
+### Added (rethink F3.2 — fitglue-box service account)
+
+- Terraform: `google_service_account.fitglue_box`
+  (`fitglue-box@fitglue-server-prod.iam.gserviceaccount.com`, output
+  `fitglue_box_sa_email`), the one identity the services use on the Jarvis box.
+  Project roles `datastore.user`, `pubsub.publisher`, `pubsub.subscriber`,
+  `aiplatform.user` (the AI banner still calls Vertex Imagen with ADC);
+  `storage.objectAdmin` on the artifacts and showcase-assets buckets only;
+  `run.invoker` on the `pipeline` Cloud Run service (what `parkrun-agent` has,
+  so the box's parkrun agent can move to this key in F3.4(e)). No Secret
+  Manager, no token creator. Created by hand first and adopted with an
+  `import` block, as `fitglue-api-token` was. Key and verification steps in
+  `docs/infrastructure/terraform.md`.
+
 ### Removed (rethink F1.8 — CI and Sentry)
 
 - CircleCI `create-release` job: standard-version tagging and changelog
