@@ -25,3 +25,8 @@ output "firebase_web_config" {
     measurementId     = data.google_firebase_web_app_config.web.measurement_id
   }
 }
+
+output "fitglue_box_sa_email" {
+  description = "Service account the FitGlue services use on the Jarvis box (key at ~/.jarvis/fitglue-box-sa.json)"
+  value       = google_service_account.fitglue_box.email
+}
