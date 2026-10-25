@@ -30,7 +30,7 @@ func canceledCtx() context.Context {
 // each supported provider. Both secrets are present, so execution reaches the
 // HTTP exchange, which fails fast on the canceled context.
 func TestRefreshToken_PerProviderRequestBuilding(t *testing.T) {
-	providers := []string{"strava", "fitbit", "trainingpeaks", "polar", "google", "github", "spotify"}
+	providers := []string{"strava", "fitbit", "trainingpeaks", "google", "github", "spotify"}
 	for _, p := range providers {
 		t.Run(p, func(t *testing.T) {
 			up := upper(p)
@@ -157,7 +157,6 @@ func TestToken_PerProviderSwitchCases(t *testing.T) {
 	}{
 		{"fitbit", &pbuser.UserIntegrations{Fitbit: &pbuser.FitbitIntegration{Enabled: true, AccessToken: "a", RefreshToken: "r", ExpiresAt: future}}},
 		{"trainingpeaks", &pbuser.UserIntegrations{Trainingpeaks: &pbuser.TrainingPeaksIntegration{Enabled: true, AccessToken: "a", RefreshToken: "r", ExpiresAt: future}}},
-		{"polar", &pbuser.UserIntegrations{Polar: &pbuser.PolarIntegration{Enabled: true, AccessToken: "a", RefreshToken: "r", ExpiresAt: future}}},
 		{"google", &pbuser.UserIntegrations{Google: &pbuser.GoogleIntegration{Enabled: true, AccessToken: "a", RefreshToken: "r", ExpiresAt: future}}},
 		{"spotify", &pbuser.UserIntegrations{Spotify: &pbuser.SpotifyIntegration{Enabled: true, AccessToken: "a", RefreshToken: "r", ExpiresAt: future}}},
 	}
@@ -187,7 +186,6 @@ func TestForceRefresh_PerProviderSwitchCases(t *testing.T) {
 	}{
 		{"fitbit", &pbuser.UserIntegrations{Fitbit: &pbuser.FitbitIntegration{Enabled: true, RefreshToken: "r"}}, "FITBIT_CLIENT_ID"},
 		{"trainingpeaks", &pbuser.UserIntegrations{Trainingpeaks: &pbuser.TrainingPeaksIntegration{Enabled: true, RefreshToken: "r"}}, "TRAININGPEAKS_CLIENT_ID"},
-		{"polar", &pbuser.UserIntegrations{Polar: &pbuser.PolarIntegration{Enabled: true, RefreshToken: "r"}}, "POLAR_CLIENT_ID"},
 		{"google", &pbuser.UserIntegrations{Google: &pbuser.GoogleIntegration{Enabled: true, RefreshToken: "r"}}, "GOOGLE_CLIENT_ID"},
 		{"spotify", &pbuser.UserIntegrations{Spotify: &pbuser.SpotifyIntegration{Enabled: true, RefreshToken: "r"}}, "SPOTIFY_CLIENT_ID"},
 	}

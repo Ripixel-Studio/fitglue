@@ -99,11 +99,6 @@ func (s *FirestoreTokenSource) ForceRefresh(ctx context.Context) (*Token, error)
 			return nil, fmt.Errorf("trainingpeaks not linked/enabled")
 		}
 		refreshToken = userData.Integrations.Trainingpeaks.RefreshToken
-	case "polar":
-		if userData.Integrations.Polar == nil || !userData.Integrations.Polar.Enabled {
-			return nil, fmt.Errorf("polar not linked/enabled")
-		}
-		refreshToken = userData.Integrations.Polar.RefreshToken
 	case "google":
 		if userData.Integrations.Google == nil || !userData.Integrations.Google.Enabled {
 			return nil, fmt.Errorf("google not linked/enabled")
@@ -170,15 +165,6 @@ func (s *FirestoreTokenSource) Token(ctx context.Context) (*Token, error) {
 		refreshToken = userData.Integrations.Trainingpeaks.RefreshToken
 		if userData.Integrations.Trainingpeaks.ExpiresAt != nil {
 			expiry = userData.Integrations.Trainingpeaks.ExpiresAt.AsTime()
-		}
-	case "polar":
-		if userData.Integrations.Polar == nil || !userData.Integrations.Polar.Enabled {
-			return nil, fmt.Errorf("polar not linked/enabled")
-		}
-		accessToken = userData.Integrations.Polar.AccessToken
-		refreshToken = userData.Integrations.Polar.RefreshToken
-		if userData.Integrations.Polar.ExpiresAt != nil {
-			expiry = userData.Integrations.Polar.ExpiresAt.AsTime()
 		}
 	case "google":
 		if userData.Integrations.Google == nil || !userData.Integrations.Google.Enabled {
@@ -261,8 +247,6 @@ func (s *FirestoreTokenSource) refreshToken(ctx context.Context, refreshToken st
 		tokenURL = "https://api.fitbit.com/oauth2/token"
 	case "trainingpeaks":
 		tokenURL = "https://oauth.trainingpeaks.com/token"
-	case "polar":
-		tokenURL = "https://polarremote.com/v2/oauth2/token"
 	case "google":
 		tokenURL = "https://oauth2.googleapis.com/token"
 	case "github":

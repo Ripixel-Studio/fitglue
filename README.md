@@ -1,6 +1,6 @@
 # FitGlue Server
 
-**FitGlue** is a fitness data aggregation and routing platform built on Google Cloud Platform. It ingests workout data from multiple sources (Hevy, Fitbit, Strava, Polar, Oura, Wahoo, Apple Health, Health Connect), enriches it through configurable pipelines, and routes it to connected services.
+**FitGlue** is a fitness data aggregation and routing platform built on Google Cloud Platform. It ingests workout data from multiple sources (Hevy, Fitbit, Strava, Intervals.icu, GitHub, parkrun), enriches it through configurable pipelines, and routes it to connected services.
 
 ## Architecture
 

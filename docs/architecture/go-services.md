@@ -24,8 +24,9 @@ src/go/
 │   │               ├── strava/
 │   │               ├── fitbit/
 │   │               ├── hevy/
-│   │               ├── polar/
-│   │               ├── mobile/
+│   │               ├── intervals/
+│   │               ├── github/
+│   │               ├── parkrun/
 │   │               └── ...
 │   ├── user/                          # User profiles, integrations, OAuth tokens
 │   │   └── main.go
@@ -82,7 +83,7 @@ If it compiles, it's wired correctly — no runtime dependency resolution.
 |---------|------|-----------|-----------|
 | `service.api.client` | None (thin marshaller) | HTTP (Firebase JWT) | None |
 | `service.api.public` | None (thin marshaller) | HTTP (no auth) | None |
-| `service.api.webhook` | None (thin orchestrator) | HTTP (HMAC / mobile JWT) | Transient |
+| `service.api.webhook` | None (thin orchestrator) | HTTP (HMAC) | Transient |
 | `service.user` | User profiles, integrations, OAuth tokens, counters | gRPC | Firestore `users/` |
 | `service.pipeline` | Pipeline config, enrichment, routing, pending inputs | gRPC + Pub/Sub | Firestore `users/*/pipelines` |
 | `service.activity` | Activity records, showcases, FIT parsing, exports | gRPC + Pub/Sub | Firestore activities + GCS |

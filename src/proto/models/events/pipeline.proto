@@ -38,14 +38,9 @@ enum CloudEventSource {
   CLOUD_EVENT_SOURCE_PARKRUN_RESULTS = 7 [(ce_source) = "/integrations/parkrun/results"];
   CLOUD_EVENT_SOURCE_FILE_UPLOAD = 8 [(ce_source) = "/integrations/file-upload"];
   CLOUD_EVENT_SOURCE_STRAVA = 9 [(ce_source) = "/integrations/strava"];
-  CLOUD_EVENT_SOURCE_OURA = 10 [(ce_source) = "/integrations/oura"];
-  CLOUD_EVENT_SOURCE_POLAR_WEBHOOK = 11 [(ce_source) = "/integrations/polar/webhook"];
-  CLOUD_EVENT_SOURCE_WAHOO = 12 [(ce_source) = "/integrations/wahoo"];
   CLOUD_EVENT_SOURCE_PIPELINE_SPLITTER = 13 [(ce_source) = "/core/pipeline-splitter"];
   CLOUD_EVENT_SOURCE_GITHUB = 14 [(ce_source) = "/integrations/github"];
-  CLOUD_EVENT_SOURCE_APPLE_HEALTH = 15 [(ce_source) = "/integrations/apple-health"];
-  CLOUD_EVENT_SOURCE_HEALTH_CONNECT = 16 [(ce_source) = "/integrations/health-connect"];
-  CLOUD_EVENT_SOURCE_MOCK = 99 [(ce_source) = "/integrations/mock"];
+  reserved 10, 11, 12, 15, 16, 99; // were oura, polar webhook, wahoo, apple health, health connect, mock (removed, single-user conversion F1.6)
 }
 
 

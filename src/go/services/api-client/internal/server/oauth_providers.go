@@ -28,30 +28,6 @@ func GetOAuthConfig(provider string) *OAuthProviderConfig {
 			ClientSecret: os.Getenv("FITBIT_CLIENT_SECRET"),
 			Scopes:       []string{"activity", "profile", "heartrate"},
 		}
-	case "oura":
-		return &OAuthProviderConfig{
-			AuthURL:      "https://cloud.ouraring.com/oauth/authorize",
-			TokenURL:     "https://api.ouraring.com/oauth/token",
-			ClientID:     os.Getenv("OURA_CLIENT_ID"),
-			ClientSecret: os.Getenv("OURA_CLIENT_SECRET"),
-			Scopes:       []string{"daily", "heartrate", "personal", "session", "workout"},
-		}
-	case "polar":
-		return &OAuthProviderConfig{
-			AuthURL:      "https://flow.polar.com/oauth2/authorization",
-			TokenURL:     "https://polarremote.com/v2/oauth2/token",
-			ClientID:     os.Getenv("POLAR_CLIENT_ID"),
-			ClientSecret: os.Getenv("POLAR_CLIENT_SECRET"),
-			Scopes:       []string{"access_link"},
-		}
-	case "wahoo":
-		return &OAuthProviderConfig{
-			AuthURL:      "https://api.wahooligan.com/oauth/authorize",
-			TokenURL:     "https://api.wahooligan.com/oauth/token",
-			ClientID:     os.Getenv("WAHOO_CLIENT_ID"),
-			ClientSecret: os.Getenv("WAHOO_CLIENT_SECRET"),
-			Scopes:       []string{"workouts_read"},
-		}
 	case "spotify":
 		return &OAuthProviderConfig{
 			AuthURL:      "https://accounts.spotify.com/authorize",

@@ -66,12 +66,6 @@ func (s *APIServer) registerUserRoutes(r chi.Router) {
 
 	// Delete counter
 	r.Delete("/users/me/counters/{name}", s.handleDeleteCounter)
-
-	// Web auth token — allows mobile WebView to sign in to the web app without a second login
-	r.Get("/users/me/web-auth-token", s.handleGetWebAuthToken)
-
-	// Mobile sync (trigger data sync)
-	r.Post("/users/me/mobile/sync", s.handleMobileSync)
 }
 
 func (s *APIServer) handleGetProfile(w http.ResponseWriter, r *http.Request) {
@@ -167,9 +161,8 @@ func (s *APIServer) handleSetIntegration(w http.ResponseWriter, r *http.Request)
 	// SEC-06: Allowlist valid providers to prevent arbitrary Firestore field writes
 	// via a crafted provider name in the URL path.
 	validProviders := map[string]bool{
-		"strava": true, "fitbit": true, "hevy": true, "oura": true,
-		"polar": true, "wahoo": true, "spotify": true, "github": true,
-		"intervals": true, "trainingpeaks": true,
+		"strava": true, "fitbit": true, "hevy": true, "spotify": true,
+		"github": true, "intervals": true, "trainingpeaks": true,
 	}
 	if !validProviders[provider] {
 		WriteError(w, statusError(http.StatusBadRequest, "unsupported provider"))

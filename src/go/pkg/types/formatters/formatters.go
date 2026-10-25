@@ -529,22 +529,10 @@ func FormatCloudEventSource(value pbevents.CloudEventSource) string {
 		return "File Upload"
 	case pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_STRAVA:
 		return "Strava"
-	case pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_OURA:
-		return "Oura"
-	case pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_POLAR_WEBHOOK:
-		return "Polar Webhook"
-	case pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_WAHOO:
-		return "Wahoo"
 	case pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_PIPELINE_SPLITTER:
 		return "Pipeline Splitter"
 	case pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_GITHUB:
 		return "Github"
-	case pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_APPLE_HEALTH:
-		return "Apple Health"
-	case pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_HEALTH_CONNECT:
-		return "Health Connect"
-	case pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_MOCK:
-		return "Mock"
 	default:
 		return "Unknown"
 	}
@@ -583,26 +571,11 @@ func ParseCloudEventSource(input string) pbevents.CloudEventSource {
 		"file upload":                          pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_FILE_UPLOAD,
 		"cloud_event_source_strava":            pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_STRAVA,
 		"strava":                               pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_STRAVA,
-		"cloud_event_source_oura":              pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_OURA,
-		"oura":                                 pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_OURA,
-		"cloud_event_source_polar_webhook":     pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_POLAR_WEBHOOK,
-		"polar_webhook":                        pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_POLAR_WEBHOOK,
-		"polar webhook":                        pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_POLAR_WEBHOOK,
-		"cloud_event_source_wahoo":             pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_WAHOO,
-		"wahoo":                                pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_WAHOO,
 		"cloud_event_source_pipeline_splitter": pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_PIPELINE_SPLITTER,
 		"pipeline_splitter":                    pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_PIPELINE_SPLITTER,
 		"pipeline splitter":                    pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_PIPELINE_SPLITTER,
 		"cloud_event_source_github":            pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_GITHUB,
 		"github":                               pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_GITHUB,
-		"cloud_event_source_apple_health":      pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_APPLE_HEALTH,
-		"apple_health":                         pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_APPLE_HEALTH,
-		"apple health":                         pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_APPLE_HEALTH,
-		"cloud_event_source_health_connect":    pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_HEALTH_CONNECT,
-		"health_connect":                       pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_HEALTH_CONNECT,
-		"health connect":                       pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_HEALTH_CONNECT,
-		"cloud_event_source_mock":              pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_MOCK,
-		"mock":                                 pbevents.CloudEventSource_CLOUD_EVENT_SOURCE_MOCK,
 	}
 
 	normalized := strings.ToLower(strings.TrimSpace(input))

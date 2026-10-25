@@ -926,22 +926,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /users/me/mobile/sync:
-        post:
-            tags:
-                - ClientGatewayService
-            description: ===================== Mobile Sync =====================
-            operationId: ClientGatewayService_MobileSync
-            responses:
-                "200":
-                    description: OK
-                    content: {}
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /users/me/parse-fit:
         post:
             tags:
@@ -2999,26 +2983,6 @@ components:
             properties:
                 url:
                     type: string
-        OuraIntegration:
-            type: object
-            properties:
-                enabled:
-                    type: boolean
-                accessToken:
-                    type: string
-                refreshToken:
-                    type: string
-                expiresAt:
-                    type: string
-                    format: date-time
-                ouraUserId:
-                    type: string
-                createdAt:
-                    type: string
-                    format: date-time
-                lastUsedAt:
-                    type: string
-                    format: date-time
         PaceSplit:
             type: object
             properties:
@@ -3359,26 +3323,6 @@ components:
                         Unified record of every step in a pipeline run — source, parse, gate,
                          enricher batch, router, and per-destination uploaders.
                          boosters[] is preserved for existing documents; new clients should prefer steps[].
-        PolarIntegration:
-            type: object
-            properties:
-                enabled:
-                    type: boolean
-                accessToken:
-                    type: string
-                refreshToken:
-                    type: string
-                expiresAt:
-                    type: string
-                    format: date-time
-                polarUserId:
-                    type: string
-                createdAt:
-                    type: string
-                    format: date-time
-                lastUsedAt:
-                    type: string
-                    format: date-time
         PowerSummary:
             type: object
             properties:
@@ -5027,12 +4971,6 @@ components:
                     $ref: '#/components/schemas/IntervalsIntegration'
                 google:
                     $ref: '#/components/schemas/GoogleIntegration'
-                oura:
-                    $ref: '#/components/schemas/OuraIntegration'
-                polar:
-                    $ref: '#/components/schemas/PolarIntegration'
-                wahoo:
-                    $ref: '#/components/schemas/WahooIntegration'
                 github:
                     $ref: '#/components/schemas/GitHubIntegration'
                 appleHealth:
@@ -5070,26 +5008,6 @@ components:
             description: |-
                 UserProfile represents the core user identity and preferences,
                  cleanly separated from integrations.
-        WahooIntegration:
-            type: object
-            properties:
-                enabled:
-                    type: boolean
-                accessToken:
-                    type: string
-                refreshToken:
-                    type: string
-                expiresAt:
-                    type: string
-                    format: date-time
-                wahooUserId:
-                    type: string
-                createdAt:
-                    type: string
-                    format: date-time
-                lastUsedAt:
-                    type: string
-                    format: date-time
         WeatherSummary:
             type: object
             properties:

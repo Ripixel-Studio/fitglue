@@ -132,10 +132,7 @@ func TestUserRoundTrip(t *testing.T) {
 			Spotify:       &pbuser.SpotifyIntegration{Enabled: true, AccessToken: "spa", RefreshToken: "spr", ExpiresAt: now, SpotifyUserId: "sp", CreatedAt: now, LastUsedAt: now},
 			Trainingpeaks: &pbuser.TrainingPeaksIntegration{Enabled: true, AccessToken: "ta", RefreshToken: "tr", ExpiresAt: now, AthleteId: "tp", CreatedAt: now, LastUsedAt: now},
 			Intervals:     &pbuser.IntervalsIntegration{Enabled: true, ApiKey: "ik", AthleteId: "ia", CreatedAt: now, LastUsedAt: now},
-			Oura:          &pbuser.OuraIntegration{Enabled: true, AccessToken: "oa", RefreshToken: "or", ExpiresAt: now, OuraUserId: "ou", CreatedAt: now, LastUsedAt: now},
 			Google:        &pbuser.GoogleIntegration{Enabled: true, AccessToken: "ga", RefreshToken: "gr", ExpiresAt: now, GoogleUserId: "gu", CreatedAt: now, LastUsedAt: now},
-			Polar:         &pbuser.PolarIntegration{Enabled: true, AccessToken: "pa", RefreshToken: "pr", ExpiresAt: now, PolarUserId: "pu", CreatedAt: now, LastUsedAt: now},
-			Wahoo:         &pbuser.WahooIntegration{Enabled: true, AccessToken: "wa", RefreshToken: "wr", ExpiresAt: now, WahooUserId: "wu", CreatedAt: now, LastUsedAt: now},
 			Github:        &pbuser.GitHubIntegration{Enabled: true, AccessToken: "gha", RefreshToken: "ghr", ExpiresAt: now, GithubUserId: "ghu", GithubUsername: "ghn", Scope: "repo", CreatedAt: now, LastUsedAt: now},
 			AppleHealth:   &pbuser.AppleHealthIntegration{Enabled: true, CreatedAt: now, LastUsedAt: now},
 			HealthConnect: &pbuser.HealthConnectIntegration{Enabled: true, CreatedAt: now, LastUsedAt: now},
@@ -179,17 +176,8 @@ func TestUserRoundTrip(t *testing.T) {
 	if in.Intervals == nil || in.Intervals.ApiKey != "ik" {
 		t.Error("intervals lost")
 	}
-	if in.Oura == nil || in.Oura.OuraUserId != "ou" {
-		t.Error("oura lost")
-	}
 	if in.Google == nil || in.Google.GoogleUserId != "gu" {
 		t.Error("google lost")
-	}
-	if in.Polar == nil || in.Polar.PolarUserId != "pu" {
-		t.Error("polar lost")
-	}
-	if in.Wahoo == nil || in.Wahoo.WahooUserId != "wu" {
-		t.Error("wahoo lost")
 	}
 	if in.Github == nil || in.Github.GithubUsername != "ghn" || in.Github.Scope != "repo" {
 		t.Error("github lost")

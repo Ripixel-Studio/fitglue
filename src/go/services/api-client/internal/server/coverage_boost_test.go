@@ -790,70 +790,6 @@ func TestHandleBackfillConnectionActivities(t *testing.T) {
 }
 
 // =============================================================
-// mobile_handlers.go — handleMobileSync validation branches
-// =============================================================
-
-func TestHandleMobileSync(t *testing.T) {
-	s := serverWithDeps(&APIServer{publisher: &mockPublisher{}})
-	t.Run("no token", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleMobileSync(w, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`)))
-		if w.Code != http.StatusUnauthorized {
-			t.Errorf("expected 401, got %d", w.Code)
-		}
-	})
-	t.Run("invalid body", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleMobileSync(w, withToken(httptest.NewRequest(http.MethodPost, "/", strings.NewReader("bad")), "u1"))
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("expected 400, got %d", w.Code)
-		}
-	})
-	t.Run("empty activities", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleMobileSync(w, withToken(httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"activities":[]}`)), "u1"))
-		if w.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d", w.Code)
-		}
-		if !strings.Contains(w.Body.String(), `"processedCount":0`) {
-			t.Errorf("expected processedCount 0, got %s", w.Body.String())
-		}
-	})
-	t.Run("skips invalid start time", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		body := `{"device":{"platform":"ios"},"activities":[{"startTime":"not-a-time"}]}`
-		s.handleMobileSync(w, withToken(httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body)), "u1"))
-		if w.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d", w.Code)
-		}
-		if !strings.Contains(w.Body.String(), `"skippedCount":1`) {
-			t.Errorf("expected skippedCount 1, got %s", w.Body.String())
-		}
-	})
-	t.Run("processes valid activity", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		body := `{"device":{"platform":"android"},"activities":[{"externalId":"x","activityName":"Run","startTime":"2026-01-01T10:00:00Z","duration":600,"heartRateSamples":[{"timestamp":"2026-01-01T10:00:01Z","bpm":120}],"route":[{"latitude":1.0,"longitude":2.0,"timestamp":"2026-01-01T10:00:02Z"}]}]}`
-		s.handleMobileSync(w, withToken(httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body)), "u1"))
-		if w.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d", w.Code)
-		}
-		if !strings.Contains(w.Body.String(), `"processedCount":1`) {
-			t.Errorf("expected processedCount 1, got %s", w.Body.String())
-		}
-	})
-}
-
-func TestHandleGetWebAuthToken_NoToken(t *testing.T) {
-	// authClient is nil; only the no-token branch is safely reachable.
-	s := serverWithDeps(&APIServer{})
-	w := httptest.NewRecorder()
-	s.handleGetWebAuthToken(w, httptest.NewRequest(http.MethodGet, "/", nil))
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
-	}
-}
-
-// =============================================================
 // helpers.go — decodeProto read error
 // =============================================================
 
@@ -900,7 +836,7 @@ func TestSentryRecoveryMiddleware_NoPanic(t *testing.T) {
 // =============================================================
 
 func TestGetOAuthConfig_KnownAndUnknown(t *testing.T) {
-	for _, p := range []string{"strava", "fitbit", "oura", "polar", "wahoo", "spotify"} {
+	for _, p := range []string{"strava", "fitbit", "spotify", "github"} {
 		if GetOAuthConfig(p) == nil {
 			// Not all may be defined; that's fine, just exercise the switch.
 			continue

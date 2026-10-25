@@ -200,8 +200,8 @@ func TestForceRefresh_ProviderNotLinked(t *testing.T) {
 			return userWith(&pbuser.UserIntegrations{}), nil
 		},
 	}
-	_, err := newSource("polar", db).ForceRefresh(context.Background())
-	assert.ErrorContains(t, err, "polar not linked/enabled")
+	_, err := newSource("trainingpeaks", db).ForceRefresh(context.Background())
+	assert.ErrorContains(t, err, "trainingpeaks not linked/enabled")
 }
 
 func TestForceRefresh_UnknownProvider(t *testing.T) {

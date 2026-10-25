@@ -34,9 +34,6 @@ type UserIntegrations struct {
 	Trainingpeaks *TrainingPeaksIntegration `protobuf:"bytes,7,opt,name=trainingpeaks,proto3" json:"trainingpeaks,omitempty"`
 	Intervals     *IntervalsIntegration     `protobuf:"bytes,8,opt,name=intervals,proto3" json:"intervals,omitempty"`
 	Google        *GoogleIntegration        `protobuf:"bytes,9,opt,name=google,proto3" json:"google,omitempty"`
-	Oura          *OuraIntegration          `protobuf:"bytes,10,opt,name=oura,proto3" json:"oura,omitempty"`
-	Polar         *PolarIntegration         `protobuf:"bytes,11,opt,name=polar,proto3" json:"polar,omitempty"`
-	Wahoo         *WahooIntegration         `protobuf:"bytes,12,opt,name=wahoo,proto3" json:"wahoo,omitempty"`
 	Github        *GitHubIntegration        `protobuf:"bytes,13,opt,name=github,proto3" json:"github,omitempty"`
 	AppleHealth   *AppleHealthIntegration   `protobuf:"bytes,14,opt,name=apple_health,json=appleHealth,proto3" json:"apple_health,omitempty"`
 	HealthConnect *HealthConnectIntegration `protobuf:"bytes,15,opt,name=health_connect,json=healthConnect,proto3" json:"health_connect,omitempty"`
@@ -133,27 +130,6 @@ func (x *UserIntegrations) GetIntervals() *IntervalsIntegration {
 func (x *UserIntegrations) GetGoogle() *GoogleIntegration {
 	if x != nil {
 		return x.Google
-	}
-	return nil
-}
-
-func (x *UserIntegrations) GetOura() *OuraIntegration {
-	if x != nil {
-		return x.Oura
-	}
-	return nil
-}
-
-func (x *UserIntegrations) GetPolar() *PolarIntegration {
-	if x != nil {
-		return x.Polar
-	}
-	return nil
-}
-
-func (x *UserIntegrations) GetWahoo() *WahooIntegration {
-	if x != nil {
-		return x.Wahoo
 	}
 	return nil
 }
@@ -843,98 +819,6 @@ func (x *IntervalsIntegration) GetLastUsedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-type OuraIntegration struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	AccessToken   string                 `protobuf:"bytes,2,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	RefreshToken  string                 `protobuf:"bytes,3,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	OuraUserId    string                 `protobuf:"bytes,5,opt,name=oura_user_id,json=ouraUserId,proto3" json:"oura_user_id,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *OuraIntegration) Reset() {
-	*x = OuraIntegration{}
-	mi := &file_models_user_integration_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *OuraIntegration) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*OuraIntegration) ProtoMessage() {}
-
-func (x *OuraIntegration) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_integration_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use OuraIntegration.ProtoReflect.Descriptor instead.
-func (*OuraIntegration) Descriptor() ([]byte, []int) {
-	return file_models_user_integration_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *OuraIntegration) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-func (x *OuraIntegration) GetAccessToken() string {
-	if x != nil {
-		return x.AccessToken
-	}
-	return ""
-}
-
-func (x *OuraIntegration) GetRefreshToken() string {
-	if x != nil {
-		return x.RefreshToken
-	}
-	return ""
-}
-
-func (x *OuraIntegration) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
-}
-
-func (x *OuraIntegration) GetOuraUserId() string {
-	if x != nil {
-		return x.OuraUserId
-	}
-	return ""
-}
-
-func (x *OuraIntegration) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
-func (x *OuraIntegration) GetLastUsedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastUsedAt
-	}
-	return nil
-}
-
 type GoogleIntegration struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
@@ -950,7 +834,7 @@ type GoogleIntegration struct {
 
 func (x *GoogleIntegration) Reset() {
 	*x = GoogleIntegration{}
-	mi := &file_models_user_integration_proto_msgTypes[10]
+	mi := &file_models_user_integration_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -962,7 +846,7 @@ func (x *GoogleIntegration) String() string {
 func (*GoogleIntegration) ProtoMessage() {}
 
 func (x *GoogleIntegration) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_integration_proto_msgTypes[10]
+	mi := &file_models_user_integration_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -975,7 +859,7 @@ func (x *GoogleIntegration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GoogleIntegration.ProtoReflect.Descriptor instead.
 func (*GoogleIntegration) Descriptor() ([]byte, []int) {
-	return file_models_user_integration_proto_rawDescGZIP(), []int{10}
+	return file_models_user_integration_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GoogleIntegration) GetEnabled() bool {
@@ -1027,190 +911,6 @@ func (x *GoogleIntegration) GetLastUsedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-type PolarIntegration struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	AccessToken   string                 `protobuf:"bytes,2,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	RefreshToken  string                 `protobuf:"bytes,3,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	PolarUserId   string                 `protobuf:"bytes,5,opt,name=polar_user_id,json=polarUserId,proto3" json:"polar_user_id,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PolarIntegration) Reset() {
-	*x = PolarIntegration{}
-	mi := &file_models_user_integration_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PolarIntegration) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PolarIntegration) ProtoMessage() {}
-
-func (x *PolarIntegration) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_integration_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PolarIntegration.ProtoReflect.Descriptor instead.
-func (*PolarIntegration) Descriptor() ([]byte, []int) {
-	return file_models_user_integration_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *PolarIntegration) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-func (x *PolarIntegration) GetAccessToken() string {
-	if x != nil {
-		return x.AccessToken
-	}
-	return ""
-}
-
-func (x *PolarIntegration) GetRefreshToken() string {
-	if x != nil {
-		return x.RefreshToken
-	}
-	return ""
-}
-
-func (x *PolarIntegration) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
-}
-
-func (x *PolarIntegration) GetPolarUserId() string {
-	if x != nil {
-		return x.PolarUserId
-	}
-	return ""
-}
-
-func (x *PolarIntegration) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
-func (x *PolarIntegration) GetLastUsedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastUsedAt
-	}
-	return nil
-}
-
-type WahooIntegration struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	AccessToken   string                 `protobuf:"bytes,2,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	RefreshToken  string                 `protobuf:"bytes,3,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	WahooUserId   string                 `protobuf:"bytes,5,opt,name=wahoo_user_id,json=wahooUserId,proto3" json:"wahoo_user_id,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	LastUsedAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WahooIntegration) Reset() {
-	*x = WahooIntegration{}
-	mi := &file_models_user_integration_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WahooIntegration) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WahooIntegration) ProtoMessage() {}
-
-func (x *WahooIntegration) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_integration_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WahooIntegration.ProtoReflect.Descriptor instead.
-func (*WahooIntegration) Descriptor() ([]byte, []int) {
-	return file_models_user_integration_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *WahooIntegration) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-func (x *WahooIntegration) GetAccessToken() string {
-	if x != nil {
-		return x.AccessToken
-	}
-	return ""
-}
-
-func (x *WahooIntegration) GetRefreshToken() string {
-	if x != nil {
-		return x.RefreshToken
-	}
-	return ""
-}
-
-func (x *WahooIntegration) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
-}
-
-func (x *WahooIntegration) GetWahooUserId() string {
-	if x != nil {
-		return x.WahooUserId
-	}
-	return ""
-}
-
-func (x *WahooIntegration) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
-func (x *WahooIntegration) GetLastUsedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.LastUsedAt
-	}
-	return nil
-}
-
 type GitHubIntegration struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Enabled        bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
@@ -1228,7 +928,7 @@ type GitHubIntegration struct {
 
 func (x *GitHubIntegration) Reset() {
 	*x = GitHubIntegration{}
-	mi := &file_models_user_integration_proto_msgTypes[13]
+	mi := &file_models_user_integration_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1240,7 +940,7 @@ func (x *GitHubIntegration) String() string {
 func (*GitHubIntegration) ProtoMessage() {}
 
 func (x *GitHubIntegration) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_integration_proto_msgTypes[13]
+	mi := &file_models_user_integration_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1253,7 +953,7 @@ func (x *GitHubIntegration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitHubIntegration.ProtoReflect.Descriptor instead.
 func (*GitHubIntegration) Descriptor() ([]byte, []int) {
-	return file_models_user_integration_proto_rawDescGZIP(), []int{13}
+	return file_models_user_integration_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GitHubIntegration) GetEnabled() bool {
@@ -1330,7 +1030,7 @@ type AppleHealthIntegration struct {
 
 func (x *AppleHealthIntegration) Reset() {
 	*x = AppleHealthIntegration{}
-	mi := &file_models_user_integration_proto_msgTypes[14]
+	mi := &file_models_user_integration_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1342,7 +1042,7 @@ func (x *AppleHealthIntegration) String() string {
 func (*AppleHealthIntegration) ProtoMessage() {}
 
 func (x *AppleHealthIntegration) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_integration_proto_msgTypes[14]
+	mi := &file_models_user_integration_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1355,7 +1055,7 @@ func (x *AppleHealthIntegration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppleHealthIntegration.ProtoReflect.Descriptor instead.
 func (*AppleHealthIntegration) Descriptor() ([]byte, []int) {
-	return file_models_user_integration_proto_rawDescGZIP(), []int{14}
+	return file_models_user_integration_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AppleHealthIntegration) GetEnabled() bool {
@@ -1390,7 +1090,7 @@ type HealthConnectIntegration struct {
 
 func (x *HealthConnectIntegration) Reset() {
 	*x = HealthConnectIntegration{}
-	mi := &file_models_user_integration_proto_msgTypes[15]
+	mi := &file_models_user_integration_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1402,7 +1102,7 @@ func (x *HealthConnectIntegration) String() string {
 func (*HealthConnectIntegration) ProtoMessage() {}
 
 func (x *HealthConnectIntegration) ProtoReflect() protoreflect.Message {
-	mi := &file_models_user_integration_proto_msgTypes[15]
+	mi := &file_models_user_integration_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1415,7 +1115,7 @@ func (x *HealthConnectIntegration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthConnectIntegration.ProtoReflect.Descriptor instead.
 func (*HealthConnectIntegration) Descriptor() ([]byte, []int) {
-	return file_models_user_integration_proto_rawDescGZIP(), []int{15}
+	return file_models_user_integration_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *HealthConnectIntegration) GetEnabled() bool {
@@ -1443,7 +1143,7 @@ var File_models_user_integration_proto protoreflect.FileDescriptor
 
 const file_models_user_integration_proto_rawDesc = "" +
 	"\n" +
-	"\x1dmodels/user/integration.proto\x12\x13fitglue.models.user\x1a\x1fgoogle/protobuf/timestamp.proto\"\x84\b\n" +
+	"\x1dmodels/user/integration.proto\x12\x13fitglue.models.user\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf6\x06\n" +
 	"\x10UserIntegrations\x128\n" +
 	"\x04hevy\x18\x01 \x01(\v2$.fitglue.models.user.HevyIntegrationR\x04hevy\x12>\n" +
 	"\x06fitbit\x18\x02 \x01(\v2&.fitglue.models.user.FitbitIntegrationR\x06fitbit\x12>\n" +
@@ -1453,14 +1153,11 @@ const file_models_user_integration_proto_rawDesc = "" +
 	"\aspotify\x18\x06 \x01(\v2'.fitglue.models.user.SpotifyIntegrationR\aspotify\x12S\n" +
 	"\rtrainingpeaks\x18\a \x01(\v2-.fitglue.models.user.TrainingPeaksIntegrationR\rtrainingpeaks\x12G\n" +
 	"\tintervals\x18\b \x01(\v2).fitglue.models.user.IntervalsIntegrationR\tintervals\x12>\n" +
-	"\x06google\x18\t \x01(\v2&.fitglue.models.user.GoogleIntegrationR\x06google\x128\n" +
-	"\x04oura\x18\n" +
-	" \x01(\v2$.fitglue.models.user.OuraIntegrationR\x04oura\x12;\n" +
-	"\x05polar\x18\v \x01(\v2%.fitglue.models.user.PolarIntegrationR\x05polar\x12;\n" +
-	"\x05wahoo\x18\f \x01(\v2%.fitglue.models.user.WahooIntegrationR\x05wahoo\x12>\n" +
+	"\x06google\x18\t \x01(\v2&.fitglue.models.user.GoogleIntegrationR\x06google\x12>\n" +
 	"\x06github\x18\r \x01(\v2&.fitglue.models.user.GitHubIntegrationR\x06github\x12N\n" +
 	"\fapple_health\x18\x0e \x01(\v2+.fitglue.models.user.AppleHealthIntegrationR\vappleHealth\x12T\n" +
-	"\x0ehealth_connect\x18\x0f \x01(\v2-.fitglue.models.user.HealthConnectIntegrationR\rhealthConnect\"\xa4\x01\n" +
+	"\x0ehealth_connect\x18\x0f \x01(\v2-.fitglue.models.user.HealthConnectIntegrationR\rhealthConnectJ\x04\b\n" +
+	"\x10\vJ\x04\b\v\x10\fJ\x04\b\f\x10\rR\x04ouraR\x05polarR\x05wahoo\"\xa4\x01\n" +
 	"\x0fMockIntegration\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x129\n" +
 	"\n" +
@@ -1540,18 +1237,6 @@ const file_models_user_integration_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
 	"\flast_used_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAt\"\xc9\x02\n" +
-	"\x0fOuraIntegration\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\x12!\n" +
-	"\faccess_token\x18\x02 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\x129\n" +
-	"\n" +
-	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12 \n" +
-	"\foura_user_id\x18\x05 \x01(\tR\n" +
-	"ouraUserId\x129\n" +
-	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
-	"\flast_used_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"lastUsedAt\"\xcf\x02\n" +
 	"\x11GoogleIntegration\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12!\n" +
@@ -1560,28 +1245,6 @@ const file_models_user_integration_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12$\n" +
 	"\x0egoogle_user_id\x18\x05 \x01(\tR\fgoogleUserId\x129\n" +
-	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
-	"\flast_used_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAt\"\xcc\x02\n" +
-	"\x10PolarIntegration\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\x12!\n" +
-	"\faccess_token\x18\x02 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\x129\n" +
-	"\n" +
-	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\"\n" +
-	"\rpolar_user_id\x18\x05 \x01(\tR\vpolarUserId\x129\n" +
-	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
-	"\flast_used_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAt\"\xcc\x02\n" +
-	"\x10WahooIntegration\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\x12!\n" +
-	"\faccess_token\x18\x02 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x03 \x01(\tR\frefreshToken\x129\n" +
-	"\n" +
-	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\"\n" +
-	"\rwahoo_user_id\x18\x05 \x01(\tR\vwahooUserId\x129\n" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12<\n" +
 	"\flast_used_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
@@ -1624,7 +1287,7 @@ func file_models_user_integration_proto_rawDescGZIP() []byte {
 	return file_models_user_integration_proto_rawDescData
 }
 
-var file_models_user_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_models_user_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_models_user_integration_proto_goTypes = []any{
 	(*UserIntegrations)(nil),         // 0: fitglue.models.user.UserIntegrations
 	(*MockIntegration)(nil),          // 1: fitglue.models.user.MockIntegration
@@ -1635,14 +1298,11 @@ var file_models_user_integration_proto_goTypes = []any{
 	(*SpotifyIntegration)(nil),       // 6: fitglue.models.user.SpotifyIntegration
 	(*TrainingPeaksIntegration)(nil), // 7: fitglue.models.user.TrainingPeaksIntegration
 	(*IntervalsIntegration)(nil),     // 8: fitglue.models.user.IntervalsIntegration
-	(*OuraIntegration)(nil),          // 9: fitglue.models.user.OuraIntegration
-	(*GoogleIntegration)(nil),        // 10: fitglue.models.user.GoogleIntegration
-	(*PolarIntegration)(nil),         // 11: fitglue.models.user.PolarIntegration
-	(*WahooIntegration)(nil),         // 12: fitglue.models.user.WahooIntegration
-	(*GitHubIntegration)(nil),        // 13: fitglue.models.user.GitHubIntegration
-	(*AppleHealthIntegration)(nil),   // 14: fitglue.models.user.AppleHealthIntegration
-	(*HealthConnectIntegration)(nil), // 15: fitglue.models.user.HealthConnectIntegration
-	(*timestamppb.Timestamp)(nil),    // 16: google.protobuf.Timestamp
+	(*GoogleIntegration)(nil),        // 9: fitglue.models.user.GoogleIntegration
+	(*GitHubIntegration)(nil),        // 10: fitglue.models.user.GitHubIntegration
+	(*AppleHealthIntegration)(nil),   // 11: fitglue.models.user.AppleHealthIntegration
+	(*HealthConnectIntegration)(nil), // 12: fitglue.models.user.HealthConnectIntegration
+	(*timestamppb.Timestamp)(nil),    // 13: google.protobuf.Timestamp
 }
 var file_models_user_integration_proto_depIdxs = []int32{
 	2,  // 0: fitglue.models.user.UserIntegrations.hevy:type_name -> fitglue.models.user.HevyIntegration
@@ -1653,57 +1313,45 @@ var file_models_user_integration_proto_depIdxs = []int32{
 	6,  // 5: fitglue.models.user.UserIntegrations.spotify:type_name -> fitglue.models.user.SpotifyIntegration
 	7,  // 6: fitglue.models.user.UserIntegrations.trainingpeaks:type_name -> fitglue.models.user.TrainingPeaksIntegration
 	8,  // 7: fitglue.models.user.UserIntegrations.intervals:type_name -> fitglue.models.user.IntervalsIntegration
-	10, // 8: fitglue.models.user.UserIntegrations.google:type_name -> fitglue.models.user.GoogleIntegration
-	9,  // 9: fitglue.models.user.UserIntegrations.oura:type_name -> fitglue.models.user.OuraIntegration
-	11, // 10: fitglue.models.user.UserIntegrations.polar:type_name -> fitglue.models.user.PolarIntegration
-	12, // 11: fitglue.models.user.UserIntegrations.wahoo:type_name -> fitglue.models.user.WahooIntegration
-	13, // 12: fitglue.models.user.UserIntegrations.github:type_name -> fitglue.models.user.GitHubIntegration
-	14, // 13: fitglue.models.user.UserIntegrations.apple_health:type_name -> fitglue.models.user.AppleHealthIntegration
-	15, // 14: fitglue.models.user.UserIntegrations.health_connect:type_name -> fitglue.models.user.HealthConnectIntegration
-	16, // 15: fitglue.models.user.MockIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 16: fitglue.models.user.MockIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 17: fitglue.models.user.HevyIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 18: fitglue.models.user.HevyIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 19: fitglue.models.user.FitbitIntegration.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 20: fitglue.models.user.FitbitIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 21: fitglue.models.user.FitbitIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 22: fitglue.models.user.StravaIntegration.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 23: fitglue.models.user.StravaIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 24: fitglue.models.user.StravaIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 25: fitglue.models.user.ParkrunIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 26: fitglue.models.user.ParkrunIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 27: fitglue.models.user.SpotifyIntegration.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 28: fitglue.models.user.SpotifyIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 29: fitglue.models.user.SpotifyIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 30: fitglue.models.user.TrainingPeaksIntegration.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 31: fitglue.models.user.TrainingPeaksIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 32: fitglue.models.user.TrainingPeaksIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 33: fitglue.models.user.IntervalsIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 34: fitglue.models.user.IntervalsIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 35: fitglue.models.user.OuraIntegration.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 36: fitglue.models.user.OuraIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 37: fitglue.models.user.OuraIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 38: fitglue.models.user.GoogleIntegration.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 39: fitglue.models.user.GoogleIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 40: fitglue.models.user.GoogleIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 41: fitglue.models.user.PolarIntegration.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 42: fitglue.models.user.PolarIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 43: fitglue.models.user.PolarIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 44: fitglue.models.user.WahooIntegration.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 45: fitglue.models.user.WahooIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 46: fitglue.models.user.WahooIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 47: fitglue.models.user.GitHubIntegration.expires_at:type_name -> google.protobuf.Timestamp
-	16, // 48: fitglue.models.user.GitHubIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 49: fitglue.models.user.GitHubIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 50: fitglue.models.user.AppleHealthIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 51: fitglue.models.user.AppleHealthIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	16, // 52: fitglue.models.user.HealthConnectIntegration.created_at:type_name -> google.protobuf.Timestamp
-	16, // 53: fitglue.models.user.HealthConnectIntegration.last_used_at:type_name -> google.protobuf.Timestamp
-	54, // [54:54] is the sub-list for method output_type
-	54, // [54:54] is the sub-list for method input_type
-	54, // [54:54] is the sub-list for extension type_name
-	54, // [54:54] is the sub-list for extension extendee
-	0,  // [0:54] is the sub-list for field type_name
+	9,  // 8: fitglue.models.user.UserIntegrations.google:type_name -> fitglue.models.user.GoogleIntegration
+	10, // 9: fitglue.models.user.UserIntegrations.github:type_name -> fitglue.models.user.GitHubIntegration
+	11, // 10: fitglue.models.user.UserIntegrations.apple_health:type_name -> fitglue.models.user.AppleHealthIntegration
+	12, // 11: fitglue.models.user.UserIntegrations.health_connect:type_name -> fitglue.models.user.HealthConnectIntegration
+	13, // 12: fitglue.models.user.MockIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 13: fitglue.models.user.MockIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 14: fitglue.models.user.HevyIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 15: fitglue.models.user.HevyIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 16: fitglue.models.user.FitbitIntegration.expires_at:type_name -> google.protobuf.Timestamp
+	13, // 17: fitglue.models.user.FitbitIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 18: fitglue.models.user.FitbitIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 19: fitglue.models.user.StravaIntegration.expires_at:type_name -> google.protobuf.Timestamp
+	13, // 20: fitglue.models.user.StravaIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 21: fitglue.models.user.StravaIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 22: fitglue.models.user.ParkrunIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 23: fitglue.models.user.ParkrunIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 24: fitglue.models.user.SpotifyIntegration.expires_at:type_name -> google.protobuf.Timestamp
+	13, // 25: fitglue.models.user.SpotifyIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 26: fitglue.models.user.SpotifyIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 27: fitglue.models.user.TrainingPeaksIntegration.expires_at:type_name -> google.protobuf.Timestamp
+	13, // 28: fitglue.models.user.TrainingPeaksIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 29: fitglue.models.user.TrainingPeaksIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 30: fitglue.models.user.IntervalsIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 31: fitglue.models.user.IntervalsIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 32: fitglue.models.user.GoogleIntegration.expires_at:type_name -> google.protobuf.Timestamp
+	13, // 33: fitglue.models.user.GoogleIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 34: fitglue.models.user.GoogleIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 35: fitglue.models.user.GitHubIntegration.expires_at:type_name -> google.protobuf.Timestamp
+	13, // 36: fitglue.models.user.GitHubIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 37: fitglue.models.user.GitHubIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 38: fitglue.models.user.AppleHealthIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 39: fitglue.models.user.AppleHealthIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	13, // 40: fitglue.models.user.HealthConnectIntegration.created_at:type_name -> google.protobuf.Timestamp
+	13, // 41: fitglue.models.user.HealthConnectIntegration.last_used_at:type_name -> google.protobuf.Timestamp
+	42, // [42:42] is the sub-list for method output_type
+	42, // [42:42] is the sub-list for method input_type
+	42, // [42:42] is the sub-list for extension type_name
+	42, // [42:42] is the sub-list for extension extendee
+	0,  // [0:42] is the sub-list for field type_name
 }
 
 func init() { file_models_user_integration_proto_init() }
@@ -1717,7 +1365,7 @@ func file_models_user_integration_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_models_user_integration_proto_rawDesc), len(file_models_user_integration_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

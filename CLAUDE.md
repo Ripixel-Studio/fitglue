@@ -79,7 +79,7 @@ server/
 │   │   │   ├── api-client/         # HTTP gateway (Firebase JWT)
 │   │   │   ├── api-public/         # HTTP gateway (no auth)
 │   │   │   ├── api-webhook/        # HTTP gateway (HMAC/OAuth)
-│   │   │   │   └── internal/webhook/sources/  # strava/, fitbit/, hevy/, polar/, oura/, wahoo/, mobile/, parkrun/
+│   │   │   │   └── internal/webhook/sources/  # strava/, fitbit/, hevy/, intervals/, github/, parkrun/
 │   │   │   ├── user/               # gRPC domain service
 │   │   │   ├── pipeline/           # gRPC domain service + enrichment orchestration
 │   │   │   ├── activity/           # gRPC domain service
@@ -148,7 +148,7 @@ Three categories of plugins, each following the same provider interface pattern:
 - Interface: `SourceProvider`
 - Registered in `services/api-webhook/main.go`
 - Scaffold: `make plugin-source name=<name>`
-- Current: strava, fitbit, hevy, polar, oura, wahoo, mobile, parkrun
+- Current: strava, fitbit, hevy, intervals, github, parkrun
 
 ### Enrichers (pipeline steps)
 - Location: `internal/pipeline/enricher/providers/{name}/`

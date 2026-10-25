@@ -148,7 +148,7 @@ func TestHandleRepost_Success(t *testing.T) {
 	}
 }
 
-// --- mobile handlers ---
+// --- activity stats ---
 
 func TestHandleGetActivityStats(t *testing.T) {
 	s := serverWithDeps(&APIServer{

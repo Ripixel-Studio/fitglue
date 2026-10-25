@@ -251,8 +251,8 @@ func TestProcessor_HandleEvent(t *testing.T) {
 // TestProcessor_PerEventTimeoutBudget is a regression test for SERVER-6
 // (context.deadlineExceededError in (*Processor).processEvents).
 //
-// A single provider webhook can carry a batch of events (Fitbit and the mobile
-// source both fan a batch out to processEvents), and each event runs several
+// A single provider webhook can carry a batch of events (Fitbit fans a batch
+// out to processEvents), and each event runs several
 // sequential network calls before publishing. When the whole batch shared one
 // 30s deadline, the cumulative latency of the earlier events could exhaust it,
 // so the later events' Pub/Sub publish failed with context.DeadlineExceeded —

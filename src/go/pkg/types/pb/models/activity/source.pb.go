@@ -32,16 +32,19 @@ const (
 	ActivitySource_SOURCE_PARKRUN_RESULTS ActivitySource = 4
 	ActivitySource_SOURCE_FILE_UPLOAD     ActivitySource = 5
 	ActivitySource_SOURCE_STRAVA          ActivitySource = 6
-	ActivitySource_SOURCE_APPLE_HEALTH    ActivitySource = 8
-	ActivitySource_SOURCE_HEALTH_CONNECT  ActivitySource = 9
-	ActivitySource_SOURCE_OURA            ActivitySource = 10
-	ActivitySource_SOURCE_POLAR           ActivitySource = 11
-	ActivitySource_SOURCE_WAHOO           ActivitySource = 12
-	ActivitySource_SOURCE_INTERVALS       ActivitySource = 13
-	ActivitySource_SOURCE_TRAININGPEAKS   ActivitySource = 14
-	ActivitySource_SOURCE_GOOGLESHEETS    ActivitySource = 15
-	ActivitySource_SOURCE_GITHUB          ActivitySource = 16
-	ActivitySource_SOURCE_TEST            ActivitySource = 99
+	// 8-12 have no live source since F1.6 (mobile app, Oura, Polar, Wahoo removed) but
+	// stay defined: stored activities and pipeline_runs are read back with protojson,
+	// which rejects unknown enum names.
+	ActivitySource_SOURCE_APPLE_HEALTH   ActivitySource = 8
+	ActivitySource_SOURCE_HEALTH_CONNECT ActivitySource = 9
+	ActivitySource_SOURCE_OURA           ActivitySource = 10
+	ActivitySource_SOURCE_POLAR          ActivitySource = 11
+	ActivitySource_SOURCE_WAHOO          ActivitySource = 12
+	ActivitySource_SOURCE_INTERVALS      ActivitySource = 13
+	ActivitySource_SOURCE_TRAININGPEAKS  ActivitySource = 14
+	ActivitySource_SOURCE_GOOGLESHEETS   ActivitySource = 15
+	ActivitySource_SOURCE_GITHUB         ActivitySource = 16
+	ActivitySource_SOURCE_TEST           ActivitySource = 99
 )
 
 // Enum value maps for ActivitySource.

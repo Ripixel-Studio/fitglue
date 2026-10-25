@@ -30,7 +30,7 @@ func TestFirestoreStore_OfflineCoverageExtra(t *testing.T) {
 	})
 
 	t.Run("FindUserByIntegration_OAuthProviders", func(t *testing.T) {
-		for _, p := range []string{"fitbit", "polar", "wahoo", "oura", "github", "spotify", "intervals", "trainingpeaks", "parkrun"} {
+		for _, p := range []string{"fitbit", "github", "spotify", "intervals", "trainingpeaks", "parkrun"} {
 			_, err := store.FindUserByIntegration(ctx, p, "uid-"+p)
 			assert.Error(t, err, "provider %s", p)
 		}

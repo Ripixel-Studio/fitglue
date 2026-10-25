@@ -21,13 +21,8 @@ import (
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/github"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/hevy"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/intervals"
-	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/mobile"
-	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/mock"
-	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/oura"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/parkrun"
-	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/polar"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/strava"
-	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/wahoo"
 
 	"google.golang.org/api/option"
 )
@@ -133,15 +128,8 @@ func main() {
 	}
 	processor.Register(fitbitProvider)
 	processor.Register(hevy.NewProvider())
-	processor.Register(oura.NewProvider())
 	githubSecret := os.Getenv("GITHUB_WEBHOOK_SECRET")
 	processor.Register(github.NewProvider(githubSecret))
-	processor.Register(wahoo.NewProvider())
-	processor.Register(polar.NewProvider())
-	processor.Register(mobile.NewProvider())
-	if os.Getenv("ENABLE_MOCK_PROVIDER") == "true" {
-		processor.Register(mock.NewProvider())
-	}
 	processor.Register(parkrun.NewProvider())
 
 	// Initialize the HTTP Gateway Server

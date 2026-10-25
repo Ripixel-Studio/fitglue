@@ -17,9 +17,8 @@ message UserIntegrations {
   TrainingPeaksIntegration trainingpeaks = 7;
   IntervalsIntegration intervals = 8;
   GoogleIntegration google = 9;
-  OuraIntegration oura = 10;
-  PolarIntegration polar = 11;
-  WahooIntegration wahoo = 12;
+  reserved 10, 11, 12; // were oura, polar, wahoo (removed, single-user conversion F1.6)
+  reserved "oura", "polar", "wahoo";
   GitHubIntegration github = 13;
   AppleHealthIntegration apple_health = 14;
   HealthConnectIntegration health_connect = 15;
@@ -96,42 +95,12 @@ message IntervalsIntegration {
     google.protobuf.Timestamp last_used_at = 5;
 }
 
-message OuraIntegration {
-    bool enabled = 1;
-    string access_token = 2;
-    string refresh_token = 3;
-    google.protobuf.Timestamp expires_at = 4;
-    string oura_user_id = 5;              
-    google.protobuf.Timestamp created_at = 6;
-    google.protobuf.Timestamp last_used_at = 7;
-}
-
 message GoogleIntegration {
     bool enabled = 1;
     string access_token = 2;
     string refresh_token = 3;
     google.protobuf.Timestamp expires_at = 4;
     string google_user_id = 5;            
-    google.protobuf.Timestamp created_at = 6;
-    google.protobuf.Timestamp last_used_at = 7;
-}
-
-message PolarIntegration {
-    bool enabled = 1;
-    string access_token = 2;
-    string refresh_token = 3;
-    google.protobuf.Timestamp expires_at = 4;
-    string polar_user_id = 5;             
-    google.protobuf.Timestamp created_at = 6;
-    google.protobuf.Timestamp last_used_at = 7;
-}
-
-message WahooIntegration {
-    bool enabled = 1;
-    string access_token = 2;
-    string refresh_token = 3;
-    google.protobuf.Timestamp expires_at = 4;
-    string wahoo_user_id = 5;             
     google.protobuf.Timestamp created_at = 6;
     google.protobuf.Timestamp last_used_at = 7;
 }
