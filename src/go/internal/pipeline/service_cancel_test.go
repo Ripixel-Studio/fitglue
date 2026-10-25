@@ -98,18 +98,6 @@ func TestCancelPipelineRun_Success(t *testing.T) {
 	_ = store
 }
 
-func TestAdminListPipelineRuns(t *testing.T) {
-	svc, store := cancelTestService()
-	store.Runs[store.key("u1", "r1")] = &pipeline.PipelineRun{Id: "r1"}
-	resp, err := svc.AdminListPipelineRuns(context.Background(), &pbsvc.AdminListPipelineRunsRequest{Limit: 10})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp == nil {
-		t.Fatal("expected response")
-	}
-}
-
 func TestListSourceActivities_Validation(t *testing.T) {
 	svc, _ := cancelTestService()
 	if _, err := svc.ListSourceActivities(context.Background(), &pbsvc.ListSourceActivitiesRequest{}); status.Code(err) != codes.InvalidArgument {

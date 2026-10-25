@@ -62,10 +62,6 @@ func AuthMiddleware(authClient *firebase.AuthClient) func(http.Handler) http.Han
 }
 ```
 
-### service.api.admin — Admin Check
-
-Admin auth validates that the authenticated user has elevated privileges. Non-admin requests are rejected with 403.
-
 ### service.api.webhook — HMAC Signature Verification
 
 Each source provider implements `VerifyWebhook(r *http.Request) error` in its `SourceProvider` interface:

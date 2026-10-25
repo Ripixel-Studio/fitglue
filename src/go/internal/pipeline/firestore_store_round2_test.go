@@ -100,18 +100,6 @@ func TestFirestoreStore_ErrorPaths(t *testing.T) {
 			t.Error("expected error")
 		}
 	})
-	t.Run("AdminListPipelineRuns_WithUser", func(t *testing.T) {
-		// userID set → per-user collection query, status + source filters applied.
-		if _, err := s.AdminListPipelineRuns(ctx, "PIPELINE_RUN_STATUS_RUNNING", "SOURCE_STRAVA", "u1", 5); err == nil {
-			t.Error("expected error")
-		}
-	})
-	t.Run("AdminListPipelineRuns_CollectionGroup", func(t *testing.T) {
-		// userID empty → collection-group query, limit<=0 default branch.
-		if _, err := s.AdminListPipelineRuns(ctx, "", "", "", 0); err == nil {
-			t.Error("expected error")
-		}
-	})
 	t.Run("UpdatePipelineRun", func(t *testing.T) {
 		if err := s.UpdatePipelineRun(ctx, "u1", "r1", map[string]interface{}{"status": 1}); err == nil {
 			t.Error("expected error")

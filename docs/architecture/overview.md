@@ -12,7 +12,6 @@ FitGlue is a fitness data aggregation and routing platform built on Google Cloud
 │  │              API GATEWAY LAYER (HTTP entry points)          │    │
 │  │                                                             │    │
 │  │   service.api.client   ←── Web App / Mobile (Firebase JWT) │    │
-│  │   service.api.admin    ←── Admin tooling                    │    │
 │  │   service.api.public   ←── Marketing site (no auth)         │    │
 │  │   service.api.webhook  ←── Third-party webhooks (HMAC)      │    │
 │  └────────────────────────┬────────────────────────────────────┘    │

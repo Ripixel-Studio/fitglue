@@ -4,8 +4,6 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
-	"strconv"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -295,89 +293,6 @@ func (s *FirestoreStore) ListPipelineRuns(ctx context.Context, userID, pipelineI
 	}
 	// Note: Pagination not completely implemented
 	return runs, "", nil
-}
-
-func (s *FirestoreStore) AdminListPipelineRuns(ctx context.Context, status, source, userID string, limit int32) ([]*pipeline.PipelineRun, error) {
-	if limit <= 0 {
-		limit = 50
-	}
-
-	var q firestore.Query
-	if userID != "" {
-		q = s.client.Collection("users").Doc(userID).Collection("pipeline_runs").
-			OrderBy("created_at", firestore.Desc)
-	} else {
-		q = s.client.CollectionGroup("pipeline_runs").
-			OrderBy("created_at", firestore.Desc)
-	}
-
-	// status is stored as the proto enum *name* string (protojson), not its
-	// numeric value, so filter by the resolved name. Accept enum names, short
-	// names ("SYNCED"), or numeric values from older clients.
-	if status != "" {
-		if name, ok := resolvePipelineRunStatusName(status); ok {
-			q = q.Where("status", "==", name)
-		}
-	}
-	if source != "" {
-		q = q.Where("source", "==", source)
-	}
-
-	iter := q.Limit(int(limit)).Documents(ctx)
-	defer iter.Stop()
-
-	var runs []*pipeline.PipelineRun
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		var run pipeline.PipelineRun
-		// A single legacy/dirty document must not fail the whole admin listing.
-		// Normalise common legacy shapes, then skip (with a warning) anything
-		// that still won't decode rather than returning an error to the caller.
-		if err := decodeProtoMap(normalizeRunData(doc.Data()), &run); err != nil {
-			s.logger.Warn(ctx, "skipping pipeline run that failed to decode",
-				"doc", doc.Ref.Path, "error", err)
-			continue
-		}
-		// user_id is not persisted on the per-user run document; derive it so the
-		// admin console can act on the run. For the collection-group query the
-		// owning user is the grandparent of the run document.
-		run.UserId = userID
-		if run.UserId == "" && doc.Ref.Parent != nil && doc.Ref.Parent.Parent != nil {
-			run.UserId = doc.Ref.Parent.Parent.ID
-		}
-		runs = append(runs, &run)
-	}
-	return runs, nil
-}
-
-// resolvePipelineRunStatusName converts a status filter supplied as an enum name
-// ("PIPELINE_RUN_STATUS_SYNCED"), a short name ("SYNCED"), or a numeric enum
-// value ("2") into the canonical proto enum name used in Firestore.
-func resolvePipelineRunStatusName(in string) (string, bool) {
-	in = strings.TrimSpace(in)
-	if in == "" {
-		return "", false
-	}
-	if n, err := strconv.Atoi(in); err == nil {
-		if name, ok := pipeline.PipelineRunStatus_name[int32(n)]; ok {
-			return name, true
-		}
-		return "", false
-	}
-	up := strings.ToUpper(in)
-	if !strings.HasPrefix(up, "PIPELINE_RUN_STATUS_") {
-		up = "PIPELINE_RUN_STATUS_" + up
-	}
-	if _, ok := pipeline.PipelineRunStatus_value[up]; ok {
-		return up, true
-	}
-	return "", false
 }
 
 // normalizeRunData converts legacy pipeline_run documents into a shape protojson

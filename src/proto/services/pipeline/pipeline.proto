@@ -167,12 +167,6 @@ service PipelineService {
     };
   }
 
-  rpc AdminListPipelineRuns(AdminListPipelineRunsRequest) returns (AdminListPipelineRunsResponse) {
-    option (google.api.http) = {
-      get: "/v2/admin/pipeline-runs"
-    };
-  }
-
   rpc ListSourceActivities(ListSourceActivitiesRequest) returns (ListSourceActivitiesResponse) {
     option (google.api.http) = {
       get: "/v2/users/{user_id}/pipelines/{pipeline_id}/source-activities"
@@ -185,19 +179,6 @@ service PipelineService {
       body: "*"
     };
   }
-}
-
-// Admin pipeline runs
-message AdminListPipelineRunsRequest {
-  string status = 1;
-  string source = 2;
-  string user_id = 3; // optional filter
-  int32 limit = 4;
-  string page_token = 5;
-}
-message AdminListPipelineRunsResponse {
-  repeated fitglue.models.pipeline.PipelineRun runs = 1;
-  string next_page_token = 2;
 }
 
 message ListPipelinesRequest {

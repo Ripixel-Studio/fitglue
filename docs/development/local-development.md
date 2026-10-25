@@ -64,10 +64,6 @@ Each service reads its configuration from environment variables (see `.env`).
 
 ## 4. Triggering Events
 
-### Via Admin API
-
-With `make local` running, use `service.api.admin` to manage users and pipelines. See [API Layers](../architecture/api-layers.md) for the admin endpoint reference.
-
 ### Via Direct API Calls
 
 With `make local` running, hit the API gateways directly:
@@ -180,4 +176,4 @@ Ensure `protoc` and `buf` are installed. Run `protoc --version` and `buf --versi
 
 - [Testing Guide](testing.md) - Test strategy and patterns
 - [CI/CD](../infrastructure/cicd.md) - Deployment pipeline
-- [API Layers](../architecture/api-layers.md) - Admin and webhook API reference
+- [API Layers](../architecture/api-layers.md) - Client, public and webhook API reference

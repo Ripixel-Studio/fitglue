@@ -108,9 +108,6 @@ func (m *mockPipelineServiceClient) ListPipelineRuns(ctx context.Context, in *pi
 	}
 	return &pipelinepb.ListPipelineRunsResponse{}, nil
 }
-func (m *mockPipelineServiceClient) AdminListPipelineRuns(ctx context.Context, in *pipelinepb.AdminListPipelineRunsRequest, opts ...grpc.CallOption) (*pipelinepb.AdminListPipelineRunsResponse, error) {
-	return &pipelinepb.AdminListPipelineRunsResponse{}, nil
-}
 func (m *mockPipelineServiceClient) ListSourceActivities(ctx context.Context, in *pipelinepb.ListSourceActivitiesRequest, opts ...grpc.CallOption) (*pipelinepb.ListSourceActivitiesResponse, error) {
 	return &pipelinepb.ListSourceActivitiesResponse{}, nil
 }

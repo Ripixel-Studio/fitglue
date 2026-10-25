@@ -2,32 +2,6 @@ package pipeline
 
 import "testing"
 
-func TestResolvePipelineRunStatusName(t *testing.T) {
-	cases := map[string]struct {
-		in       string
-		wantName string
-		wantOK   bool
-	}{
-		"full enum name":  {"PIPELINE_RUN_STATUS_SYNCED", "PIPELINE_RUN_STATUS_SYNCED", true},
-		"short name":      {"SYNCED", "PIPELINE_RUN_STATUS_SYNCED", true},
-		"lowercase short": {"failed", "PIPELINE_RUN_STATUS_FAILED", true},
-		"numeric synced":  {"2", "PIPELINE_RUN_STATUS_SYNCED", true},
-		"numeric failed":  {"4", "PIPELINE_RUN_STATUS_FAILED", true},
-		"empty":           {"", "", false},
-		"garbage":         {"NOT_A_STATUS", "", false},
-		"out of range":    {"999", "", false},
-	}
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			gotName, gotOK := resolvePipelineRunStatusName(tc.in)
-			if gotName != tc.wantName || gotOK != tc.wantOK {
-				t.Fatalf("resolvePipelineRunStatusName(%q) = (%q,%v), want (%q,%v)",
-					tc.in, gotName, gotOK, tc.wantName, tc.wantOK)
-			}
-		})
-	}
-}
-
 func TestNormalizeRunData_DropsCamelCaseDuplicates(t *testing.T) {
 	data := map[string]interface{}{
 		"created_at":  "2026-06-19T00:00:00Z",

@@ -29,7 +29,6 @@ FitGlue uses a domain-service architecture: 11 Go Cloud Run services communicati
 
 **API gateways** sit in front for HTTP clients:
 - `service.api.client` — Web app / mobile (Firebase JWT)
-- `service.api.admin` — Admin tooling
 - `service.api.public` — Unauthenticated (registry, showcase)
 
 **Domain services** own their Firestore data and expose gRPC interfaces:
@@ -103,7 +102,7 @@ fitglue-server/
 │   ├── development/           # Dev guides
 │   ├── guides/                # How-to guides
 │   ├── infrastructure/        # CI/CD, Terraform
-│   └── reference/             # Admin CLI, errors, registry
+│   └── reference/             # Errors, registry
 ├── scripts/                   # Dev and CI scripts
 └── Makefile                   # Build, test, generate, deploy commands
 ```
@@ -114,10 +113,9 @@ fitglue-server/
 - [Architecture Overview](docs/architecture/overview.md) — System topology and data flow
 - [Go Services](docs/architecture/go-services.md) — Service structure, IoC pattern, directory map
 - [Local Development](docs/development/local-development.md) — Running the stack locally
-- [API Layers](docs/architecture/api-layers.md) — Admin API via `service.api.admin`
 
 ### Architecture
-- [API Layers](docs/architecture/api-layers.md) — The four HTTP gateways
+- [API Layers](docs/architecture/api-layers.md) — The three HTTP gateways
 - [Service Communication](docs/architecture/service-communication.md) — gRPC inter-service RPC
 - [Services & Stores](docs/architecture/services-and-stores.md) — Domain service patterns
 - [Plugin System](docs/architecture/plugin-system.md) — Sources, enrichers, destinations

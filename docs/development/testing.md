@@ -169,7 +169,7 @@ Manual QA validates end-to-end flows with real external services (Hevy, Fitbit, 
 
 ### User Setup
 
-Use the admin API (`service.api.admin`) or direct Firestore access to set up test users and pipelines. See [API Layers](../architecture/api-layers.md) for admin endpoints.
+Use direct Firestore access (or the authenticated `service.api.client` routes as the test user) to set up test users and pipelines.
 
 ### Verifying a Pipeline Run
 
@@ -190,4 +190,3 @@ Query Firestore `users/{userId}/pipeline_runs/` for execution records, or use th
 ## Related Documentation
 
 - [Local Development](local-development.md) - Running the stack locally
-- [Admin CLI Reference](../reference/admin-cli.md) - CLI commands for QA

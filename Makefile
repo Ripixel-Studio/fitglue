@@ -93,7 +93,7 @@ generate:
 	# Generate per-gateway OpenAPI specs from gateway protos
 	@echo "Generating per-gateway OpenAPI specs..."
 	@mkdir -p docs/api/gateway
-	@for proto in client admin public webhook; do \
+	@for proto in client public webhook; do \
 		echo "  Generating $$proto gateway spec..."; \
 		cd src/proto && buf generate --template buf.gen.openapi.yaml --path gateway/$$proto.proto && cd ../..; \
 		mv docs/api/openapi.yaml docs/api/gateway/$$proto.openapi.yaml; \
@@ -102,12 +102,12 @@ generate:
 	# Generate Frontend API Types from per-gateway OpenAPI specs
 	@echo "Generating Frontend API Types via openapi-typescript..."
 	@if [ -d "../web" ]; then \
-		for spec in client admin public; do \
+		for spec in client public; do \
 			echo "  Generating schema-$$spec.ts..."; \
 			cd ../web && npx -y openapi-typescript ../server/docs/api/gateway/$$spec.openapi.yaml -o src/shared/api/schema-$$spec.ts; \
 			cd ../server; \
 		done; \
-		echo "Frontend API types updated at ../web/src/shared/api/schema-{client,admin,public}.ts"; \
+		echo "Frontend API types updated at ../web/src/shared/api/schema-{client,public}.ts"; \
 	else \
 		echo "Skipping web frontend api type generation (../web not found)"; \
 	fi
@@ -169,7 +169,7 @@ lint:
 	@echo "Checking for Protobuf JSON misuse..."
 	@./scripts/lint-proto-json.sh
 
-SERVICES := activity api-admin api-client api-public api-webhook billing destination pipeline registry user
+SERVICES := activity api-client api-public api-webhook billing destination pipeline registry user
 
 docker:
 	@for service in $(SERVICES); do \
