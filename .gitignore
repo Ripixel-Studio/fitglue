@@ -35,7 +35,6 @@ src/go/user
 # Compiled Go Services
 src/go/services/activity/activity
 src/go/services/api-client/api-client
-src/go/services/api-public/api-public
 src/go/services/api-webhook/api-webhook
 src/go/services/destination/destination
 src/go/services/pipeline/pipeline

@@ -11,9 +11,6 @@ src/go/
 │   │   ├── main.go                    # Composition root: wires gRPC clients → chi router
 │   │   └── internal/
 │   │       └── server/                # HTTP handlers + middleware
-│   ├── api-public/                    # Unauthenticated HTTP gateway
-│   │   ├── main.go
-│   │   └── internal/server/
 │   ├── api-webhook/                   # Inbound webhook processor
 │   │   ├── main.go
 │   │   └── internal/

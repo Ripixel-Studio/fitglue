@@ -5,6 +5,21 @@ Hand-written since F1.8 of the single-user conversion; entries below
 
 ## Unreleased
 
+### feat!: delete api-public (rethink F1.5b)
+
+The unauthenticated `/api/public/*` gateway is gone: the public showcase is
+now the static site at `james.ripixel.co.uk/life`, fed by `fitgluectl
+export-site`, and `fitglue.tech/@james/*` + `/showcase/*` 301 there (S4.1).
+
+- Removed `services/api-public`, `gateway/public.proto` and its stubs,
+  `docs/api/gateway/public.openapi.yaml`, the service's Cloud Run / IAM /
+  compose / CI entries.
+- Removed the activity RPCs only api-public called: `GetPublicRoundup`,
+  `GetRecentPublicRoundups`, and the `ListRecentRoundups` store method.
+  `GetPublicShowcase`, `GetPublicShowcaseProfile`, `GetRoundup` and
+  `ListAllRoundups` stay — the site exporter reads through them.
+- `make generate` no longer produces `schema-public.ts` for the web app.
+
 ### feat: Caddy + Tailscale Funnel ingress for the box (rethink F3.3)
 
 Public HTTPS for the box-hosted services, replacing Cloud Run's public ingress.

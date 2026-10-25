@@ -33,10 +33,10 @@ Public fetch URL: `https://storage.googleapis.com/fitglue-server-prod-showcase-a
 
 ## What is in the files
 
-Protobuf messages are serialised with `protojson` using the same options as
-`api-public`'s `WriteJSON` (`UseProtoNames: false`, `EmitUnpopulated: true`),
-so the JSON matches what the React showcase pages consume today. On top of
-that, per the contract:
+Protobuf messages are serialised with `protojson` with the options the old
+`api-public` gateway used (`UseProtoNames: false`, `EmitUnpopulated: true`),
+so the JSON keeps the shape the React showcase pages consumed before both were
+deleted (F1.5b). On top of that, per the contract:
 
 - `index.json`: `profile` is `GetPublicShowcaseProfile(slug).profile` (so
   `topPrs` is filled the way the public page sees it) minus `entries` and

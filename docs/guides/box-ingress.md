@@ -25,7 +25,7 @@ internet ──TLS──▶ Tailscale Funnel (jarvis.tail3065f7.ts.net:443)
   `fitglue-caddy.service` (`deploy/box/fitglue-caddy.service`), alongside the
   `fitglue-<svc>.service` units from F3.1. No sudo anywhere.
 - Funnel is the only public door. The home screen (8790), dashboard (8787),
-  voicebox (8788), api-public (8107) and user (8103) stay tailnet-only.
+  voicebox (8788) and user (8103) stay tailnet-only.
 
 ## Public URLs (what F3.4 points the inputs at)
 
@@ -66,6 +66,6 @@ Funnel is off (`deploy/box/funnel.md` → Funnel).
 Edit `deploy/box/caddy/Caddyfile`, run `caddy validate`, open a PR. Keep the
 rule: public paths live under `/fg/`, each maps to one loopback port, nothing
 proxies a service wholesale (pipeline's `/internal/*`, api-client's
-`/api/v2/*` beyond the OAuth callback, api-public, user are deliberately not
+`/api/v2/*` beyond the OAuth callback, user are deliberately not
 reachable). Adding a `tailscale serve` or `funnel` entry for any other port
 makes it public — don't.
