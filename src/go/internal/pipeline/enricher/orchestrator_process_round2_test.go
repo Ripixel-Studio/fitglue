@@ -10,13 +10,11 @@ import (
 	"testing"
 	"time"
 
-	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/user_input"
 	user "github.com/fitglue/server/src/go/pkg/domain/user"
-	"github.com/fitglue/server/src/go/pkg/testing/mocks"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
@@ -56,7 +54,7 @@ func enricherPayload() *pbevents.ActivityPayload {
 // TestProcess_EnricherRetryableError covers the RetryableError branch: Process
 // must return STATUS_LAGGED_RETRY and propagate the retryable error.
 func TestProcess_EnricherRetryableError(t *testing.T) {
-	o := NewOrchestrator(enricherPipelineDB(), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(enricherPipelineDB(), &MockBlobStore{}, "bucket")
 	o.Register(&MockProvider{
 		NameFunc: func() string { return "mock-enricher" },
 		EnrichFunc: func(ctx context.Context, _ *slog.Logger, _ *pbactivity.StandardizedActivity, _ *user.Record, _ map[string]string, _ bool) (*providers.EnrichmentResult, error) {
@@ -80,7 +78,7 @@ func TestProcess_EnricherRetryableError(t *testing.T) {
 // plain (non-retryable, non-wait) error: Process aborts the pipeline and returns
 // "enricher failed: ...".
 func TestProcess_EnricherGenericError(t *testing.T) {
-	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket")
 	o.Register(&MockProvider{
 		NameFunc: func() string { return "mock-enricher" },
 		EnrichFunc: func(ctx context.Context, _ *slog.Logger, _ *pbactivity.StandardizedActivity, _ *user.Record, _ map[string]string, _ bool) (*providers.EnrichmentResult, error) {
@@ -117,7 +115,7 @@ func oneSessionActivity() *pbactivity.StandardizedActivity {
 // TestProcess_HaltPipeline covers the HaltPipeline branch: the run is marked
 // SKIPPED and no events are emitted.
 func TestProcess_HaltPipeline(t *testing.T) {
-	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket")
 	o.Register(&MockProvider{
 		NameFunc: func() string { return "mock-enricher" },
 		EnrichFunc: func(ctx context.Context, _ *slog.Logger, _ *pbactivity.StandardizedActivity, _ *user.Record, _ map[string]string, _ bool) (*providers.EnrichmentResult, error) {
@@ -139,7 +137,7 @@ func TestProcess_HaltPipeline(t *testing.T) {
 // TestProcess_SkippedProvider covers the res.Skipped branch: the provider is
 // recorded SKIPPED but the pipeline continues and still emits an event.
 func TestProcess_SkippedProvider(t *testing.T) {
-	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket")
 	o.Register(&MockProvider{
 		NameFunc: func() string { return "mock-enricher" },
 		EnrichFunc: func(ctx context.Context, _ *slog.Logger, _ *pbactivity.StandardizedActivity, _ *user.Record, _ map[string]string, _ bool) (*providers.EnrichmentResult, error) {
@@ -157,7 +155,7 @@ func TestProcess_SkippedProvider(t *testing.T) {
 
 // TestProcess_NilResultProvider covers the res == nil branch.
 func TestProcess_NilResultProvider(t *testing.T) {
-	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket")
 	o.Register(&MockProvider{
 		NameFunc: func() string { return "mock-enricher" },
 		EnrichFunc: func(ctx context.Context, _ *slog.Logger, _ *pbactivity.StandardizedActivity, _ *user.Record, _ map[string]string, _ bool) (*providers.EnrichmentResult, error) {
@@ -177,7 +175,7 @@ func TestProcess_NilResultProvider(t *testing.T) {
 // Name, NameSuffix, ActivityType, Tags, TimeMarkers and Description are all
 // merged into the produced event.
 func TestProcess_RichResultApplied(t *testing.T) {
-	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket")
 	o.Register(&MockProvider{
 		NameFunc: func() string { return "mock-enricher" },
 		EnrichFunc: func(ctx context.Context, _ *slog.Logger, _ *pbactivity.StandardizedActivity, _ *user.Record, _ map[string]string, _ bool) (*providers.EnrichmentResult, error) {
@@ -231,7 +229,7 @@ func twoEnricherPipelineDB() *MockDatabase {
 // TestProcess_StreamDataApplied covers the record-expansion and stream-merge
 // block: an enricher returning HR/power/GPS streams populates session records.
 func TestProcess_StreamDataApplied(t *testing.T) {
-	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(enricherPipelineDB(pbplugin.DestinationType_DESTINATION_STRAVA), &MockBlobStore{}, "bucket")
 	o.Register(&MockProvider{
 		NameFunc: func() string { return "mock-enricher" },
 		EnrichFunc: func(ctx context.Context, _ *slog.Logger, _ *pbactivity.StandardizedActivity, _ *user.Record, _ map[string]string, _ bool) (*providers.EnrichmentResult, error) {
@@ -255,7 +253,7 @@ func TestProcess_StreamDataApplied(t *testing.T) {
 // TestProcess_ExcludeEnrichers covers the ExcludeEnrichers branch: an upstream
 // enricher excludes the downstream WEATHER enricher, which is then SKIPPED.
 func TestProcess_ExcludeEnrichers(t *testing.T) {
-	o := NewOrchestrator(twoEnricherPipelineDB(), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(twoEnricherPipelineDB(), &MockBlobStore{}, "bucket")
 	// First (MOCK) enricher excludes WEATHER.
 	o.Register(&MockProvider{
 		NameFunc:         func() string { return "mock-enricher" },
@@ -305,12 +303,7 @@ func TestProcess_WaitForInput(t *testing.T) {
 		return nil
 	}
 
-	pub := &mocks.MockPublisher{
-		PublishCloudEventFunc: func(ctx context.Context, topic string, e cloudevents.Event) (string, error) {
-			return "m1", nil
-		},
-	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", pub)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 	o.Register(&MockProvider{
 		NameFunc: func() string { return "mock-enricher" },
 		EnrichFunc: func(ctx context.Context, _ *slog.Logger, _ *pbactivity.StandardizedActivity, _ *user.Record, _ map[string]string, _ bool) (*providers.EnrichmentResult, error) {
@@ -356,7 +349,7 @@ func TestProcess_ProviderNotRegistered(t *testing.T) {
 			}}, nil
 		},
 	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 	res, err := o.Process(context.Background(), covLogger(), enricherPayload(), "parent", "exec", false)
 	if err != nil {
 		t.Fatalf("unregistered provider should not error, got %v", err)
@@ -410,7 +403,7 @@ func TestProcess_ResumeEnrichResume(t *testing.T) {
 			}, nil
 		},
 	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 
 	rp := &resumableMockProvider{resumeCalled: &resumeCalled}
 	rp.NameFunc = func() string { return "mock-enricher" }
@@ -492,7 +485,7 @@ func TestProcess_ResumeReplaysJournal(t *testing.T) {
 			}, nil
 		},
 	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 
 	nip := &nonIdempotentMockProvider{ran: &enrichRan}
 	nip.NameFunc = func() string { return "mock-enricher" }
@@ -573,7 +566,7 @@ func TestProcess_ResumeReplaysHeartRateStream(t *testing.T) {
 			}, nil
 		},
 	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 
 	nip := &nonIdempotentMockProvider{ran: &enrichRan}
 	nip.NameFunc = func() string { return "mock-enricher" }
@@ -653,10 +646,7 @@ func TestProcess_NonBlockingWaitContinues(t *testing.T) {
 			return nil
 		},
 	}
-	pub := &mocks.MockPublisher{
-		PublishCloudEventFunc: func(ctx context.Context, topic string, e cloudevents.Event) (string, error) { return "m", nil },
-	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", pub)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 
 	nb := &nonBlockingMockProvider{}
 	nb.NameFunc = func() string { return "mock-enricher" }
@@ -714,7 +704,7 @@ func TestProcess_DeferredAndBranding(t *testing.T) {
 			}}, nil
 		},
 	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 
 	// Deferred provider mapped to the AI_COMPANION enricher type.
 	deferred := &deferrableMockProvider{}
@@ -782,7 +772,7 @@ func TestProcess_RepostSameSource(t *testing.T) {
 			}}, nil
 		},
 	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 	o.Register(&MockProvider{
 		NameFunc: func() string { return "mock-enricher" },
 		EnrichFunc: func(ctx context.Context, _ *slog.Logger, _ *pbactivity.StandardizedActivity, _ *user.Record, _ map[string]string, _ bool) (*providers.EnrichmentResult, error) {
@@ -827,7 +817,7 @@ func TestProcess_GetUserError(t *testing.T) {
 			return nil, errors.New("db down")
 		},
 	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 	pipelineID := "p1"
 	_, err := o.Process(context.Background(), covLogger(), &pbevents.ActivityPayload{
 		UserId:               "u1",
@@ -841,7 +831,7 @@ func TestProcess_GetUserError(t *testing.T) {
 
 // TestProcess_NilActivity covers the terminal "standardized activity is nil".
 func TestProcess_NilActivity(t *testing.T) {
-	o := NewOrchestrator(okUserDB(), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(okUserDB(), &MockBlobStore{}, "bucket")
 	pipelineID := "p1"
 	_, err := o.Process(context.Background(), covLogger(), &pbevents.ActivityPayload{
 		UserId:     "u1",
@@ -854,7 +844,7 @@ func TestProcess_NilActivity(t *testing.T) {
 
 // TestProcess_MissingPipelineID covers the terminal "pipeline_id is required".
 func TestProcess_MissingPipelineID(t *testing.T) {
-	o := NewOrchestrator(okUserDB(), &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(okUserDB(), &MockBlobStore{}, "bucket")
 	_, err := o.Process(context.Background(), covLogger(), &pbevents.ActivityPayload{
 		UserId:               "u1",
 		StandardizedActivity: oneSessionActivity(),
@@ -881,7 +871,7 @@ func TestProcess_CancelledRunSkips(t *testing.T) {
 			}, nil
 		},
 	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 	pipelineID := "p1"
 	res, err := o.Process(context.Background(), covLogger(), &pbevents.ActivityPayload{
 		UserId:               "u1",
@@ -949,7 +939,7 @@ func TestProcess_DisabledPipelineSkipsWithoutSentry(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			h := &levelCaptureHandler{maxLevel: slog.LevelDebug}
 			logger := slog.New(h)
-			o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+			o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 
 			res, err := o.Process(context.Background(), logger, enricherPayload(), "parent", "exec", false)
 			if err != nil {
@@ -979,7 +969,7 @@ func TestProcess_ResumeMissingActivityID(t *testing.T) {
 			return []*pbpipeline.PipelineConfig{{Id: "p1", Source: "SOURCE_HEVY"}}, nil
 		},
 	}
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
+	o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
 	pipelineID := "p1"
 	_, err := o.Process(context.Background(), covLogger(), &pbevents.ActivityPayload{
 		UserId:               "u1",

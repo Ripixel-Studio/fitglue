@@ -35,8 +35,6 @@ const (
 	ClientGatewayService_ConnectionAction_FullMethodName                   = "/fitglue.gateway.ClientGatewayService/ConnectionAction"
 	ClientGatewayService_ListConnectionActivities_FullMethodName           = "/fitglue.gateway.ClientGatewayService/ListConnectionActivities"
 	ClientGatewayService_BackfillConnectionActivities_FullMethodName       = "/fitglue.gateway.ClientGatewayService/BackfillConnectionActivities"
-	ClientGatewayService_GetNotificationPrefs_FullMethodName               = "/fitglue.gateway.ClientGatewayService/GetNotificationPrefs"
-	ClientGatewayService_UpdateNotificationPrefs_FullMethodName            = "/fitglue.gateway.ClientGatewayService/UpdateNotificationPrefs"
 	ClientGatewayService_ListCounters_FullMethodName                       = "/fitglue.gateway.ClientGatewayService/ListCounters"
 	ClientGatewayService_UpdateCounter_FullMethodName                      = "/fitglue.gateway.ClientGatewayService/UpdateCounter"
 	ClientGatewayService_DeleteCounter_FullMethodName                      = "/fitglue.gateway.ClientGatewayService/DeleteCounter"
@@ -52,7 +50,6 @@ const (
 	ClientGatewayService_SendVerificationEmail_FullMethodName              = "/fitglue.gateway.ClientGatewayService/SendVerificationEmail"
 	ClientGatewayService_SendEmailChangeVerification_FullMethodName        = "/fitglue.gateway.ClientGatewayService/SendEmailChangeVerification"
 	ClientGatewayService_SendPasswordReset_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/SendPasswordReset"
-	ClientGatewayService_SetFCMToken_FullMethodName                        = "/fitglue.gateway.ClientGatewayService/SetFCMToken"
 	ClientGatewayService_MobileSync_FullMethodName                         = "/fitglue.gateway.ClientGatewayService/MobileSync"
 	ClientGatewayService_ListPipelines_FullMethodName                      = "/fitglue.gateway.ClientGatewayService/ListPipelines"
 	ClientGatewayService_GetPipeline_FullMethodName                        = "/fitglue.gateway.ClientGatewayService/GetPipeline"
@@ -140,9 +137,6 @@ type ClientGatewayServiceClient interface {
 	ConnectionAction(ctx context.Context, in *ConnectionActionGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ListConnectionActivities(ctx context.Context, in *ListConnectionActivitiesGatewayRequest, opts ...grpc.CallOption) (*ListSourceActivitiesGatewayResponse, error)
 	BackfillConnectionActivities(ctx context.Context, in *BackfillConnectionActivitiesGatewayRequest, opts ...grpc.CallOption) (*BackfillActivitiesGatewayResponse, error)
-	// ===================== Notification Preferences =====================
-	GetNotificationPrefs(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.NotificationPreferences, error)
-	UpdateNotificationPrefs(ctx context.Context, in *user.NotificationPreferences, opts ...grpc.CallOption) (*user.NotificationPreferences, error)
 	// ===================== Counters =====================
 	ListCounters(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListCountersGatewayResponse, error)
 	UpdateCounter(ctx context.Context, in *UpdateCounterGatewayRequest, opts ...grpc.CallOption) (*user.Counter, error)
@@ -163,8 +157,6 @@ type ClientGatewayServiceClient interface {
 	SendVerificationEmail(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	SendEmailChangeVerification(ctx context.Context, in *SendEmailChangeGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	SendPasswordReset(ctx context.Context, in *SendPasswordResetGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// ===================== FCM Token =====================
-	SetFCMToken(ctx context.Context, in *SetFCMTokenGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// ===================== Mobile Sync =====================
 	MobileSync(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// ===================== Pipelines =====================
@@ -375,26 +367,6 @@ func (c *clientGatewayServiceClient) BackfillConnectionActivities(ctx context.Co
 	return out, nil
 }
 
-func (c *clientGatewayServiceClient) GetNotificationPrefs(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.NotificationPreferences, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(user.NotificationPreferences)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetNotificationPrefs_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) UpdateNotificationPrefs(ctx context.Context, in *user.NotificationPreferences, opts ...grpc.CallOption) (*user.NotificationPreferences, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(user.NotificationPreferences)
-	err := c.cc.Invoke(ctx, ClientGatewayService_UpdateNotificationPrefs_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *clientGatewayServiceClient) ListCounters(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListCountersGatewayResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListCountersGatewayResponse)
@@ -539,16 +511,6 @@ func (c *clientGatewayServiceClient) SendPasswordReset(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, ClientGatewayService_SendPasswordReset_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) SetFCMToken(ctx context.Context, in *SetFCMTokenGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, ClientGatewayService_SetFCMToken_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1180,9 +1142,6 @@ type ClientGatewayServiceServer interface {
 	ConnectionAction(context.Context, *ConnectionActionGatewayRequest) (*emptypb.Empty, error)
 	ListConnectionActivities(context.Context, *ListConnectionActivitiesGatewayRequest) (*ListSourceActivitiesGatewayResponse, error)
 	BackfillConnectionActivities(context.Context, *BackfillConnectionActivitiesGatewayRequest) (*BackfillActivitiesGatewayResponse, error)
-	// ===================== Notification Preferences =====================
-	GetNotificationPrefs(context.Context, *EmptyRequest) (*user.NotificationPreferences, error)
-	UpdateNotificationPrefs(context.Context, *user.NotificationPreferences) (*user.NotificationPreferences, error)
 	// ===================== Counters =====================
 	ListCounters(context.Context, *EmptyRequest) (*ListCountersGatewayResponse, error)
 	UpdateCounter(context.Context, *UpdateCounterGatewayRequest) (*user.Counter, error)
@@ -1203,8 +1162,6 @@ type ClientGatewayServiceServer interface {
 	SendVerificationEmail(context.Context, *EmptyRequest) (*emptypb.Empty, error)
 	SendEmailChangeVerification(context.Context, *SendEmailChangeGatewayRequest) (*emptypb.Empty, error)
 	SendPasswordReset(context.Context, *SendPasswordResetGatewayRequest) (*emptypb.Empty, error)
-	// ===================== FCM Token =====================
-	SetFCMToken(context.Context, *SetFCMTokenGatewayRequest) (*emptypb.Empty, error)
 	// ===================== Mobile Sync =====================
 	MobileSync(context.Context, *EmptyRequest) (*emptypb.Empty, error)
 	// ===================== Pipelines =====================
@@ -1338,12 +1295,6 @@ func (UnimplementedClientGatewayServiceServer) ListConnectionActivities(context.
 func (UnimplementedClientGatewayServiceServer) BackfillConnectionActivities(context.Context, *BackfillConnectionActivitiesGatewayRequest) (*BackfillActivitiesGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BackfillConnectionActivities not implemented")
 }
-func (UnimplementedClientGatewayServiceServer) GetNotificationPrefs(context.Context, *EmptyRequest) (*user.NotificationPreferences, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetNotificationPrefs not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) UpdateNotificationPrefs(context.Context, *user.NotificationPreferences) (*user.NotificationPreferences, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateNotificationPrefs not implemented")
-}
 func (UnimplementedClientGatewayServiceServer) ListCounters(context.Context, *EmptyRequest) (*ListCountersGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCounters not implemented")
 }
@@ -1388,9 +1339,6 @@ func (UnimplementedClientGatewayServiceServer) SendEmailChangeVerification(conte
 }
 func (UnimplementedClientGatewayServiceServer) SendPasswordReset(context.Context, *SendPasswordResetGatewayRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendPasswordReset not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) SetFCMToken(context.Context, *SetFCMTokenGatewayRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SetFCMToken not implemented")
 }
 func (UnimplementedClientGatewayServiceServer) MobileSync(context.Context, *EmptyRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method MobileSync not implemented")
@@ -1791,42 +1739,6 @@ func _ClientGatewayService_BackfillConnectionActivities_Handler(srv interface{},
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ClientGatewayService_GetNotificationPrefs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetNotificationPrefs(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetNotificationPrefs_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetNotificationPrefs(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_UpdateNotificationPrefs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(user.NotificationPreferences)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).UpdateNotificationPrefs(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_UpdateNotificationPrefs_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).UpdateNotificationPrefs(ctx, req.(*user.NotificationPreferences))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _ClientGatewayService_ListCounters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(EmptyRequest)
 	if err := dec(in); err != nil {
@@ -2093,24 +2005,6 @@ func _ClientGatewayService_SendPasswordReset_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClientGatewayServiceServer).SendPasswordReset(ctx, req.(*SendPasswordResetGatewayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_SetFCMToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetFCMTokenGatewayRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).SetFCMToken(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_SetFCMToken_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).SetFCMToken(ctx, req.(*SetFCMTokenGatewayRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3247,14 +3141,6 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ClientGatewayService_BackfillConnectionActivities_Handler,
 		},
 		{
-			MethodName: "GetNotificationPrefs",
-			Handler:    _ClientGatewayService_GetNotificationPrefs_Handler,
-		},
-		{
-			MethodName: "UpdateNotificationPrefs",
-			Handler:    _ClientGatewayService_UpdateNotificationPrefs_Handler,
-		},
-		{
 			MethodName: "ListCounters",
 			Handler:    _ClientGatewayService_ListCounters_Handler,
 		},
@@ -3313,10 +3199,6 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendPasswordReset",
 			Handler:    _ClientGatewayService_SendPasswordReset_Handler,
-		},
-		{
-			MethodName: "SetFCMToken",
-			Handler:    _ClientGatewayService_SetFCMToken_Handler,
 		},
 		{
 			MethodName: "MobileSync",

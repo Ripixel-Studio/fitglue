@@ -39,16 +39,14 @@ func (m *mockApiKeyStore) CreateIngressKey(ctx context.Context, keyHash, userID,
 // =============================================================
 
 type mockUserServiceClient struct {
-	getProfile              func(ctx context.Context, in *userpb.GetProfileRequest, opts ...grpc.CallOption) (*pbuser.UserProfile, error)
-	updateProfile           func(ctx context.Context, in *userpb.UpdateProfileRequest, opts ...grpc.CallOption) (*pbuser.UserProfile, error)
-	getIntegration          func(ctx context.Context, in *userpb.GetIntegrationRequest, opts ...grpc.CallOption) (*userpb.GetIntegrationResponse, error)
-	setIntegration          func(ctx context.Context, in *userpb.SetIntegrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	deleteIntegration       func(ctx context.Context, in *userpb.DeleteIntegrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	listIntegrations        func(ctx context.Context, in *userpb.ListIntegrationsRequest, opts ...grpc.CallOption) (*pbuser.UserIntegrations, error)
-	getNotificationPrefs    func(ctx context.Context, in *userpb.GetNotificationPrefsRequest, opts ...grpc.CallOption) (*pbuser.NotificationPreferences, error)
-	updateNotificationPrefs func(ctx context.Context, in *userpb.UpdateNotificationPrefsRequest, opts ...grpc.CallOption) (*pbuser.NotificationPreferences, error)
-	listCounters            func(ctx context.Context, in *userpb.ListCountersRequest, opts ...grpc.CallOption) (*userpb.ListCountersResponse, error)
-	updateCounter           func(ctx context.Context, in *userpb.UpdateCounterRequest, opts ...grpc.CallOption) (*pbuser.Counter, error)
+	getProfile        func(ctx context.Context, in *userpb.GetProfileRequest, opts ...grpc.CallOption) (*pbuser.UserProfile, error)
+	updateProfile     func(ctx context.Context, in *userpb.UpdateProfileRequest, opts ...grpc.CallOption) (*pbuser.UserProfile, error)
+	getIntegration    func(ctx context.Context, in *userpb.GetIntegrationRequest, opts ...grpc.CallOption) (*userpb.GetIntegrationResponse, error)
+	setIntegration    func(ctx context.Context, in *userpb.SetIntegrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	deleteIntegration func(ctx context.Context, in *userpb.DeleteIntegrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	listIntegrations  func(ctx context.Context, in *userpb.ListIntegrationsRequest, opts ...grpc.CallOption) (*pbuser.UserIntegrations, error)
+	listCounters      func(ctx context.Context, in *userpb.ListCountersRequest, opts ...grpc.CallOption) (*userpb.ListCountersResponse, error)
+	updateCounter     func(ctx context.Context, in *userpb.UpdateCounterRequest, opts ...grpc.CallOption) (*pbuser.Counter, error)
 }
 
 func (m *mockUserServiceClient) CreateUser(ctx context.Context, in *userpb.CreateUserRequest, opts ...grpc.CallOption) (*pbuser.UserProfile, error) {
@@ -92,18 +90,6 @@ func (m *mockUserServiceClient) ListIntegrations(ctx context.Context, in *userpb
 		return m.listIntegrations(ctx, in, opts...)
 	}
 	return &pbuser.UserIntegrations{}, nil
-}
-func (m *mockUserServiceClient) GetNotificationPrefs(ctx context.Context, in *userpb.GetNotificationPrefsRequest, opts ...grpc.CallOption) (*pbuser.NotificationPreferences, error) {
-	if m.getNotificationPrefs != nil {
-		return m.getNotificationPrefs(ctx, in, opts...)
-	}
-	return &pbuser.NotificationPreferences{}, nil
-}
-func (m *mockUserServiceClient) UpdateNotificationPrefs(ctx context.Context, in *userpb.UpdateNotificationPrefsRequest, opts ...grpc.CallOption) (*pbuser.NotificationPreferences, error) {
-	if m.updateNotificationPrefs != nil {
-		return m.updateNotificationPrefs(ctx, in, opts...)
-	}
-	return &pbuser.NotificationPreferences{}, nil
 }
 func (m *mockUserServiceClient) ListCounters(ctx context.Context, in *userpb.ListCountersRequest, opts ...grpc.CallOption) (*userpb.ListCountersResponse, error) {
 	if m.listCounters != nil {
@@ -166,9 +152,6 @@ func (m *mockUserServiceClient) DeletePluginDefaults(ctx context.Context, in *us
 	return &emptypb.Empty{}, nil
 }
 func (m *mockUserServiceClient) DeleteCounter(ctx context.Context, in *userpb.DeleteCounterRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	return &emptypb.Empty{}, nil
-}
-func (m *mockUserServiceClient) SetFCMToken(ctx context.Context, in *userpb.SetFCMTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	return &emptypb.Empty{}, nil
 }
 
@@ -533,48 +516,6 @@ func TestHandleDeleteIntegration_ServiceError(t *testing.T) {
 	s.handleDeleteIntegration(w, r)
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("expected 500, got %d", w.Code)
-	}
-}
-
-// =============================================================
-// handleGetNotificationPrefs
-// =============================================================
-
-func TestHandleGetNotificationPrefs_Success(t *testing.T) {
-	s := buildTestServer(&mockUserServiceClient{}, &mockPublisher{})
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/users/me/notification-prefs", nil)
-	r = withToken(r, "user1")
-	w := httptest.NewRecorder()
-	s.handleGetNotificationPrefs(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
-
-// =============================================================
-// handleUpdateNotificationPrefs
-// =============================================================
-
-func TestHandleUpdateNotificationPrefs_Success(t *testing.T) {
-	s := buildTestServer(&mockUserServiceClient{}, &mockPublisher{})
-	body, _ := json.Marshal(map[string]bool{"activitySynced": true})
-	r := httptest.NewRequest(http.MethodPut, "/api/v2/users/me/notification-prefs", bytes.NewReader(body))
-	r = withToken(r, "user1")
-	w := httptest.NewRecorder()
-	s.handleUpdateNotificationPrefs(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestHandleUpdateNotificationPrefs_InvalidJSON(t *testing.T) {
-	s := buildTestServer(&mockUserServiceClient{}, &mockPublisher{})
-	r := httptest.NewRequest(http.MethodPut, "/api/v2/users/me/notification-prefs", strings.NewReader("not json"))
-	r = withToken(r, "user1")
-	w := httptest.NewRecorder()
-	s.handleUpdateNotificationPrefs(w, r)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", w.Code)
 	}
 }
 

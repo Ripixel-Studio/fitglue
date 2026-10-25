@@ -20,10 +20,8 @@ import (
 	fitglueerrors "github.com/fitglue/server/src/go/pkg/errors"
 	httputil "github.com/fitglue/server/src/go/pkg/infrastructure/http"
 	"github.com/fitglue/server/src/go/pkg/loopprevention"
-	"github.com/fitglue/server/src/go/pkg/notificationpub"
 	pbactivitymodel "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
-	pbnotification "github.com/fitglue/server/src/go/pkg/types/pb/models/notification"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
@@ -40,7 +38,6 @@ type UploadExecutor struct {
 	activityClient activitypb.ActivityServiceClient
 	db             shared.Database
 	store          shared.BlobStore
-	publisher      shared.Publisher
 	logger         infra.Logger
 }
 
@@ -51,7 +48,6 @@ func NewUploadExecutor(
 	activityClient activitypb.ActivityServiceClient,
 	db shared.Database,
 	store shared.BlobStore,
-	publisher shared.Publisher,
 	logger infra.Logger,
 ) *UploadExecutor {
 	return &UploadExecutor{
@@ -60,7 +56,6 @@ func NewUploadExecutor(
 		activityClient: activityClient,
 		db:             db,
 		store:          store,
-		publisher:      publisher,
 		logger:         logger,
 	}
 }
@@ -271,11 +266,8 @@ destinations:
 		}
 
 		// Whether this destination already has a SUCCESS outcome from an earlier pass of this
-		// same pipeline run. Drives both the idempotency guard below and the notification
-		// suppression passed to UpdateStatus — a destination that already succeeded and
-		// notified once should get a lighter "updated" notification on a re-run, not another
-		// full "Activity Synced" push, regardless of *why* this is a re-run (non-blocking
-		// resume, blocking resume, targeted repost, or Pub/Sub redelivery).
+		// same pipeline run. Drives the idempotency guard below, regardless of *why* this is
+		// a re-run (non-blocking resume, blocking resume, targeted repost, or Pub/Sub redelivery).
 		wasAlreadySynced := false
 		for _, outcome := range priorOutcomes {
 			if outcome.Destination == destEnum && outcome.Status == pbpipeline.DestinationStatus_DESTINATION_STATUS_SUCCESS {
@@ -288,7 +280,7 @@ destinations:
 		if !ok {
 			e.logger.Warn(ctx, "No uploader registered for destination", "destination", destEnum.String())
 			if pipelineRunId != "" {
-				destination.UpdateStatus(ctx, e.db, e.publisher, payload.UserId, pipelineRunId, destEnum, pbpipeline.DestinationStatus_DESTINATION_STATUS_FAILED, "", "Uploader not registered", payload.Name, payload.ActivityId, e.logger, nonBlockingPendingIDs, wasAlreadySynced)
+				destination.UpdateStatus(ctx, e.db, payload.UserId, pipelineRunId, destEnum, pbpipeline.DestinationStatus_DESTINATION_STATUS_FAILED, "", "Uploader not registered", e.logger, nonBlockingPendingIDs)
 			}
 			continue
 		}
@@ -402,24 +394,23 @@ destinations:
 			}
 			// An expired or revoked destination credential (HTTP 401/403, or a classified
 			// integration-auth FitGlueError) is a user-actionable condition, not an engineering
-			// fault: the user must reconnect the integration. Prompt them to reconnect and log at
-			// Warn so it does not flood Sentry as a code error — genuine faults still log at Error.
-			// Either way the destination is still recorded FAILED below.
+			// fault: the user must reconnect the integration. Log at Warn so it does not flood
+			// Sentry as a code error — genuine faults still log at Error. Either way the
+			// destination is recorded FAILED below, which is what surfaces it to the user.
 			if isDestinationAuthFailure(uploadErr) {
 				e.logger.Warn(ctx, "Destination upload failed: credential needs reconnection", "destination", destEnum.String(), "error", uploadErr)
-				e.enqueueConnectionActionNotification(ctx, payload.UserId, destEnum)
 			} else {
 				e.logger.Error(ctx, "Destination uploader failed", "destination", destEnum.String(), "error", uploadErr)
 			}
 			if pipelineRunId != "" {
-				destination.UpdateStatus(ctx, e.db, e.publisher, payload.UserId, pipelineRunId, destEnum, pbpipeline.DestinationStatus_DESTINATION_STATUS_FAILED, externalId, uploadErr.Error(), payload.Name, payload.ActivityId, e.logger, nonBlockingPendingIDs, wasAlreadySynced)
+				destination.UpdateStatus(ctx, e.db, payload.UserId, pipelineRunId, destEnum, pbpipeline.DestinationStatus_DESTINATION_STATUS_FAILED, externalId, uploadErr.Error(), e.logger, nonBlockingPendingIDs)
 			}
 			continue
 		}
 
 		// Success
 		if pipelineRunId != "" {
-			destination.UpdateStatus(ctx, e.db, e.publisher, payload.UserId, pipelineRunId, destEnum, pbpipeline.DestinationStatus_DESTINATION_STATUS_SUCCESS, externalId, "", payload.Name, payload.ActivityId, e.logger, nonBlockingPendingIDs, wasAlreadySynced)
+			destination.UpdateStatus(ctx, e.db, payload.UserId, pipelineRunId, destEnum, pbpipeline.DestinationStatus_DESTINATION_STATUS_SUCCESS, externalId, "", e.logger, nonBlockingPendingIDs)
 		}
 		if err := e.db.RecordBillingEvent(ctx, payload.UserId, shared.BillingEvent{
 			ActivityID:    payload.ActivityId,
@@ -451,9 +442,8 @@ func (e *UploadExecutor) writeFailureForTargetedDestinations(ctx context.Context
 		if targetDest != pbplugin.DestinationType_DESTINATION_UNSPECIFIED && destEnum != targetDest {
 			continue
 		}
-		// Early-failure path always yields PARTIAL, which notifies regardless of the
-		// non-blocking-update flag, so pass false (isUpdate is not in scope here).
-		destination.UpdateStatus(ctx, e.db, e.publisher, payload.UserId, pipelineRunId, destEnum, pbpipeline.DestinationStatus_DESTINATION_STATUS_FAILED, "", errMsg, payload.Name, payload.ActivityId, e.logger, payload.NonBlockingPendingInputIds, false)
+		// Early-failure path always yields PARTIAL.
+		destination.UpdateStatus(ctx, e.db, payload.UserId, pipelineRunId, destEnum, pbpipeline.DestinationStatus_DESTINATION_STATUS_FAILED, "", errMsg, e.logger, payload.NonBlockingPendingInputIds)
 	}
 }
 
@@ -544,24 +534,4 @@ func isDestinationAuthFailure(err error) bool {
 		return true
 	}
 	return false
-}
-
-// enqueueConnectionActionNotification publishes a CONNECTION_ACTION notification so the user
-// knows their destination OAuth needs re-authorisation. The notification service handles channel dispatch.
-func (e *UploadExecutor) enqueueConnectionActionNotification(ctx context.Context, userID string, dest pbplugin.DestinationType) {
-	if e.publisher == nil {
-		return
-	}
-	sourceID := strings.ToLower(strings.TrimPrefix(dest.String(), "DESTINATION_"))
-	destName := destination.FormatDestinationName(dest)
-	req := &pbnotification.NotificationRequest{
-		UserId: userID,
-		Type:   pbnotification.NotificationType_NOTIFICATION_TYPE_CONNECTION_ACTION,
-		Title:  fmt.Sprintf("Reconnect %s", destName),
-		Body:   fmt.Sprintf("Your %s connection needs to be re-authorised.", destName),
-		Data:   map[string]string{"sourceId": sourceID},
-	}
-	if err := notificationpub.Enqueue(ctx, e.publisher, req); err != nil {
-		e.logger.Warn(ctx, "Failed to enqueue connection action notification", "error", err, "user_id", userID, "destination", dest.String())
-	}
 }

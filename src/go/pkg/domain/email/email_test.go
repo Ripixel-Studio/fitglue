@@ -74,13 +74,6 @@ func TestTemplates(t *testing.T) {
 	contains(t, "PaymentFailed", PaymentFailedTemplate(baseURL))
 	contains(t, "SubscriptionCancelled", SubscriptionCancelledTemplate(baseURL))
 	contains(t, "AccessGranted", AccessGrantedTemplate(baseURL))
-	contains(t, "ActivitySynced", ActivitySyncedTemplate("Morning Run", "Strava", "https://act", baseURL), "Morning Run", "Strava")
-	contains(t, "PipelineFailure", PipelineFailureTemplate("Run", "boom", "https://act", baseURL), "boom")
-	contains(t, "PendingInput", PendingInputTemplate("https://act", baseURL))
-	contains(t, "ConnectionAction", ConnectionActionTemplate("Strava", "https://conn", baseURL), "Strava")
-	// ShowcaseRoundupTemplate lowercases the period for display.
-	contains(t, "ShowcaseRoundup", ShowcaseRoundupTemplate("January", "great month", "https://roundup", baseURL), "january", "great month")
-	contains(t, "PipelineCancelled", PipelineCancelledTemplate(baseURL))
 
 	users := []RegistrationSummaryUser{
 		{Email: "a@x.com", AccessEnabled: true, CreatedAt: "2024-01-01"},

@@ -12,9 +12,7 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/infra"
 	shared "github.com/fitglue/server/src/go/pkg"
-	"github.com/fitglue/server/src/go/pkg/notificationpub"
 	parkrunutil "github.com/fitglue/server/src/go/pkg/parkrun"
-	pbnotification "github.com/fitglue/server/src/go/pkg/types/pb/models/notification"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbsvc "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
 	"google.golang.org/api/idtoken"
@@ -90,10 +88,9 @@ type verifyIdentityFunc func(ctx context.Context, token, audience string) error
 // ParkrunChecker polls for parkrun results for all WAITING pending inputs.
 // Triggered by Cloud Scheduler → Pub/Sub push → /pubsub/parkrun-check.
 type ParkrunChecker struct {
-	db        shared.Database
-	svc       *Service
-	logger    infra.Logger
-	publisher shared.Publisher
+	db     shared.Database
+	svc    *Service
+	logger infra.Logger
 
 	fetch fetchFunc
 	// submit records a resolved result against its pending input. Defaults to
@@ -103,12 +100,11 @@ type ParkrunChecker struct {
 	verifyIdentity verifyIdentityFunc
 }
 
-func NewParkrunChecker(db shared.Database, svc *Service, logger infra.Logger, publisher shared.Publisher) *ParkrunChecker {
+func NewParkrunChecker(db shared.Database, svc *Service, logger infra.Logger) *ParkrunChecker {
 	c := &ParkrunChecker{
 		db:             db,
 		svc:            svc,
 		logger:         logger,
-		publisher:      publisher,
 		fetch:          parkrunutil.FetchResultsForAthleteWithDiag,
 		verifyIdentity: defaultVerifyIdentity,
 	}
@@ -295,14 +291,13 @@ func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.Pen
 			"provider_metadata": map[string]interface{}{"parkrun_results_state": "EXPIRED"},
 			"updated_at":        time.Now(),
 		}); err != nil {
-			// State didn't persist — don't notify. The input stays WAITING without the
-			// EXPIRED marker, so the next run will retry the transition (and only then
-			// notify), keeping notifications exactly-once on the happy path.
+			// State didn't persist. The input stays WAITING without the EXPIRED marker,
+			// so the next run will retry the transition. The EXPIRED marker is what
+			// Jarvis picks up via GET /users/me/pending-inputs.
 			c.logger.Error(ctx, "parkrun checker: failed to mark input expired",
 				"error", err, "input_id", input.ActivityId)
 			return diag
 		}
-		c.notifyExpired(ctx, input)
 		return diag
 	}
 
@@ -415,36 +410,4 @@ func (c *ParkrunChecker) submitResults(ctx context.Context, input *pbpipeline.Pe
 	diag.Outcome, diag.Reason = outcomeResolved, reasonResolved
 	diag.Position, diag.Time = results.Position, results.Time
 	return diag
-}
-
-// notifyExpired enqueues a PENDING_INPUT notification telling the user their parkrun
-// results never published and they can now enter their stats manually. Fans out to
-// push + email per the user's stored notification prefs (handled by the notification
-// service). Data carries both IDs so the client can deep-link to the manual-entry form.
-func (c *ParkrunChecker) notifyExpired(ctx context.Context, input *pbpipeline.PendingInput) {
-	if c.publisher == nil {
-		c.logger.Warn(ctx, "parkrun checker: publisher unavailable, EXPIRED notification not sent",
-			"user_id", input.UserId, "input_id", input.ActivityId)
-		return
-	}
-	// The client deep-links off the linked activity; fall back to the input's own ID
-	// (older inputs created before linked_activity_id was populated).
-	activityID := input.LinkedActivityId
-	if activityID == "" {
-		activityID = input.ActivityId
-	}
-	req := &pbnotification.NotificationRequest{
-		UserId: input.UserId,
-		Type:   pbnotification.NotificationType_NOTIFICATION_TYPE_PENDING_INPUT,
-		Title:  "Enter your parkrun results",
-		Body:   "Your parkrun results didn't publish in time — tap to enter your stats manually.",
-		Data: map[string]string{
-			"activity_id":      activityID,
-			"pending_input_id": input.ActivityId,
-		},
-	}
-	if err := notificationpub.Enqueue(ctx, c.publisher, req); err != nil {
-		c.logger.Error(ctx, "parkrun checker: failed to enqueue EXPIRED notification",
-			"error", err, "user_id", input.UserId, "input_id", input.ActivityId)
-	}
 }

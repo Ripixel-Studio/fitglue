@@ -245,7 +245,7 @@ func enrichHandler(ctx context.Context, e cloudevents.Event, fwCtx *framework.Fr
 		bucketName = "fitglue-server-dev-artifacts" // Fallback for local development
 	}
 
-	orchestrator := NewOrchestrator(fwCtx.Service.DB, fwCtx.Service.Store, bucketName, fwCtx.Service.Pub)
+	orchestrator := NewOrchestrator(fwCtx.Service.DB, fwCtx.Service.Store, bucketName)
 	// Enable reverse geocoding for the always-on implicit location step so GPS-tracked
 	// activities get a real place name (showcase page + roundup "where it happened"), not just
 	// coordinates. Unit tests leave this nil to stay offline.

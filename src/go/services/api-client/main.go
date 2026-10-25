@@ -95,7 +95,7 @@ func main() {
 	defer pubsubClient.Close()
 	publisher := &infraps.PubSubAdapter{Client: pubsubClient, Logger: logger}
 
-	// Setup Firestore Client for API key storage and FCM token cleanup
+	// Setup Firestore Client for API key storage
 	firestoreClient, err := app.Firestore(ctx)
 	if err != nil {
 		logger.Error(ctx, "Failed to initialize Firestore client", "error", err)

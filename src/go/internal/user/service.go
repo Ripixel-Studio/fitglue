@@ -251,34 +251,6 @@ func (s *Service) UpdateCounter(ctx context.Context, req *pbsvc.UpdateCounterReq
 	return counter, nil
 }
 
-func (s *Service) GetNotificationPrefs(ctx context.Context, req *pbsvc.GetNotificationPrefsRequest) (*pbuser.NotificationPreferences, error) {
-	if req.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
-	}
-
-	prefs, err := s.store.GetNotificationPrefs(ctx, req.UserId)
-	if err != nil {
-		s.logger.Error(ctx, "failed to get notification prefs", "err", err, "user_id", req.UserId)
-		return nil, status.Error(codes.Internal, "failed to get notification prefs")
-	}
-
-	return prefs, nil
-}
-
-func (s *Service) UpdateNotificationPrefs(ctx context.Context, req *pbsvc.UpdateNotificationPrefsRequest) (*pbuser.NotificationPreferences, error) {
-	if req.UserId == "" || req.Prefs == nil {
-		return nil, status.Error(codes.InvalidArgument, "user_id and prefs are required")
-	}
-
-	err := s.store.UpdateNotificationPrefs(ctx, req.UserId, req.Prefs)
-	if err != nil {
-		s.logger.Error(ctx, "failed to update notification prefs", "err", err, "user_id", req.UserId)
-		return nil, status.Error(codes.Internal, "failed to update notification prefs")
-	}
-
-	return req.Prefs, nil
-}
-
 func (s *Service) GetBoosterData(ctx context.Context, req *pbsvc.GetBoosterDataRequest) (*pbsvc.GetBoosterDataResponse, error) {
 	if req.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
@@ -697,15 +669,4 @@ func (s *Service) ListUsers(ctx context.Context, req *pbsvc.ListUsersRequest) (*
 		Users:         pbUsers,
 		NextPageToken: nextToken,
 	}, nil
-}
-
-func (s *Service) SetFCMToken(ctx context.Context, req *pbsvc.SetFCMTokenRequest) (*emptypb.Empty, error) {
-	if req.UserId == "" || req.Token == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id and token are required")
-	}
-	if err := s.store.AddFCMToken(ctx, req.UserId, req.Token); err != nil {
-		s.logger.Error(ctx, "failed to add FCM token", "user_id", req.UserId, "err", err)
-		return nil, status.Errorf(codes.Internal, "add fcm token: %v", err)
-	}
-	return &emptypb.Empty{}, nil
 }

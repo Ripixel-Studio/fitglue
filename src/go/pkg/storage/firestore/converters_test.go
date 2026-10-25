@@ -123,7 +123,6 @@ func TestUserRoundTrip(t *testing.T) {
 			CreatedAt:     now,
 			IsAdmin:       true,
 			AccessEnabled: true,
-			FcmTokens:     []string{"tok1", "tok2"},
 		},
 		Integrations: &pbuser.UserIntegrations{
 			Hevy:          &pbuser.HevyIntegration{Enabled: true, ApiKey: "k", UserId: "h-uid"},
@@ -154,9 +153,6 @@ func TestUserRoundTrip(t *testing.T) {
 	}
 	if !got.IsAdmin || !got.AccessEnabled {
 		t.Errorf("admin/access flags lost")
-	}
-	if len(got.FcmTokens) != 2 || got.FcmTokens[0] != "tok1" {
-		t.Errorf("fcm tokens mismatch: %v", got.FcmTokens)
 	}
 	if got.Integrations == nil {
 		t.Fatal("integrations lost")
@@ -226,14 +222,16 @@ func TestUserToFirestore_NoIntegrations(t *testing.T) {
 	}
 }
 
-func TestFirestoreToUser_FcmTokensStringSlice(t *testing.T) {
+// Legacy billing-era and push-era keys on old Firestore docs are ignored on read.
+func TestFirestoreToUser_IgnoresLegacyKeys(t *testing.T) {
 	m := map[string]interface{}{
-		"tier":       "athlete", // legacy billing-era field: ignored
-		"fcm_tokens": []string{"a"},
+		"user_id":       "u-legacy",
+		"tier":          "athlete",
+		"trial_ends_at": "2026-01-01T00:00:00Z",
 	}
 	got := FirestoreToUser(m)
-	if len(got.FcmTokens) != 1 || got.FcmTokens[0] != "a" {
-		t.Errorf("fcm []string path: %v", got.FcmTokens)
+	if got == nil || got.UserId != "u-legacy" {
+		t.Fatalf("expected profile for u-legacy, got %v", got)
 	}
 }
 

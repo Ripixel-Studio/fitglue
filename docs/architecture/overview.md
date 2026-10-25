@@ -27,7 +27,6 @@ FitGlue is a fitness data aggregation and routing platform built on Google Cloud
 │  │              WORKER SERVICES (Pub/Sub consumers)             │    │
 │  │                                                             │    │
 │  │  service.destination  (all uploaders)                       │    │
-│  │  service.notification (FCM push dispatch)                   │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 │                                                                     │
 │  ┌──────────────┐  ┌────────────────┐  ┌────────────────────────┐   │
@@ -92,10 +91,6 @@ Each source:
 ### 4. Routing & Destination Upload
 
 `service.pipeline` routes enriched events to `service.destination` via `topic-enriched-activity`. `service.destination` handles all uploaders (Strava, TrainingPeaks, Intervals.icu, Hevy, Fitbit, Google Sheets, GitHub, Showcase).
-
-### 5. Notifications
-
-After pipeline completion or significant events (pending inputs, connection actions), services publish to `topic-notifications`. `service.notification` fans out to active channels (FCM push, with email as a future channel) based on per-user `NotificationPreferences` stored in Firestore.
 
 ### 5. Pending Inputs
 

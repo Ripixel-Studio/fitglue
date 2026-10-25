@@ -36,7 +36,6 @@ FitGlue uses a domain-service architecture: 11 Go Cloud Run services communicati
 
 **Worker services** consume Pub/Sub topics:
 - `service.destination` — uploads to Strava, TrainingPeaks, Fitbit, etc.
-- `service.notification` — FCM push dispatch, respects per-user notification preferences
 
 See [Architecture Overview](docs/architecture/overview.md) for the full system diagram.
 

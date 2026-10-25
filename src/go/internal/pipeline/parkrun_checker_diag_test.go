@@ -64,7 +64,7 @@ func TestParkrunChecker_HandleCheck_SurfacesUnresolvedDiagnostic(t *testing.T) {
 	}
 
 	var errs []map[string]any
-	c := NewParkrunChecker(db, nil, recordingLogger{errs: &errs}, nil)
+	c := NewParkrunChecker(db, nil, recordingLogger{errs: &errs})
 	c.fetch = func(_ context.Context, _ *slog.Logger, _, _, _ string, _ time.Time) (*parkrunutil.Result, parkrunutil.FetchDiagnostics, error) {
 		return nil, parkrunutil.FetchDiagnostics{
 			URL:         "https://www.parkrun.org.uk/parkrunner/12345/all/",
@@ -138,7 +138,7 @@ func TestParkrunChecker_HandleCheck_SurfacesFetchFailure(t *testing.T) {
 	}
 
 	var errs []map[string]any
-	c := NewParkrunChecker(db, nil, recordingLogger{errs: &errs}, nil)
+	c := NewParkrunChecker(db, nil, recordingLogger{errs: &errs})
 	c.fetch = func(_ context.Context, _ *slog.Logger, _, _, _ string, _ time.Time) (*parkrunutil.Result, parkrunutil.FetchDiagnostics, error) {
 		return nil, parkrunutil.FetchDiagnostics{URL: "https://www.parkrun.org.uk/parkrunner/12345/all/"},
 			errors.New("playwright service error: status=503")
@@ -179,7 +179,7 @@ func TestParkrunChecker_HandleCheck_AlreadyExpiredNotSurfaced(t *testing.T) {
 		},
 	}
 	var errs []map[string]any
-	c := NewParkrunChecker(db, nil, recordingLogger{errs: &errs}, nil)
+	c := NewParkrunChecker(db, nil, recordingLogger{errs: &errs})
 	_, body := doCheck(t, c)
 	if body["skipped"].(float64) != 1 {
 		t.Errorf("expected 1 skipped, got %v", body["skipped"])
@@ -203,7 +203,7 @@ func recheckRequest(userID, inputID, bearer string) *http.Request {
 // The on-demand re-check rejects unauthenticated callers: no bearer → 401, and a
 // bearer the identity verifier rejects → 403.
 func TestParkrunChecker_HandleRecheck_Auth(t *testing.T) {
-	c := NewParkrunChecker(&mocks.MockDatabase{}, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(&mocks.MockDatabase{}, nil, infra.NewLogger())
 
 	// No Authorization header at all.
 	w := httptest.NewRecorder()
@@ -237,7 +237,7 @@ func TestParkrunChecker_HandleRecheck_ReturnsDiagnostics(t *testing.T) {
 		},
 		GetUserFunc: func(_ context.Context, _ string) (*user.Record, error) { return parkrunUser(), nil },
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil } // accept
 	c.fetch = func(_ context.Context, _ *slog.Logger, _, _, _ string, _ time.Time) (*parkrunutil.Result, parkrunutil.FetchDiagnostics, error) {
 		return nil, parkrunutil.FetchDiagnostics{
@@ -283,7 +283,7 @@ func TestParkrunChecker_HandleRecheck_NotFound(t *testing.T) {
 			return nil, errors.New("no such document")
 		},
 	}
-	c := NewParkrunChecker(db, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
 	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
 	w := httptest.NewRecorder()
 	c.HandleRecheck(w, recheckRequest("u1", "missing", "good.jwt.token"))
@@ -294,7 +294,7 @@ func TestParkrunChecker_HandleRecheck_NotFound(t *testing.T) {
 
 // Missing query parameters are rejected with 400 (auth still enforced first).
 func TestParkrunChecker_HandleRecheck_MissingParams(t *testing.T) {
-	c := NewParkrunChecker(&mocks.MockDatabase{}, nil, infra.NewLogger(), nil)
+	c := NewParkrunChecker(&mocks.MockDatabase{}, nil, infra.NewLogger())
 	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
 	w := httptest.NewRecorder()
 	c.HandleRecheck(w, recheckRequest("", "", "good.jwt.token"))

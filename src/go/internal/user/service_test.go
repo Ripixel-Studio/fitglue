@@ -104,17 +104,6 @@ func (m *mockStore) UpdateCounter(ctx context.Context, userID string, counterID 
 	return &pbuser.Counter{Id: counterID, Count: value}, nil
 }
 
-func (m *mockStore) GetNotificationPrefs(ctx context.Context, userID string) (*pbuser.NotificationPreferences, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	return &pbuser.NotificationPreferences{}, nil
-}
-
-func (m *mockStore) UpdateNotificationPrefs(ctx context.Context, userID string, prefs *pbuser.NotificationPreferences) error {
-	return m.err
-}
-
 func (m *mockStore) DeleteCounter(ctx context.Context, userID, counterID string) error {
 	return m.err
 }
@@ -146,10 +135,6 @@ func (m *mockStore) SetPluginDefaults(ctx context.Context, userID, pluginID stri
 }
 
 func (m *mockStore) DeletePluginDefaults(ctx context.Context, userID, pluginID string) error {
-	return m.err
-}
-
-func (m *mockStore) AddFCMToken(ctx context.Context, userID, token string) error {
 	return m.err
 }
 
@@ -887,63 +872,6 @@ func TestCounterRPCs(t *testing.T) {
 		resp, err := svc.UpdateCounter(context.Background(), req)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(5), resp.Count)
-	})
-}
-
-func TestNotificationPrefsRPCs(t *testing.T) {
-	svc, store, _, _ := setupTest()
-
-	t.Run("GetNotificationPrefs_EmptyUserId", func(t *testing.T) {
-		req := &pbsvc.GetNotificationPrefsRequest{}
-		_, err := svc.GetNotificationPrefs(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-
-	t.Run("GetNotificationPrefs_StoreError", func(t *testing.T) {
-		store.err = errors.New("db error")
-		req := &pbsvc.GetNotificationPrefsRequest{UserId: "user123"}
-		_, err := svc.GetNotificationPrefs(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		store.err = nil
-	})
-
-	t.Run("GetNotificationPrefs_Success", func(t *testing.T) {
-		req := &pbsvc.GetNotificationPrefsRequest{UserId: "user123"}
-		resp, err := svc.GetNotificationPrefs(context.Background(), req)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
-	})
-
-	t.Run("UpdateNotificationPrefs_EmptyFields", func(t *testing.T) {
-		req := &pbsvc.UpdateNotificationPrefsRequest{}
-		_, err := svc.UpdateNotificationPrefs(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-
-	t.Run("UpdateNotificationPrefs_NilPrefs", func(t *testing.T) {
-		req := &pbsvc.UpdateNotificationPrefsRequest{UserId: "user123"}
-		_, err := svc.UpdateNotificationPrefs(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-
-	t.Run("UpdateNotificationPrefs_StoreError", func(t *testing.T) {
-		store.err = errors.New("db error")
-		req := &pbsvc.UpdateNotificationPrefsRequest{UserId: "user123", Prefs: &pbuser.NotificationPreferences{}}
-		_, err := svc.UpdateNotificationPrefs(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		store.err = nil
-	})
-
-	t.Run("UpdateNotificationPrefs_Success", func(t *testing.T) {
-		req := &pbsvc.UpdateNotificationPrefsRequest{UserId: "user123", Prefs: &pbuser.NotificationPreferences{}}
-		resp, err := svc.UpdateNotificationPrefs(context.Background(), req)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
 	})
 }
 

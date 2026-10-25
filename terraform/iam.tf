@@ -1,7 +1,7 @@
 locals {
-  firestore_services = ["user", "pipeline", "activity", "registry", "destination", "api-client", "notification", "api-webhook"]
+  firestore_services = ["user", "pipeline", "activity", "registry", "destination", "api-client", "api-webhook"]
   pubsub_publishers  = ["api-webhook", "pipeline", "activity", "api-client", "destination"]
-  secret_accessors   = ["api-client", "api-public", "user", "pipeline", "activity", "destination", "registry", "api-webhook", "notification"]
+  secret_accessors   = ["api-client", "api-public", "user", "pipeline", "activity", "destination", "registry", "api-webhook"]
   storage_services   = ["activity", "pipeline", "destination", "user"] # user: account-deletion artifact purge
 }
 
@@ -31,12 +31,6 @@ resource "google_project_iam_member" "cr_storage_admin" {
   project  = var.project_id
   role     = "roles/storage.objectAdmin"
   member   = "serviceAccount:${google_service_account.cloud_run_sa[each.key].email}"
-}
-
-resource "google_project_iam_member" "cr_fcm_admin" {
-  project = var.project_id
-  role    = "roles/firebasecloudmessaging.admin"
-  member  = "serviceAccount:${google_service_account.cloud_run_sa["notification"].email}"
 }
 
 # Firebase Auth Admin - allows get/delete user

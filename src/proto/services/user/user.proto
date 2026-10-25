@@ -56,18 +56,6 @@ service UserService {
     };
   }
   
-  rpc GetNotificationPrefs(GetNotificationPrefsRequest) returns (fitglue.models.user.NotificationPreferences) {
-    option (google.api.http) = {
-      get: "/v2/user/{user_id}/notifications"
-    };
-  }
-  rpc UpdateNotificationPrefs(UpdateNotificationPrefsRequest) returns (fitglue.models.user.NotificationPreferences) {
-    option (google.api.http) = {
-      patch: "/v2/user/{user_id}/notifications"
-      body: "prefs"
-    };
-  }
-  
   rpc ListCounters(ListCountersRequest) returns (ListCountersResponse) {
     option (google.api.http) = {
       get: "/v2/user/{user_id}/counters"
@@ -178,14 +166,6 @@ service UserService {
       delete: "/v2/user/{user_id}/counters/{counter_id}"
     };
   }
-
-  // FCM Token registration for push notifications
-  rpc SetFCMToken(SetFCMTokenRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/v2/users/{user_id}/fcm-token"
-      body: "*"
-    };
-  }
 }
 
 message ResolveUserByIntegrationRequest {
@@ -266,15 +246,6 @@ message DeleteIntegrationRequest {
 
 message ListIntegrationsRequest {
   string user_id = 1;
-}
-
-message GetNotificationPrefsRequest {
-  string user_id = 1;
-}
-
-message UpdateNotificationPrefsRequest {
-  string user_id = 1;
-  fitglue.models.user.NotificationPreferences prefs = 2;
 }
 
 message ListCountersRequest {
@@ -362,10 +333,4 @@ message DeletePluginDefaultsRequest {
 message DeleteCounterRequest {
   string user_id = 1;
   string counter_id = 2;
-}
-
-message SetFCMTokenRequest {
-  string user_id = 1;
-  string token = 2;
-  string platform = 3; // "web", "android", "ios"
 }

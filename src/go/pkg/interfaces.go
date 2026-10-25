@@ -121,9 +121,3 @@ type BlobStore interface {
 	Get(ctx context.Context, bucket, object string) ([]byte, error)
 	Delete(ctx context.Context, bucket, object string) error
 }
-
-// --- Notification Interfaces ---
-
-type NotificationService interface {
-	SendPushNotification(ctx context.Context, userID string, title, body string, tokens []string, data map[string]string) error
-}

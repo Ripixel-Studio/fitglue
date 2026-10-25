@@ -934,28 +934,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /users/me/fcm-token:
-        post:
-            tags:
-                - ClientGatewayService
-            description: ===================== FCM Token =====================
-            operationId: ClientGatewayService_SetFCMToken
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/SetFCMTokenGatewayRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content: {}
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /users/me/integrations:
         get:
             tags:
@@ -1079,48 +1057,6 @@ paths:
                 "200":
                     description: OK
                     content: {}
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /users/me/notification-prefs:
-        get:
-            tags:
-                - ClientGatewayService
-            description: ===================== Notification Preferences =====================
-            operationId: ClientGatewayService_GetNotificationPrefs
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/NotificationPreferences'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-        put:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_UpdateNotificationPrefs
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/NotificationPreferences'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/NotificationPreferences'
                 default:
                     description: Default error response
                     content:
@@ -3442,37 +3378,6 @@ components:
                         type: string
                 imageUrl:
                     type: string
-        NotificationPreferences:
-            type: object
-            properties:
-                pendingInput:
-                    $ref: '#/components/schemas/NotificationTypePreference'
-                pipelineSuccess:
-                    $ref: '#/components/schemas/NotificationTypePreference'
-                pipelineFailure:
-                    $ref: '#/components/schemas/NotificationTypePreference'
-                connectionAction:
-                    $ref: '#/components/schemas/NotificationTypePreference'
-                showcaseRoundup:
-                    $ref: '#/components/schemas/NotificationTypePreference'
-                pipelineCancelled:
-                    $ref: '#/components/schemas/NotificationTypePreference'
-        NotificationTypePreference:
-            type: object
-            properties:
-                channels:
-                    type: array
-                    items:
-                        enum:
-                            - NOTIFICATION_CHANNEL_UNSPECIFIED
-                            - NOTIFICATION_CHANNEL_PUSH
-                            - NOTIFICATION_CHANNEL_EMAIL
-                        type: string
-                        format: enum
-            description: |-
-                NotificationTypePreference holds which channels are active for one notification type.
-                 An empty channels list means the notification type is disabled entirely.
-                 A nil/absent preference means "use the default" which is [PUSH].
         OAuthConnectResponse:
             type: object
             properties:
@@ -4409,14 +4314,6 @@ components:
                 minHeartRate:
                     type: integer
                     format: int32
-        SetFCMTokenGatewayRequest:
-            type: object
-            properties:
-                token:
-                    type: string
-                platform:
-                    type: string
-            description: FCM Token
         SetPersonalRecordGatewayRequest:
             type: object
             properties:
@@ -5690,19 +5587,11 @@ components:
                 createdAt:
                     type: string
                     format: date-time
-                fcmTokens:
-                    type: array
-                    items:
-                        type: string
                 isAdmin:
                     type: boolean
                 accessEnabled:
                     type: boolean
                     description: Waitlist gate - false until admin enables access
-                notificationPreferences:
-                    allOf:
-                        - $ref: '#/components/schemas/NotificationPreferences'
-                    description: User's push notification preferences
                 email:
                     type: string
                 displayName:

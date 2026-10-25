@@ -25,11 +25,6 @@ type Store interface {
 	ListCounters(ctx context.Context, userID string) ([]*pbuser.Counter, error)
 	UpdateCounter(ctx context.Context, userID, counterID string, count int64) (*pbuser.Counter, error)
 
-	GetNotificationPrefs(ctx context.Context, userID string) (*pbuser.NotificationPreferences, error)
-	UpdateNotificationPrefs(ctx context.Context, userID string, prefs *pbuser.NotificationPreferences) error
-
-	AddFCMToken(ctx context.Context, userID, token string) error
-
 	GetBoosterData(ctx context.Context, userID, boosterID string) (map[string]*structpb.Struct, error)
 	SetBoosterData(ctx context.Context, userID, boosterID string, data *structpb.Struct) error
 	DeleteBoosterData(ctx context.Context, userID, boosterID string) error

@@ -196,37 +196,6 @@ func TestHandleRepost_Success(t *testing.T) {
 
 // --- mobile handlers ---
 
-func TestHandleSetFCMToken(t *testing.T) {
-	s := serverWithDeps(&APIServer{userService: &mockUserServiceClient{}})
-
-	t.Run("no token", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodPost, "/fcm", strings.NewReader(`{"token":"t"}`))
-		w := httptest.NewRecorder()
-		s.handleSetFCMToken(w, r)
-		if w.Code != http.StatusUnauthorized {
-			t.Errorf("expected 401, got %d", w.Code)
-		}
-	})
-
-	t.Run("missing token field", func(t *testing.T) {
-		r := withToken(httptest.NewRequest(http.MethodPost, "/fcm", strings.NewReader(`{"platform":"web"}`)), "u1")
-		w := httptest.NewRecorder()
-		s.handleSetFCMToken(w, r)
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("expected 400, got %d", w.Code)
-		}
-	})
-
-	t.Run("success", func(t *testing.T) {
-		r := withToken(httptest.NewRequest(http.MethodPost, "/fcm", strings.NewReader(`{"token":"abc","platform":"ios"}`)), "u1")
-		w := httptest.NewRecorder()
-		s.handleSetFCMToken(w, r)
-		if w.Code != http.StatusNoContent {
-			t.Errorf("expected 204, got %d", w.Code)
-		}
-	})
-}
-
 func TestHandleGetActivityStats(t *testing.T) {
 	s := serverWithDeps(&APIServer{
 		activitySvc: &mockActivityServiceClient{},
