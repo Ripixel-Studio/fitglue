@@ -316,6 +316,9 @@ func (s *Service) generateRoundup(ctx context.Context, userID string, periodType
 		return nil, fmt.Errorf("save roundup: %w", err)
 	}
 
+	// Saved: the site export can read it back now. Non-blocking.
+	s.siteRoundupChanged(ctx, roundup.Slug, roundup.PeriodKey)
+
 	return roundup, nil
 }
 
