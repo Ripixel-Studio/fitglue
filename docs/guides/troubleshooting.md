@@ -48,7 +48,7 @@ Use this table to jump straight to the right service, code, and logs for any fai
 
 4. **Check Firestore** — Inspect `users/{userId}/pipelines/` for the target pipeline document. Verify the schema matches `PipelineConfig` proto definition.
 
-5. **Check Sentry** — Search [fitglue.sentry.io](https://fitglue.sentry.io/issues/) for the error, filtering by `service:pipeline` or `service:api-client`.
+5. **Check Sentry** (if `SENTRY_DSN` is set) — search the `server` project in the `ripixel-studio` org for the error, filtering by `server_name:pipeline` or `server_name:api-client`.
 
 ### Common Causes
 
@@ -423,18 +423,22 @@ jsonPayload.destination="<DESTINATION_NAME>"
 
 **Service name values**: `api-client`, `api-public`, `api-webhook`, `user`, `pipeline`, `activity`, `destination`
 
-### Sentry
+### Sentry (optional)
 
-**Console**: [fitglue.sentry.io/issues/](https://fitglue.sentry.io/issues/)
+Sentry is on only when `SENTRY_DSN` is set; without it every capture is a no-op
+and the only trace is one `Sentry disabled: SENTRY_DSN not set` line at boot.
+There is a single DSN for all services, pointing at the `server` project in the
+`ripixel-studio` org (EU, `de.sentry.io`); services are told apart by
+`server_name`.
 
 #### Useful Search Queries
 
 | Query | Purpose |
 |-------|---------|
 | `is:unresolved` | All open issues |
-| `service:pipeline` | Pipeline service errors |
-| `service:destination` | Upload failures |
-| `service:api-webhook` | Webhook processing errors |
+| `server_name:pipeline` | Pipeline service errors |
+| `server_name:destination` | Upload failures |
+| `server_name:api-webhook` | Webhook processing errors |
 | `user.id:<userId>` | All errors for a specific user |
 | `enricher:weather` | Weather enricher failures |
 | `destination:strava` | Strava upload failures |
@@ -443,10 +447,10 @@ jsonPayload.destination="<DESTINATION_NAME>"
 
 Every Sentry event includes:
 - `user.id` — FitGlue user ID
-- `service` — Cloud Run service name
+- `server_name` — service name
 - `execution_id` — Unique execution identifier
 - `pipeline_execution_id` — Links to PipelineRun document
-- `environment` — `dev`, `test`, or `prod`
+- `environment` — `prod`, or `local` on the box
 
 ### Firestore Console
 

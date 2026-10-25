@@ -134,37 +134,8 @@ func NewService(ctx context.Context) (*Service, error) {
 		logger.Warn(ctx, "Firebase Auth initialization failed", "error", err)
 	}
 
-	// Initialize Sentry
-	sentryDSN := os.Getenv("SENTRY_DSN")
-	environment := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if environment == "" {
-		environment = "fitglue-server-dev"
-	}
-	release := os.Getenv("SENTRY_RELEASE")
-	if release == "" {
-		release = os.Getenv("K_REVISION")
-		if release == "" {
-			release = "unknown"
-		}
-	}
-	serverName := os.Getenv("K_SERVICE")
-
-	tracesSampleRate := 0.1
-	if environment == "fitglue-server-dev" {
-		tracesSampleRate = 1.0
-	}
-
-	if err := sentryPkg.Init(sentryPkg.Config{
-		DSN:                sentryDSN,
-		Environment:        environment,
-		Release:            release,
-		ServerName:         serverName,
-		TracesSampleRate:   tracesSampleRate,
-		ProfilesSampleRate: tracesSampleRate,
-	}, slog.Default()); err != nil {
-		// Log but don't fail - Sentry is optional
-		logger.Warn(ctx, "Sentry initialization failed", "error", err)
-	}
+	// Sentry is initialised once, by infra.InitSentry() at the top of each
+	// service's main(); it used to be re-initialised here too.
 
 	return &Service{
 		DB:    database.NewFirestoreAdapter(fsClient),

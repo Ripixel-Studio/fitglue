@@ -30,23 +30,10 @@ variable "base_url" {
   type        = string
 }
 
-variable "sentry_org" {
-  description = "Sentry organization slug"
-  type        = string
-  default     = "ripixel-studio"
-}
-
-
-variable "sentry_project" {
-  description = "Sentry project slug for server functions"
-  type        = string
-  default     = "server"
-}
-
 variable "sentry_dsn" {
-  description = "Sentry DSN for server functions"
+  description = "Sentry DSN shared by every service. Optional: empty disables error reporting (the services no-op without it)."
   type        = string
-  default     = "fitglue-server-dev"
+  default     = ""
 }
 
 variable "image_tag" {

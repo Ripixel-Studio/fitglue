@@ -25,11 +25,9 @@ resource.type="cloud_run_revision"
 jsonPayload.pipeline_execution_id="<id>"
 ```
 
-### Sentry
+### Sentry (optional)
 
-All services integrate Sentry via the `SentryHandler` pattern. Error-level `slog` messages are automatically captured as Sentry exceptions with full context.
-
-**Console**: [fitglue.sentry.io/issues/](https://fitglue.sentry.io/issues/)
+When `SENTRY_DSN` is set, Error-level `slog` messages are captured as Sentry exceptions with their attributes as context (`SentryHandler` in `pkg/infrastructure/sentry`). When it is unset nothing is captured and nothing is logged about it beyond one line at boot. One DSN serves every service; the `server` project in the `ripixel-studio` org.
 
 ### Firestore Inspection
 

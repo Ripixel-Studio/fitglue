@@ -1,3 +1,19 @@
+# CircleCI — the cloud *deployer* for `main`, nothing else.
+#
+# PR checks live in .github/workflows/ci.yml (GitHub Actions) — this pipeline
+# is filtered to `main` only. It exists to keep `terraform apply` running on
+# merge so the F1.x removal PRs actually destroy their cloud resources, and to
+# roll the Cloud Run images while the services still run in the cloud.
+#
+# RETIRED IN F4 (rethink: ~/jarvis-memory/specs/fitglue/personal-fitglue.md).
+# F3.1 replaces the deploy with `make deploy` on the box (build + systemd user
+# units); F3.5 moves the secrets; F4.1/F4.2 destroy Cloud Run and shrink
+# terraform to Firestore/Pub/Sub/buckets/DNS. When F4 lands, delete this file
+# and the CircleCI project; nothing else depends on it.
+#
+# The release/changelog job (standard-version tags, version.json in GCS, the
+# fitglue-web rebuild trigger) was removed in F1.8 — there is no public
+# changelog or store-facing version any more. CHANGELOG.md is hand-written.
 version: 2.1
 
 orbs:
@@ -40,9 +56,6 @@ jobs:
       - run:
           name: Run Tests
           command: make test
-      - store_artifacts:
-          path: docs/api/openapi.yaml
-          destination: openapi-spec
       - persist_to_workspace:
           root: .
           paths:
@@ -53,6 +66,9 @@ jobs:
             - terraform
             - Makefile
 
+  # RETIRED IN F4 — see the header. Until then this is the only thing that
+  # applies terraform for prod, so every F1.x deletion PR relies on it running
+  # once on merge. Do not remove before F3 has run clean on the box for a week.
   deploy:
     parameters:
       target:
@@ -210,98 +226,15 @@ jobs:
               -var-file="envs/<< parameters.target >>.tfvars" \
               -var "image_tag=$TAG"
 
-  # upload-sourcemaps job removed — no longer applicable to Go-only server
-
-  create-release:
-    executor: unified-executor
-    steps:
-      - checkout
-      - add_ssh_keys:
-          fingerprints:
-            - "SHA256:VRiS+EY45HNsLzWN3a7lKsalrTzaBb4gRiQoc1IK0X4"
-      - run:
-          name: Setup Git User
-          command: |
-            git config --global user.email "ci@fitglue.tech"
-            git config --global user.name "CircleCI Bot"
-      - restore_cache:
-          keys:
-            - npm-root-v1-{{ checksum "package-lock.json" }}
-      - run:
-          name: Install Dependencies
-          command: npm ci
-      - save_cache:
-          key: npm-root-v1-{{ checksum "package-lock.json" }}
-          paths:
-            - ~/.npm
-            - node_modules
-      - run:
-          name: Run Standard Version
-          command: |
-            COMMIT_MSG=$(git log -1 --pretty=%B)
-            if echo "$COMMIT_MSG" | grep -q "\[skip release\]"; then
-              echo "Skipping release due to [skip release] in commit message"
-              exit 0
-            fi
-
-            # Check if main has moved on since this pipeline started
-            git fetch origin main
-            LOCAL_HEAD=$(git rev-parse HEAD)
-            REMOTE_HEAD=$(git rev-parse origin/main)
-            if [ "$LOCAL_HEAD" != "$REMOTE_HEAD" ]; then
-              echo "NOTICE: main branch has newer commits since this pipeline started."
-              echo "Skipping release - the newer commits will go through their own pipeline."
-              echo "Pipeline will continue without creating a release."
-              exit 0
-            fi
-
-            npm run release
-            git push --follow-tags origin main
-      - run:
-          name: Update Central Version in GCS
-          command: |
-            VERSION=$(node -p "require('./package.json').version")
-            echo '{"version":"'$VERSION'","lastBumpBy":"server","lastUpdated":"'$(date -Iseconds)'","serverCommit":"'$CIRCLE_SHA1'"}' > /tmp/version.json
-
-            # Install gcloud
-            curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz
-            tar -xf google-cloud-cli-linux-x86_64.tar.gz
-            ./google-cloud-sdk/install.sh --quiet
-            export PATH=$PATH:$(pwd)/google-cloud-sdk/bin
-
-            # Auth with OIDC (prod project)
-            echo $CIRCLE_OIDC_TOKEN > /tmp/oidc_token.txt
-            gcloud iam workload-identity-pools create-cred-config \
-              "projects/605889586984/locations/global/workloadIdentityPools/circleci-pool/providers/circleci-provider" \
-              --service-account=circleci-deployer@fitglue-server-prod.iam.gserviceaccount.com \
-              --output-file=/tmp/gcp_cred_config.json \
-              --credential-source-file=/tmp/oidc_token.txt
-            gcloud auth login --brief --cred-file=/tmp/gcp_cred_config.json
-
-            # Upload version.json
-            gcloud storage cp /tmp/version.json gs://fitglue-server-prod-version-config/version.json
-            echo "Updated central version to $VERSION"
-      - run:
-          name: Trigger Web Rebuild
-          command: |
-            VERSION=$(node -p "require('./package.json').version")
-            # Trigger web rebuild - web will fetch server version from GCS
-            curl -X POST "https://circleci.com/api/v2/project/github/Ripixel-Studio/fitglue-web/pipeline" \
-              -H "Circle-Token: ${CIRCLECI_API_TOKEN}" \
-              -H "Content-Type: application/json" \
-              -d '{
-                "branch": "main",
-                "parameters": {
-                  "triggered_by_server": true
-                }
-              }'
-            echo "Triggered web rebuild (server version $VERSION now in GCS)"
-
 workflows:
   version: 2
+  # main only: PRs are checked by GitHub Actions (.github/workflows/ci.yml).
   pipeline:
     jobs:
-      - build-and-test
+      - build-and-test:
+          filters:
+            branches:
+              only: main
       - deploy:
           name: deploy-prod
           target: prod
@@ -311,6 +244,3 @@ workflows:
           filters:
             branches:
               only: main
-      - create-release:
-          requires:
-            - deploy-prod

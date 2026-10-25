@@ -136,7 +136,7 @@ func TestGRPCDial_Local(t *testing.T) {
 
 func TestInitSentry_NoDSN(t *testing.T) {
 	t.Setenv("SENTRY_DSN", "")
-	t.Setenv("GOOGLE_CLOUD_PROJECT", "fitglue-server-dev")
+	t.Setenv("ENVIRONMENT", "test")
 	// Should not panic with an empty DSN (Sentry disabled).
 	InitSentry()
 }
