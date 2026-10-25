@@ -3,7 +3,8 @@
 `cmd/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server
 that exposes a read-only FitGlue tool surface to MCP clients (Claude Code,
 Claude Desktop, MCP Inspector). It wraps the `api-client` HTTP gateway and
-authenticates as a single user with a Firebase ID token.
+authenticates with its static bearer token — FitGlue is single-user, so the
+token *is* the identity.
 
 This is **V0 of the connector roadmap**: a local stdio binary for development
 and personal use. The remote (Streamable HTTP + OAuth) server that lets other
@@ -23,22 +24,18 @@ All configuration is via environment variables:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `FITGLUE_API_URL` | no | Deployment base URL. Defaults to `https://fitglue.tech`; use `https://dev.fitglue.tech` for dev. |
-| `FITGLUE_ID_TOKEN` | one of | A Firebase ID token, used as-is. Expires after ~1 hour — fine for short sessions. |
-| `FITGLUE_REFRESH_TOKEN` | one of | A Firebase refresh token. The server exchanges it for ID tokens automatically (and keeps rotated refresh tokens), so long-lived sessions keep working. Requires `FITGLUE_FIREBASE_API_KEY`. |
-| `FITGLUE_FIREBASE_API_KEY` | with refresh token | The Firebase Web API key of the target project (visible in the web app's Firebase config — it is not a secret). |
+| `FITGLUE_API_URL` | no | Deployment base URL. Defaults to `https://fitglue.tech`; `http://127.0.0.1:8102` once the services run on the box (F3). |
+| `FITGLUE_API_TOKEN` | yes | The `api-client` static bearer token: the value the gateway was started with. It does not expire; rotate it on both sides together. |
 
-Getting tokens for development: sign in to the FitGlue web app and grab
-`idToken` / `refreshToken` from the Firebase Auth state (Application →
-IndexedDB → `firebaseLocalStorage` in devtools), or mint a custom token with
-`firebase-admin` and exchange it via the Identity Toolkit REST API.
+The token lives in Secret Manager (`gcloud secrets versions access latest
+--secret fitglue-api-token`) while the services are on Cloud Run, and in
+`~/.jarvis/fitglue.env` on the box.
 
 ## Register with Claude Code
 
 ```bash
 claude mcp add fitglue \
-  -e FITGLUE_REFRESH_TOKEN=... \
-  -e FITGLUE_FIREBASE_API_KEY=... \
+  -e FITGLUE_API_TOKEN=... \
   -- /path/to/server/bin/fitglue-mcp
 ```
 
@@ -70,8 +67,8 @@ deferred until the remote server exists with scope-based OAuth to gate them.
 cd src/go && go test -short ./cmd/mcp/
 ```
 
-The tests cover config validation, token refresh/rotation, the gateway client,
-and an in-memory MCP session exercising the registered tools. To poke at the
+The tests cover config validation, the gateway client, and an in-memory MCP
+session exercising the registered tools. To poke at the
 server interactively:
 
 ```bash

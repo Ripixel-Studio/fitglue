@@ -14,12 +14,12 @@ FitGlue operates with two distinct trust zones:
 ┌───────────────────────────────────────────────────────────────────┐
 │                     UNTRUSTED (Client)                            │
 │                                                                   │
-│  • Web App (Browser)                                              │
-│  • Mobile App                                                     │
+│  • The owner's tools (Jarvis, fitgluectl, fitglue-mcp, curl)      │
 │  • External Webhooks                                              │
+│  • OAuth provider redirects                                       │
 │                                                                   │
 │  ┌─────────────────────────────────────────────────────────────┐  │
-│  │            AUTH BOUNDARY (Firebase Auth / HMAC)             │  │
+│  │          AUTH BOUNDARY (static bearer token / HMAC)         │  │
 │  └─────────────────────────────────────────────────────────────┘  │
 │                                                                   │
 ├───────────────────────────────────────────────────────────────────┤
@@ -42,25 +42,48 @@ FitGlue operates with two distinct trust zones:
 
 Authorization middleware lives in each API service's `internal/server/middleware.go`.
 
-### service.api.client — Firebase JWT
+### service.api.client — static bearer token, one user
+
+FitGlue is single-user. There are no accounts, no sign-up and no identity
+provider: `api-client` is started with two environment variables and refuses
+to start without either.
+
+| Variable | Meaning |
+|----------|---------|
+| `FITGLUE_API_TOKEN` | The one bearer token. Every request under `/api/v2` (except the OAuth callbacks and `/health`) must send `Authorization: Bearer <token>`. |
+| `FITGLUE_OWNER_UID` | The user every authenticated request acts as: the `users/{uid}` Firestore document all data hangs off. |
 
 ```go
 // middleware.go
-func AuthMiddleware(authClient *firebase.AuthClient) func(http.Handler) http.Handler {
+func AuthMiddleware(cfg AuthConfig) func(http.Handler) http.Handler {
     return func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-            token := r.Header.Get("Authorization")
-            decoded, err := authClient.VerifyIDToken(r.Context(), strings.TrimPrefix(token, "Bearer "))
-            if err != nil {
-                http.Error(w, "Unauthorized", http.StatusUnauthorized)
+            presented := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+            if cfg.Token == "" || subtle.ConstantTimeCompare([]byte(presented), []byte(cfg.Token)) != 1 {
+                http.Error(w, "invalid token", http.StatusUnauthorized)
                 return
             }
-            ctx := context.WithValue(r.Context(), userIDKey, decoded.UID)
+            ctx := context.WithValue(r.Context(), userContextKey, &Principal{UID: cfg.OwnerUID})
             next.ServeHTTP(w, r.WithContext(ctx))
         })
     }
 }
 ```
+
+- Comparison is constant-time; a missing, malformed or wrong header is `401`.
+- An empty configured token never matches, so a misconfigured server rejects
+  everything rather than accepting anything.
+- Handlers never see a token: they read the `Principal` the middleware set
+  (`getUserToken(r).UID`), which is always the owner.
+- `GET /oauth/{provider}/callback` and the legacy `/auth/{provider}/callback`
+  are outside the authenticated group: Strava, Fitbit and Hevy redirect the
+  browser there, with no bearer. They are protected by the signed OAuth
+  `state` parameter instead (see `oauth.go`).
+- Rotating the token is `gcloud secrets versions add fitglue-api-token`
+  (cloud) or editing `~/.jarvis/fitglue.env` (box) plus a restart.
+
+The webhook gateway and the public gateway are unchanged: per-provider
+signatures, and no auth, respectively.
 
 ### service.api.webhook — HMAC Signature Verification
 
@@ -86,7 +109,12 @@ gRPC calls between services use Google-managed OIDC tokens on Cloud Run. The cal
 
 ## Firestore Security Rules
 
-Firestore uses a **"Deny All" baseline** with explicit grants:
+Firestore uses a **"Deny All" baseline**. With no Firebase Auth clients left,
+nothing authenticates to Firestore as a user any more: the only callers are the
+Go services (and `bootstrap-owner`) with service-account or ADC credentials,
+which bypass rules. The user-scoped grants below are the pre-single-user
+rules and are kept only until the Firestore rules file is retired with the
+Firebase web app:
 
 ```javascript
 rules_version = '2';
@@ -113,7 +141,7 @@ service cloud.firestore {
 ```
 
 > [!NOTE]
-> In practice, Firestore writes happen exclusively through domain services (not from the client SDK directly). The Firestore rules serve as a defence-in-depth backstop rather than the primary enforcement layer.
+> Firestore reads and writes happen exclusively through the domain services. The rules are a defence-in-depth backstop, not the enforcement layer.
 
 ## OAuth Token Management
 

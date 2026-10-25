@@ -81,7 +81,7 @@ If it compiles, it's wired correctly — no runtime dependency resolution.
 
 | Service | Owns | Transport | Data Store |
 |---------|------|-----------|-----------|
-| `service.api.client` | None (thin marshaller) | HTTP (Firebase JWT) | None |
+| `service.api.client` | None (thin marshaller) | HTTP (static bearer token) | None |
 | `service.api.public` | None (thin marshaller) | HTTP (no auth) | None |
 | `service.api.webhook` | None (thin orchestrator) | HTTP (HMAC) | Transient |
 | `service.user` | User profiles, integrations, OAuth tokens, counters | gRPC | Firestore `users/` |

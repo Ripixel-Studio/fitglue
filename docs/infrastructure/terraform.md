@@ -134,9 +134,19 @@ Buckets for FIT files and artifacts:
 
 Secret Manager for sensitive values:
 
+- `fitglue-api-token` — the static bearer token `api-client` accepts. Terraform
+  declares the secret but never a version: create both out of band
+  (`gcloud secrets create fitglue-api-token`, then
+  `openssl rand -hex 32 | tr -d '\n' | gcloud secrets versions add fitglue-api-token --data-file=-`)
+  before the apply that introduces it; an `import` block in `secrets.tf` adopts
+  the secret into state. Rotate with another `versions add` and redeploy.
 - OAuth client secrets
 - Webhook signing secrets
 - API keys
+
+Plain values that are not secrets but identify the deployment live in
+`envs/<env>.tfvars`: `owner_uid` is the single owner's user id and becomes
+`FITGLUE_OWNER_UID` on `api-client`.
 
 ```hcl
 resource "google_secret_manager_secret" "strava_client_secret" {
@@ -213,7 +223,6 @@ See [CI/CD](cicd.md) for details.
 | `dns.tf` | Cloud DNS |
 | `cdn.tf` | CDN / load balancer |
 | `iam.tf` | Service accounts and bindings |
-| `auth.tf` | OAuth configurations |
 | `apis.tf` | API enablement |
 | `firebase.tf` | Firebase configuration |
 | `backend.tf` | Terraform backend configuration |

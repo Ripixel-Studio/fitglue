@@ -444,6 +444,14 @@ resource "google_cloud_run_v2_service" "frontend" {
         name  = "ACTIVITY_SERVICE_URL"
         value = google_cloud_run_v2_service.backend["activity"].uri
       }
+      # ── api-client: the one user (FITGLUE_API_TOKEN is in the secrets block) ──
+      dynamic "env" {
+        for_each = each.key == "api-client" ? [1] : []
+        content {
+          name  = "FITGLUE_OWNER_UID"
+          value = var.owner_uid
+        }
+      }
       # ── api-client: OAuth base URLs ──
       dynamic "env" {
         for_each = each.key == "api-client" ? [1] : []
@@ -461,8 +469,20 @@ resource "google_cloud_run_v2_service" "frontend" {
       }
 
       # ═══════════════════════════════════════════════════════════════
-      # Secrets — api-client (all OAuth client pairs for connect flow)
+      # Secrets — api-client (static bearer token + all OAuth client pairs)
       # ═══════════════════════════════════════════════════════════════
+      dynamic "env" {
+        for_each = each.key == "api-client" ? [1] : []
+        content {
+          name = "FITGLUE_API_TOKEN"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.fitglue_api_token.secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
       dynamic "env" {
         for_each = each.key == "api-client" ? [1] : []
         content {

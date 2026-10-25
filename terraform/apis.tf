@@ -13,7 +13,6 @@ resource "google_project_service" "apis" {
     "compute.googleapis.com",
     "dns.googleapis.com",
     "eventarc.googleapis.com",
-    "identitytoolkit.googleapis.com",
     "aiplatform.googleapis.com",
     "cloudtasks.googleapis.com",
     "sheets.googleapis.com"

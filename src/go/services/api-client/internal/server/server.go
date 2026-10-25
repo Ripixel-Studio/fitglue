@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"firebase.google.com/go/v4/auth"
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -36,7 +35,7 @@ type GCSSigner interface {
 type APIServer struct {
 	router      *chi.Mux
 	logger      infra.Logger
-	authClient  *auth.Client
+	auth        AuthConfig
 	publisher   Publisher
 	apiKeyStore ApiKeyStore
 	gcsSigner   GCSSigner // may be nil in test environments
@@ -48,7 +47,7 @@ type APIServer struct {
 // NewAPIServer constructs the application routing and API middleware stack
 func NewAPIServer(
 	logger infra.Logger,
-	authClient *auth.Client,
+	auth AuthConfig,
 	publisher Publisher,
 	apiKeyStore ApiKeyStore,
 	gcsSigner GCSSigner,
@@ -59,7 +58,7 @@ func NewAPIServer(
 	s := &APIServer{
 		router:      chi.NewRouter(),
 		logger:      logger,
-		authClient:  authClient,
+		auth:        auth,
 		publisher:   publisher,
 		apiKeyStore: apiKeyStore,
 		gcsSigner:   gcsSigner,
@@ -105,9 +104,9 @@ func (s *APIServer) setupRoutes() {
 		// Integration request (unauthenticated - contact form)
 		r.Post("/integrations/request", s.handleIntegrationRequest)
 
-		// Register domain routes here
+		// Everything else is the owner's API: static bearer token, one user.
 		r.Group(func(r chi.Router) {
-			r.Use(AuthMiddleware(s.authClient))
+			r.Use(AuthMiddleware(s.auth))
 
 			s.registerUserRoutes(r)
 			s.registerPipelineRoutes(r)

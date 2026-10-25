@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"firebase.google.com/go/v4/auth"
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/go-chi/chi/v5"
 	"google.golang.org/grpc"
@@ -155,8 +154,9 @@ func (m *mockPublisher) PublishJSON(_ context.Context, _ string, _ []byte) error
 // Test helpers
 // =============================================================
 
-// buildServer creates an APIServer with mock dependencies — no Firebase auth client needed.
-// This returns the raw server struct directly for direct handler invocation.
+// buildTestServer creates an APIServer with mock dependencies and no auth
+// config. This returns the raw server struct directly for direct handler
+// invocation; requests get their Principal from withToken, not the middleware.
 func buildTestServer(userSvc userpb.UserServiceClient, pub Publisher) *APIServer {
 	return &APIServer{
 		router:      nil, // Not needed for direct handler tests
@@ -165,11 +165,11 @@ func buildTestServer(userSvc userpb.UserServiceClient, pub Publisher) *APIServer
 	}
 }
 
-// withToken injects a fake Firebase token into the request context. This
-// bypasses Firebase verification so we can test handlers directly.
+// withToken injects a Principal for uid into the request context, exactly as
+// AuthMiddleware does after a successful bearer check, so handlers can be
+// tested directly.
 func withToken(r *http.Request, uid string) *http.Request {
-	token := &auth.Token{UID: uid}
-	ctx := context.WithValue(r.Context(), userContextKey, token)
+	ctx := context.WithValue(r.Context(), userContextKey, &Principal{UID: uid})
 	return r.WithContext(ctx)
 }
 

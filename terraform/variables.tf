@@ -41,3 +41,13 @@ variable "image_tag" {
   type        = string
   default     = "latest"
 }
+
+variable "owner_uid" {
+  description = "The single owner's user id: the Firestore users/{uid} document every api-client request acts as (FITGLUE_OWNER_UID). Set in envs/<env>.tfvars."
+  type        = string
+
+  validation {
+    condition     = length(var.owner_uid) > 0
+    error_message = "owner_uid must be set — api-client refuses to start without FITGLUE_OWNER_UID."
+  }
+}

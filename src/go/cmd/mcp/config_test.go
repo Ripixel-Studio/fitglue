@@ -3,34 +3,22 @@ package main
 import "testing"
 
 func TestConfigValidate(t *testing.T) {
-	cases := []struct {
-		name    string
-		cfg     Config
-		wantErr bool
-	}{
-		{"id token only", Config{IDToken: "tok"}, false},
-		{"refresh pair", Config{RefreshToken: "rt", FirebaseAPIKey: "key"}, false},
-		{"both mechanisms", Config{IDToken: "tok", RefreshToken: "rt", FirebaseAPIKey: "key"}, false},
-		{"nothing", Config{}, true},
-		{"refresh token without api key", Config{RefreshToken: "rt"}, true},
-		{"api key without refresh token", Config{FirebaseAPIKey: "key"}, true},
+	if err := (Config{Token: "tok"}).Validate(); err != nil {
+		t.Fatalf("Validate() with token: %v", err)
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := tc.cfg.Validate()
-			if (err != nil) != tc.wantErr {
-				t.Fatalf("Validate() error = %v, wantErr %v", err, tc.wantErr)
-			}
-		})
+	if err := (Config{}).Validate(); err == nil {
+		t.Fatal("Validate() without token: want error")
 	}
 }
 
 func TestConfigFromEnv(t *testing.T) {
 	t.Setenv("FITGLUE_API_URL", "")
-	t.Setenv("FITGLUE_ID_TOKEN", "tok")
-	t.Setenv("FITGLUE_REFRESH_TOKEN", "")
-	t.Setenv("FITGLUE_FIREBASE_API_KEY", "")
+	t.Setenv("FITGLUE_API_TOKEN", "")
+	if _, err := ConfigFromEnv(); err == nil {
+		t.Fatal("ConfigFromEnv() without FITGLUE_API_TOKEN: want error")
+	}
 
+	t.Setenv("FITGLUE_API_TOKEN", "tok")
 	cfg, err := ConfigFromEnv()
 	if err != nil {
 		t.Fatalf("ConfigFromEnv() error = %v", err)
@@ -38,21 +26,16 @@ func TestConfigFromEnv(t *testing.T) {
 	if cfg.BaseURL != defaultBaseURL {
 		t.Errorf("BaseURL = %q, want default %q", cfg.BaseURL, defaultBaseURL)
 	}
-	if _, ok := cfg.TokenSource().(StaticTokenSource); !ok {
-		t.Errorf("TokenSource() = %T, want StaticTokenSource", cfg.TokenSource())
+	if cfg.Token != "tok" {
+		t.Errorf("Token = %q, want tok", cfg.Token)
 	}
 
-	t.Setenv("FITGLUE_API_URL", "https://dev.fitglue.tech")
-	t.Setenv("FITGLUE_REFRESH_TOKEN", "rt")
-	t.Setenv("FITGLUE_FIREBASE_API_KEY", "key")
+	t.Setenv("FITGLUE_API_URL", "http://127.0.0.1:8102")
 	cfg, err = ConfigFromEnv()
 	if err != nil {
 		t.Fatalf("ConfigFromEnv() error = %v", err)
 	}
-	if cfg.BaseURL != "https://dev.fitglue.tech" {
+	if cfg.BaseURL != "http://127.0.0.1:8102" {
 		t.Errorf("BaseURL = %q, want override", cfg.BaseURL)
-	}
-	if _, ok := cfg.TokenSource().(*RefreshTokenSource); !ok {
-		t.Errorf("TokenSource() = %T, want *RefreshTokenSource (preferred over static)", cfg.TokenSource())
 	}
 }

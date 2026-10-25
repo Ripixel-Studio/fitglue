@@ -17,17 +17,18 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"firebase.google.com/go/v4/auth"
 	"github.com/go-chi/chi/v5"
 )
 
-// getUserToken extracts the verified Firebase token from the request context
-func getUserToken(r *http.Request) *auth.Token {
-	token, ok := r.Context().Value(userContextKey).(*auth.Token)
+// getUserToken returns the Principal AuthMiddleware placed in the request
+// context, or nil when the request did not pass through it. The name predates
+// the static token: it used to return the verified Firebase ID token.
+func getUserToken(r *http.Request) *Principal {
+	principal, ok := r.Context().Value(userContextKey).(*Principal)
 	if !ok {
 		return nil
 	}
-	return token
+	return principal
 }
 
 func (s *APIServer) registerUserRoutes(r chi.Router) {

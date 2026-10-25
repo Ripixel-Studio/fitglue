@@ -1,18 +1,15 @@
 // Command mcp is a stdio Model Context Protocol server exposing a read-only
 // FitGlue tool surface. It wraps the api-client HTTP gateway, authenticating
-// as a single user via a Firebase ID token (or a refresh token that is
-// exchanged automatically).
+// with the gateway's static bearer token (FitGlue is single-user).
 //
 // Configuration (environment):
 //
-//	FITGLUE_API_URL           Deployment base URL (default https://fitglue.tech)
-//	FITGLUE_ID_TOKEN          Static Firebase ID token, or
-//	FITGLUE_REFRESH_TOKEN     Firebase refresh token (with FITGLUE_FIREBASE_API_KEY)
-//	FITGLUE_FIREBASE_API_KEY  Firebase Web API key for the target project
+//	FITGLUE_API_URL     Deployment base URL (default https://fitglue.tech)
+//	FITGLUE_API_TOKEN   The api-client static bearer token
 //
 // Register with Claude Code:
 //
-//	claude mcp add fitglue -e FITGLUE_ID_TOKEN=... -- go run ./src/go/cmd/mcp
+//	claude mcp add fitglue -e FITGLUE_API_TOKEN=... -- go run ./src/go/cmd/mcp
 //
 // See docs/guides/mcp-server.md for details.
 package main
@@ -34,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	api := NewAPIClient(cfg.BaseURL, cfg.TokenSource())
+	api := NewAPIClient(cfg.BaseURL, cfg.Token)
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "fitglue",

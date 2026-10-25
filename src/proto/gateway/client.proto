@@ -21,12 +21,13 @@ import "models/activity/uploaded.proto";
 
 option go_package = "github.com/fitglue/server/src/go/pkg/types/pb/gateway";
 
-// ClientGatewayService describes the authenticated REST API surface that the
-// web frontend talks to via api-client at /api/v2/*.
+// ClientGatewayService describes the authenticated REST API surface served by
+// api-client at /api/v2/*. FitGlue is single-user: every request carries the
+// static owner token (`Authorization: Bearer $FITGLUE_API_TOKEN`).
 //
-// Auth is handled by gateway middleware — the user_id is injected from the
-// Firebase token, NEVER sent by the client. Request messages here reflect
-// what the frontend actually sends (no user_id fields).
+// Auth is handled by gateway middleware — the user_id is always the owner
+// (FITGLUE_OWNER_UID), NEVER sent by the client. Request messages here reflect
+// what callers actually send (no user_id fields).
 service ClientGatewayService {
 
   // ===================== User Profile =====================

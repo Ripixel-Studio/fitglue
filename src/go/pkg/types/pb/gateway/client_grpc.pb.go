@@ -100,12 +100,13 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// ClientGatewayService describes the authenticated REST API surface that the
-// web frontend talks to via api-client at /api/v2/*.
+// ClientGatewayService describes the authenticated REST API surface served by
+// api-client at /api/v2/*. FitGlue is single-user: every request carries the
+// static owner token (`Authorization: Bearer $FITGLUE_API_TOKEN`).
 //
-// Auth is handled by gateway middleware — the user_id is injected from the
-// Firebase token, NEVER sent by the client. Request messages here reflect
-// what the frontend actually sends (no user_id fields).
+// Auth is handled by gateway middleware — the user_id is always the owner
+// (FITGLUE_OWNER_UID), NEVER sent by the client. Request messages here reflect
+// what callers actually send (no user_id fields).
 type ClientGatewayServiceClient interface {
 	// ===================== User Profile =====================
 	GetProfile(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.UserProfile, error)
@@ -936,12 +937,13 @@ func (c *clientGatewayServiceClient) ExportPipelineRun(ctx context.Context, in *
 // All implementations must embed UnimplementedClientGatewayServiceServer
 // for forward compatibility.
 //
-// ClientGatewayService describes the authenticated REST API surface that the
-// web frontend talks to via api-client at /api/v2/*.
+// ClientGatewayService describes the authenticated REST API surface served by
+// api-client at /api/v2/*. FitGlue is single-user: every request carries the
+// static owner token (`Authorization: Bearer $FITGLUE_API_TOKEN`).
 //
-// Auth is handled by gateway middleware — the user_id is injected from the
-// Firebase token, NEVER sent by the client. Request messages here reflect
-// what the frontend actually sends (no user_id fields).
+// Auth is handled by gateway middleware — the user_id is always the owner
+// (FITGLUE_OWNER_UID), NEVER sent by the client. Request messages here reflect
+// what callers actually send (no user_id fields).
 type ClientGatewayServiceServer interface {
 	// ===================== User Profile =====================
 	GetProfile(context.Context, *EmptyRequest) (*user.UserProfile, error)

@@ -1,10 +1,11 @@
 // bootstrap-owner upserts the single owner's user document in Firestore.
 //
 // FitGlue is single-user. The public sign-up path that used to create a user
-// document on first Firebase login is gone, so the owner's document is created
-// (or repaired) once, by hand, with this tool:
+// document on first login is gone, so the owner's document is created (or
+// repaired) once, by hand, with this tool. UID is the same value api-client
+// runs with as FITGLUE_OWNER_UID:
 //
-//	make bootstrap-owner UID=<firebase uid> EMAIL=<email> [DISPLAY_NAME="James"]
+//	make bootstrap-owner UID=<owner uid> EMAIL=<email> [DISPLAY_NAME="James"]
 //
 // It is idempotent: an existing document keeps every field and subcollection
 // (integrations, counters, personal records, plugin defaults) and only has the
@@ -23,14 +24,14 @@ import (
 )
 
 func main() {
-	uid := flag.String("uid", "", "owner's user id (the Firebase Auth uid the existing document is keyed by)")
+	uid := flag.String("uid", "", "owner's user id (the users/{uid} document key; the same value as FITGLUE_OWNER_UID)")
 	email := flag.String("email", "", "owner's email address")
 	displayName := flag.String("display-name", "", "owner's display name (optional)")
 	project := flag.String("project", "", "GCP project id (defaults to GOOGLE_CLOUD_PROJECT / PROJECT_ID)")
 	flag.Parse()
 
 	if *uid == "" || *email == "" {
-		fmt.Fprintln(os.Stderr, "usage: bootstrap-owner -uid <firebase uid> -email <email> [-display-name <name>] [-project <gcp project>]")
+		fmt.Fprintln(os.Stderr, "usage: bootstrap-owner -uid <owner uid> -email <email> [-display-name <name>] [-project <gcp project>]")
 		os.Exit(2)
 	}
 

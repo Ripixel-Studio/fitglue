@@ -5,6 +5,48 @@ Hand-written since F1.8 of the single-user conversion; entries below
 
 ## Unreleased
 
+### feat!: single owner, static bearer token (rethink F2.1 + F2.2)
+
+`api-client` no longer knows about Firebase Auth or about more than one user.
+
+- Auth is `Authorization: Bearer $FITGLUE_API_TOKEN`, compared in constant
+  time by `internal/server/middleware.go`. Missing, malformed or wrong token is
+  `401`. Firebase ID tokens are rejected; the web app and mobile app can no
+  longer call the API (they are being retired in the S-track).
+- Every authenticated request acts as `FITGLUE_OWNER_UID`: handlers read the
+  owner from the `Principal` the middleware sets instead of a JWT, so
+  `GET /api/v2/users/me` returns the owner's existing `users/{uid}` document.
+  The document shape is unchanged; integrations, counters, PRs, plugin
+  defaults and booster data carry over untouched.
+- `api-client` refuses to start unless both `FITGLUE_API_TOKEN` and
+  `FITGLUE_OWNER_UID` are set.
+- Terraform: Secret Manager secret `fitglue-api-token` (declared, adopted with
+  an `import` block, value never in terraform — create the secret and its
+  version with `gcloud` before the first apply) and variable `owner_uid`
+  (`envs/prod.tfvars`) wired into the `api-client` Cloud Run service.
+- `cmd/mcp` (`fitglue-mcp`) authenticates with `FITGLUE_API_TOKEN`.
+
+#### Removed
+
+- Firebase Admin initialisation in `api-client` and `api-webhook` (the latter
+  held an auth client it never used). `infra.AuthVerifier`/`TokenInfo`
+  (unused). The showcase-settings lazy display-name backfill that read the
+  `name` claim off the JWT.
+- `FITGLUE_ID_TOKEN`, `FITGLUE_REFRESH_TOKEN`, `FITGLUE_FIREBASE_API_KEY` and
+  the Secure Token API refresh loop in `cmd/mcp`.
+- `terraform/auth.tf` (Identity Platform sign-in config) and
+  `identitytoolkit.googleapis.com` from the managed API list (left enabled in
+  GCP; `disable_on_destroy = false`). `scripts/configure_auth_secrets.sh`.
+
+#### Kept, deliberately
+
+- `firebase.google.com/go/v4` in `go.mod` and `bootstrap.Service.Auth`: the
+  showcase destination uploader still falls back to Firebase Auth for the
+  owner's display name. Goes with that uploader's rewrite (S1.2).
+- The Firebase web app and default hosting site in `terraform/firebase.tf`:
+  `fitglue.tech` is still served from Firebase Hosting until S4/F4, and
+  `outputs.firebase_web_config` feeds the web build.
+
 ### Removed (rethink F1.8 — CI and Sentry)
 
 - CircleCI `create-release` job: standard-version tagging and changelog

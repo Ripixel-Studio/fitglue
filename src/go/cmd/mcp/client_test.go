@@ -13,7 +13,7 @@ func newTestAPI(t *testing.T, handler http.HandlerFunc) *APIClient {
 	t.Helper()
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
-	return NewAPIClient(srv.URL, StaticTokenSource("test-token"))
+	return NewAPIClient(srv.URL, "test-token")
 }
 
 func TestAPIClientGet(t *testing.T) {

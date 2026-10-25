@@ -209,7 +209,7 @@ func TestNewFirestoreStores(t *testing.T) {
 func TestNewAPIServer(t *testing.T) {
 	s := NewAPIServer(
 		infra.NewLogger(),
-		nil, // authClient
+		AuthConfig{}, // no auth needed: tests inject the Principal or walk routes
 		&mockPublisher{},
 		&mockApiKeyStore{},
 		nil, // gcsSigner

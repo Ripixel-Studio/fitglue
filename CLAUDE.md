@@ -12,7 +12,7 @@ Go backend — 7 Cloud Run microservices communicating via gRPC, fronted by 3 HT
 | Database | Cloud Firestore (no ORM) |
 | Messaging | Cloud Pub/Sub |
 | File storage | Google Cloud Storage |
-| Auth | Firebase Authentication (JWT) |
+| Auth | Static bearer token (`FITGLUE_API_TOKEN`); one user (`FITGLUE_OWNER_UID`) |
 | AI | Gemini (AI enrichers) |
 | FIT files | muktihari/fit |
 | Error tracking | Sentry — optional, one `SENTRY_DSN` for all services; unset means no-op |
@@ -40,7 +40,7 @@ make plugin-enricher name=<name>      # Scaffold new enricher step
 make plugin-destination name=<name>   # Scaffold new destination uploader
 
 # Single-user bootstrap (no sign-up path exists; run once, idempotent)
-make bootstrap-owner UID=<firebase uid> EMAIL=<email> [DISPLAY_NAME=...]
+make bootstrap-owner UID=<owner uid> EMAIL=<email> [DISPLAY_NAME=...]
 
 # Integration tests against deployed envs
 npm run test:dev        # Against dev environment
@@ -54,7 +54,7 @@ npm run test:test       # Against test environment
 ```
 Internet
     │
-    ├── api-client   (HTTP, Firebase JWT)    → user, pipeline, activity
+    ├── api-client   (HTTP, static bearer)   → user, pipeline, activity
     ├── api-public   (HTTP, no auth)          → activity (showcases)
     └── api-webhook  (HTTP, HMAC/OAuth)       → pipeline (via Pub/Sub)
                                                 user (resolve integration)
@@ -79,7 +79,7 @@ server/
 │   ├── go/
 │   │   ├── go.mod, go.sum          # Single root module (all services share it)
 │   │   ├── services/               # One directory per Cloud Run service
-│   │   │   ├── api-client/         # HTTP gateway (Firebase JWT)
+│   │   │   ├── api-client/         # HTTP gateway (static bearer token, one user)
 │   │   │   ├── api-public/         # HTTP gateway (no auth)
 │   │   │   ├── api-webhook/        # HTTP gateway (HMAC/OAuth)
 │   │   │   │   └── internal/webhook/sources/  # strava/, fitbit/, hevy/, intervals/, github/, parkrun/
@@ -96,7 +96,7 @@ server/
 │   │   │   └── infra/              # Logger, Firestore client, gRPC helpers
 │   │   ├── pkg/                    # Shared packages (exported)
 │   │   │   ├── types/pb/           # Generated gRPC stubs — DO NOT EDIT manually
-│   │   │   ├── bootstrap/          # Service init helpers (Firebase, Firestore, Pub/Sub)
+│   │   │   ├── bootstrap/          # Service init helpers (Firestore, Pub/Sub, GCS)
 │   │   │   ├── domain/             # Domain models (activity, user, FIT parser/generator)
 │   │   │   ├── integrations/       # Generated OpenAPI clients — DO NOT EDIT manually
 │   │   │   ├── infrastructure/     # Pub/Sub adapter, storage, secrets
@@ -210,10 +210,13 @@ No ORM. All Firestore access uses the Go Firestore SDK directly via service-spec
 
 ## Authentication
 
-- **Web/mobile clients**: Firebase JWT in `Authorization: Bearer <token>` header
+FitGlue is single-user. There are no accounts and no identity provider.
+
+- **The owner's API (`api-client`)**: `Authorization: Bearer $FITGLUE_API_TOKEN`, compared in constant time in `services/api-client/internal/server/middleware.go`. Every authenticated request acts as `FITGLUE_OWNER_UID`; handlers read it from the `Principal` the middleware sets (`getUserToken(r).UID`), never from the request. Both env vars are required at startup. `GET /api/v2/health` and the OAuth callbacks are outside the authenticated group.
 - **Webhooks**: Per-provider signature verification (HMAC, OAuth token, API key)
 - **Service-to-service**: gRPC (private networking on Cloud Run — no auth between services)
-- **OAuth flows**: Handled by `api-client` at `GET /oauth/{provider}/callback`; tokens stored in Firestore under user integrations
+- **OAuth flows**: Handled by `api-client` at `GET /oauth/{provider}/callback` (legacy alias `/auth/{provider}/callback`), reachable without the bearer because the provider redirects the browser there; tokens stored in Firestore under the owner's integrations
+- **Where the values live**: cloud — Secret Manager `fitglue-api-token` and `owner_uid` in `terraform/envs/prod.tfvars`; box (F3.5) — `~/.jarvis/fitglue.env`. Local `make local` uses the defaults in `docker-compose.yaml`.
 
 ## Testing
 
@@ -222,9 +225,11 @@ make test               # Unit tests (fast, no external deps)
 make test-coverage      # Unit tests with coverage enforcement
 make test-integration   # Go integration tests (needs running services)
 make test-e2e           # Godog BDD tests
-npm run test:local      # Jest integration tests vs local docker-compose stack
+npm run test:local      # Jest integration tests vs local docker-compose stack (suite currently empty)
 npm run test:dev        # Jest integration tests vs dev deployment
 ```
+
+Anything that calls the API in a test or script sends `Authorization: Bearer $FITGLUE_API_TOKEN` — the same value the `api-client` under test was started with.
 
 - Unit tests: `*_test.go` throughout `internal/` and `pkg/`
 - Integration tests: `TEST_ENVIRONMENT=local jest --testPathPatterns=local.test.ts`

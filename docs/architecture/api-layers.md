@@ -6,28 +6,33 @@ FitGlue has three distinct HTTP gateway services, each with its own auth policy 
 
 | Service | Callers | Auth | gRPC Clients |
 |---------|---------|------|-------------|
-| `service.api.client` | Web app, mobile app | Firebase Auth JWT | user, pipeline, activity |
+| `service.api.client` | The owner's tools (Jarvis, fitgluectl, fitglue-mcp) | Static bearer token (`FITGLUE_API_TOKEN`) | user, pipeline, activity |
 | `service.api.public` | Unauthenticated browser | None (rate-limited) | activity |
 | `service.api.webhook` | Third-party services (Strava, Fitbit, etc.) | Provider HMAC / signature | user (via RPC), Pub/Sub |
 
 ## service.api.client
 
-The primary user-facing HTTP API.
+The owner's HTTP API. FitGlue is single-user, so there is exactly one caller
+identity.
 
-**Base path:** `/api/`
+**Base path:** `/api/v2/`
 
-**Auth:** Every request must carry a Firebase ID token in `Authorization: Bearer <token>`. The middleware (`internal/server/middleware.go`) validates the token and injects `userID` into context.
+**Auth:** Every request must carry the static token in `Authorization: Bearer <token>`, where `<token>` is the value `api-client` was started with as `FITGLUE_API_TOKEN`. The middleware (`internal/server/middleware.go`) compares it in constant time and injects a `Principal` whose `UID` is `FITGLUE_OWNER_UID`. Missing or wrong token: `401`. The OAuth callbacks (`/oauth/{provider}/callback`, legacy `/auth/{provider}/callback`) and `/health` are outside the authenticated group. See [Security](security.md).
 
 **Handler pattern:**
 ```go
-func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
-    uid := middleware.UserID(r.Context())
-    resp, err := h.users.GetProfile(r.Context(), &pb.GetProfileRequest{UserId: uid})
-    if err != nil {
-        writeGRPCError(w, err)
+func (s *APIServer) handleGetProfile(w http.ResponseWriter, r *http.Request) {
+    token := getUserToken(r) // *Principal set by AuthMiddleware; UID is always the owner
+    if token == nil {
+        WriteError(w, statusError(http.StatusUnauthorized, "missing user context"))
         return
     }
-    writeJSON(w, http.StatusOK, resp)
+    profile, err := s.userService.GetProfile(r.Context(), &userpb.GetProfileRequest{UserId: token.UID})
+    if err != nil {
+        WriteError(w, err)
+        return
+    }
+    WriteJSON(w, profile)
 }
 ```
 
@@ -54,7 +59,7 @@ Unauthenticated endpoints for public-facing consumers.
 
 Inbound webhook processor for all third-party sources.
 
-**Auth:** Per-provider HMAC or signature verification (no Firebase JWT).
+**Auth:** Per-provider HMAC or signature verification (no bearer token).
 
 **Architecture:** Uses a `SourceProvider` interface + `WebhookProcessor` orchestrator. Each source provider is an isolated Go package:
 

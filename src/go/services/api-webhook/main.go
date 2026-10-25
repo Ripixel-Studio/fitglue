@@ -8,7 +8,6 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/pubsub"
-	firebase "firebase.google.com/go/v4"
 	"github.com/fitglue/server/src/go/internal/infra"
 	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
 	infraps "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
@@ -23,8 +22,6 @@ import (
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/intervals"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/parkrun"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook/sources/strava"
-
-	"google.golang.org/api/option"
 )
 
 func main() {
@@ -32,25 +29,6 @@ func main() {
 	infra.InitSentry()
 	ctx := context.Background()
 	logger.Info(ctx, "Starting FitGlue Webhook API Gateway", "version", "v1")
-
-	var fbApp *firebase.App
-	var err error
-	if creds := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); creds != "" {
-		fbApp, err = firebase.NewApp(ctx, nil, option.WithCredentialsFile(creds))
-	} else {
-		fbApp, err = firebase.NewApp(ctx, nil)
-	}
-
-	if err != nil {
-		logger.Error(ctx, "Failed to initialize Firebase App", "error", err)
-		os.Exit(1)
-	}
-
-	authClient, err := fbApp.Auth(ctx)
-	if err != nil {
-		logger.Error(ctx, "Failed to initialize Firebase Auth client", "error", err)
-		os.Exit(1)
-	}
 
 	// Setup gRPC Connections to dependent Domain Services
 	userServiceURL := os.Getenv("USER_SERVICE_URL")
@@ -135,7 +113,6 @@ func main() {
 	// Initialize the HTTP Gateway Server
 	apiServer := server.NewAPIServer(
 		logger,
-		authClient,
 		userClient,
 		pipelineClient,
 		activityClient,

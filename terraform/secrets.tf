@@ -9,6 +9,35 @@ resource "google_project_iam_member" "secret_accessor" {
 }
 
 # =============================================================================
+# FitGlue API token (static bearer; the only credential api-client accepts)
+# =============================================================================
+# The value is never known to terraform. Create the secret AND its first
+# version out of band before the apply that introduces this block runs:
+#
+#   gcloud secrets create fitglue-api-token --replication-policy=automatic \
+#     --project fitglue-server-prod
+#   openssl rand -hex 32 | tr -d '\n' | gcloud secrets versions add \
+#     fitglue-api-token --data-file=- --project fitglue-server-prod
+#
+# The import block adopts that secret into state on the first apply and is a
+# no-op afterwards. No placeholder version is created here on purpose: a
+# placeholder would be a working bearer token until rotated. If the secret
+# does not exist the import fails and nothing in that apply is deployed.
+# Rotate with another `gcloud secrets versions add`; api-client reads `latest`
+# at revision start, so redeploy (or restart) after rotating.
+import {
+  to = google_secret_manager_secret.fitglue_api_token
+  id = "projects/fitglue-server-prod/secrets/fitglue-api-token"
+}
+
+resource "google_secret_manager_secret" "fitglue_api_token" {
+  secret_id = "fitglue-api-token"
+  replication {
+    auto {}
+  }
+}
+
+# =============================================================================
 # OAuth State Secret (for CSRF protection)
 # =============================================================================
 resource "google_secret_manager_secret" "oauth_state_secret" {
