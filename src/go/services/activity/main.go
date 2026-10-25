@@ -95,7 +95,10 @@ func main() {
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthcheck)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/pubsub/roundup", svc.HandleRoundupTrigger)
+	// On Cloud Run the platform verifies the push subscription's OIDC token;
+	// on the box PUBSUB_PUSH_AUDIENCE turns the check on here.
+	pushAuth := infra.PubSubPushAuthFromEnv(logger)
+	mux.HandleFunc("/pubsub/roundup", pushAuth.WrapFunc(svc.HandleRoundupTrigger))
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))

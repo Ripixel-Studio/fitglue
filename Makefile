@@ -11,7 +11,7 @@ GO_SRC_DIR=src/go
 TS_SRC_DIR=src/typescript
 
 # --- Phony Targets ---
-.PHONY: all clean build build-ctl test lint build-go test-go lint-go clean-go build-ts test-ts lint-ts typecheck-ts clean-ts plugin-source plugin-enricher plugin-destination lint-codebase lint-shared-modules tools build-tools-go build-tools-ts prepare prepare-go prepare-ts test-integration test-e2e test-coverage preflight bootstrap-owner
+.PHONY: all clean build build-ctl build-box deploy-box status-box test lint build-go test-go lint-go clean-go build-ts test-ts lint-ts typecheck-ts clean-ts plugin-source plugin-enricher plugin-destination lint-codebase lint-shared-modules tools build-tools-go build-tools-ts prepare prepare-go prepare-ts test-integration test-e2e test-coverage preflight bootstrap-owner
 
 all: generate clean lint build test
 
@@ -142,6 +142,52 @@ build-tools-go:
 build-ctl:
 	@mkdir -p bin
 	cd $(GO_SRC_DIR) && $(GOBUILD) -o ../../bin/fitgluectl ./cmd/fitgluectl
+
+# --- Box deploy (rethink F3.1) ---
+# The services run on the Jarvis box as systemd user units (deploy/box/), one
+# static binary each in bin/, all bound to 127.0.0.1. Ports are fixed; Caddy
+# (F3.3) and the units' *_SERVICE_URL settings depend on them:
+#
+#   8101 api-webhook   8102 api-client   8103 user        8104 pipeline
+#   8105 activity      8106 destination  8107 api-public (until F1.5b/S4)
+#
+# `make deploy-box` is the whole deploy: build, reload units, restart the
+# service units above that are currently active (not fitglue-caddy, which is
+# F3.3's ingress and has its own lifecycle). It never *starts* a
+# stopped unit — cutover from Cloud Run is `systemctl --user start fitglue.target`,
+# done once in F3.4. Run it from ~/work/fitglue-server (the checkout the units'
+# ExecStart points at). See docs/guides/box-deploy.md.
+BOX_SERVICES := api-webhook api-client user pipeline activity destination api-public
+BOX_TOOLS := fitgluectl bootstrap-owner
+BOX_GOFLAGS := -trimpath -ldflags="-s -w"
+
+build-box:
+	@mkdir -p bin
+	@set -e; for s in $(BOX_SERVICES); do \
+		echo "  building $$s"; \
+		(cd $(GO_SRC_DIR) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(BOX_GOFLAGS) -o ../../bin/$$s ./services/$$s); \
+	done
+	@set -e; for t in $(BOX_TOOLS); do \
+		echo "  building $$t"; \
+		(cd $(GO_SRC_DIR) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(BOX_GOFLAGS) -o ../../bin/$$t ./cmd/$$t); \
+	done
+	@ls -l $(addprefix bin/,$(BOX_SERVICES) $(BOX_TOOLS))
+
+deploy-box: build-box
+	systemctl --user daemon-reload
+	@active=""; for s in $(BOX_SERVICES); do \
+		systemctl --user is-active --quiet fitglue-$$s.service && active="$$active fitglue-$$s.service"; \
+	done; \
+	if [ -n "$$active" ]; then \
+		echo "restarting: $$active"; \
+		systemctl --user restart $$active; \
+	else \
+		echo "no active fitglue-*.service units; nothing restarted (start with: systemctl --user start fitglue.target)"; \
+	fi
+	@$(MAKE) --no-print-directory status-box
+
+status-box:
+	@systemctl --user list-units --all --no-pager --plain 'fitglue.target' 'fitglue-*.service'
 
 # --- Single-user bootstrap ---
 # FitGlue has one user. There is no sign-up path any more; the owner's user

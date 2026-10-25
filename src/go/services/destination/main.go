@@ -79,9 +79,12 @@ func main() {
 
 	executor := destination.NewUploadExecutor(registry, userClient, activityClient, svc.DB, svc.Store, logger)
 
-	// Create an HTTP handler to receive Pub/Sub pushes
+	// Create an HTTP handler to receive Pub/Sub pushes. On Cloud Run the
+	// platform verifies the subscription's OIDC token; on the box
+	// PUBSUB_PUSH_AUDIENCE turns the check on here.
+	pushAuth := infra.PubSubPushAuthFromEnv(logger)
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", executor.HandlePubSubPush)
+	mux.HandleFunc("/", pushAuth.WrapFunc(executor.HandlePubSubPush))
 
 	port := os.Getenv("PORT")
 	if port == "" {

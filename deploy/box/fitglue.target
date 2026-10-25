@@ -1,0 +1,10 @@
+# All FitGlue services on the box. `systemctl --user start fitglue.target`
+# brings them up together; stop/restart propagate through PartOf=.
+# install.sh enables this target so it comes up with the user session
+# (loginctl linger keeps that session alive across logouts and reboots).
+[Unit]
+Description=FitGlue (all services on the box)
+Wants=fitglue-api-webhook.service fitglue-api-client.service fitglue-user.service fitglue-pipeline.service fitglue-activity.service fitglue-destination.service fitglue-api-public.service
+
+[Install]
+WantedBy=default.target
