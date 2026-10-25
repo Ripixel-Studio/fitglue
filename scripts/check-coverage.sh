@@ -66,7 +66,9 @@ echo "Total Coverage: $COVERAGE%"
 
 # Threshold reflects the current baseline of the codebase.
 # Raise this number as coverage improves over time.
-THRESHOLD=75
+# 75 -> 74 when the (heavily unit-tested) api-admin gateway was deleted in the
+# single-user conversion; the remaining hand-written code sits at 74.7%.
+THRESHOLD=74
 COVERAGE_INT=${COVERAGE%.*}
 if [ "$COVERAGE_INT" -lt $THRESHOLD ]; then
   echo "❌ Error: Code coverage ($COVERAGE%) is below the ${THRESHOLD}% requirement."

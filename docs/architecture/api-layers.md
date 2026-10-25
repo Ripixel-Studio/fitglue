@@ -1,13 +1,12 @@
 # API Layers
 
-FitGlue has four distinct HTTP gateway services, each with its own auth policy and permitted callers. None of them contain domain logic or touch Firestore directly — they are pure HTTP-to-gRPC translators.
+FitGlue has three distinct HTTP gateway services, each with its own auth policy and permitted callers. None of them contain domain logic or touch Firestore directly — they are pure HTTP-to-gRPC translators.
 
-## The Four Gateways
+## The Three Gateways
 
 | Service | Callers | Auth | gRPC Clients |
 |---------|---------|------|-------------|
 | `service.api.client` | Web app, mobile app | Firebase Auth JWT | user, pipeline, activity, registry, billing |
-| `service.api.admin` | Admin CLI, internal tooling | Admin-only auth (custom header / service account) | user, pipeline, activity |
 | `service.api.public` | Marketing site, unauthenticated browser | None (rate-limited) | registry, activity |
 | `service.api.webhook` | Third-party services (Strava, Fitbit, etc.), Stripe | Provider HMAC / Mobile JWT / Stripe sig | user (via RPC), Pub/Sub |
 
@@ -42,21 +41,6 @@ No database access. No business logic. Only: extract from request → call RPC �
 - `POST /api/users/me/activities/{id}/repost` — Repost activity
 - `GET /api/registry` — Plugin manifest (proxied from service.registry)
 - `GET/POST /api/auth/{provider}` — OAuth initiation and callback
-
-## service.api.admin
-
-Elevated-privilege API for internal administration.
-
-**Base path:** `/admin/`
-
-**Auth:** Separate auth mechanism from the client API — validates against an admin service account or admin-scoped Firebase custom claims. The `requireAdmin` middleware rejects non-admin tokens.
-
-**Key routes:**
-- `GET /admin/users` — List all users
-- `GET /admin/users/{id}` — Get user details
-- `PATCH /admin/users/{id}` — Update user
-- `DELETE /admin/users/{id}` — Delete user
-- `GET /admin/pipeline-runs` — Cross-user pipeline run listing
 
 ## service.api.public
 

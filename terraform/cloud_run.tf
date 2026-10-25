@@ -1,7 +1,6 @@
 locals {
   frontend_services = {
     "api-client"  = { is_public = true }
-    "api-admin"   = { is_public = true }
     "api-public"  = { is_public = true }
     "api-webhook" = { is_public = true }
   }

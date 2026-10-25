@@ -227,25 +227,6 @@ func TestListPipelineRuns_WithSinceUntil(t *testing.T) {
 	}
 }
 
-// --- AdminListPipelineRuns error path ---
-
-func TestAdminListPipelineRuns_StoreError(t *testing.T) {
-	es := &adminErrStore{MockPipelineStore: NewMockStore()}
-	svc := NewService(es, &MockPublisher{}, &MockBlobStore{}, mockLogger{}, nil)
-	_, err := svc.AdminListPipelineRuns(context.Background(), &pbsvc.AdminListPipelineRunsRequest{Limit: 5})
-	if status.Code(err) != codes.Internal {
-		t.Fatalf("expected Internal, got %v", err)
-	}
-}
-
-type adminErrStore struct {
-	*MockPipelineStore
-}
-
-func (a *adminErrStore) AdminListPipelineRuns(ctx context.Context, st, source, userID string, limit int32) ([]*pipeline.PipelineRun, error) {
-	return nil, errors.New("admin boom")
-}
-
 // --- Cancel branches not covered elsewhere ---
 
 func TestCancelPipeline_WithLinkedRun(t *testing.T) {

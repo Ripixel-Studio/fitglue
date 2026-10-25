@@ -41,7 +41,6 @@ const (
 	PipelineService_DismissProposedEnricherRun_FullMethodName = "/fitglue.services.pipeline.PipelineService/DismissProposedEnricherRun"
 	PipelineService_GetPipelineRun_FullMethodName             = "/fitglue.services.pipeline.PipelineService/GetPipelineRun"
 	PipelineService_ListPipelineRuns_FullMethodName           = "/fitglue.services.pipeline.PipelineService/ListPipelineRuns"
-	PipelineService_AdminListPipelineRuns_FullMethodName      = "/fitglue.services.pipeline.PipelineService/AdminListPipelineRuns"
 	PipelineService_ListSourceActivities_FullMethodName       = "/fitglue.services.pipeline.PipelineService/ListSourceActivities"
 	PipelineService_BackfillActivities_FullMethodName         = "/fitglue.services.pipeline.PipelineService/BackfillActivities"
 )
@@ -106,7 +105,6 @@ type PipelineServiceClient interface {
 	DismissProposedEnricherRun(ctx context.Context, in *DismissProposedEnricherRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetPipelineRun(ctx context.Context, in *GetPipelineRunRequest, opts ...grpc.CallOption) (*pipeline.PipelineRun, error)
 	ListPipelineRuns(ctx context.Context, in *ListPipelineRunsRequest, opts ...grpc.CallOption) (*ListPipelineRunsResponse, error)
-	AdminListPipelineRuns(ctx context.Context, in *AdminListPipelineRunsRequest, opts ...grpc.CallOption) (*AdminListPipelineRunsResponse, error)
 	ListSourceActivities(ctx context.Context, in *ListSourceActivitiesRequest, opts ...grpc.CallOption) (*ListSourceActivitiesResponse, error)
 	BackfillActivities(ctx context.Context, in *BackfillActivitiesRequest, opts ...grpc.CallOption) (*BackfillActivitiesResponse, error)
 }
@@ -309,16 +307,6 @@ func (c *pipelineServiceClient) ListPipelineRuns(ctx context.Context, in *ListPi
 	return out, nil
 }
 
-func (c *pipelineServiceClient) AdminListPipelineRuns(ctx context.Context, in *AdminListPipelineRunsRequest, opts ...grpc.CallOption) (*AdminListPipelineRunsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AdminListPipelineRunsResponse)
-	err := c.cc.Invoke(ctx, PipelineService_AdminListPipelineRuns_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *pipelineServiceClient) ListSourceActivities(ctx context.Context, in *ListSourceActivitiesRequest, opts ...grpc.CallOption) (*ListSourceActivitiesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListSourceActivitiesResponse)
@@ -399,7 +387,6 @@ type PipelineServiceServer interface {
 	DismissProposedEnricherRun(context.Context, *DismissProposedEnricherRunRequest) (*emptypb.Empty, error)
 	GetPipelineRun(context.Context, *GetPipelineRunRequest) (*pipeline.PipelineRun, error)
 	ListPipelineRuns(context.Context, *ListPipelineRunsRequest) (*ListPipelineRunsResponse, error)
-	AdminListPipelineRuns(context.Context, *AdminListPipelineRunsRequest) (*AdminListPipelineRunsResponse, error)
 	ListSourceActivities(context.Context, *ListSourceActivitiesRequest) (*ListSourceActivitiesResponse, error)
 	BackfillActivities(context.Context, *BackfillActivitiesRequest) (*BackfillActivitiesResponse, error)
 	mustEmbedUnimplementedPipelineServiceServer()
@@ -468,9 +455,6 @@ func (UnimplementedPipelineServiceServer) GetPipelineRun(context.Context, *GetPi
 }
 func (UnimplementedPipelineServiceServer) ListPipelineRuns(context.Context, *ListPipelineRunsRequest) (*ListPipelineRunsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPipelineRuns not implemented")
-}
-func (UnimplementedPipelineServiceServer) AdminListPipelineRuns(context.Context, *AdminListPipelineRunsRequest) (*AdminListPipelineRunsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method AdminListPipelineRuns not implemented")
 }
 func (UnimplementedPipelineServiceServer) ListSourceActivities(context.Context, *ListSourceActivitiesRequest) (*ListSourceActivitiesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListSourceActivities not implemented")
@@ -841,24 +825,6 @@ func _PipelineService_ListPipelineRuns_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PipelineService_AdminListPipelineRuns_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AdminListPipelineRunsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PipelineServiceServer).AdminListPipelineRuns(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PipelineService_AdminListPipelineRuns_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PipelineServiceServer).AdminListPipelineRuns(ctx, req.(*AdminListPipelineRunsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _PipelineService_ListSourceActivities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListSourceActivitiesRequest)
 	if err := dec(in); err != nil {
@@ -977,10 +943,6 @@ var PipelineService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPipelineRuns",
 			Handler:    _PipelineService_ListPipelineRuns_Handler,
-		},
-		{
-			MethodName: "AdminListPipelineRuns",
-			Handler:    _PipelineService_AdminListPipelineRuns_Handler,
 		},
 		{
 			MethodName: "ListSourceActivities",

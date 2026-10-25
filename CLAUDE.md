@@ -1,6 +1,6 @@
 # FitGlue Server
 
-Go backend — 11 Cloud Run microservices communicating via gRPC, fronted by 4 HTTP API gateways.
+Go backend — 10 Cloud Run microservices communicating via gRPC, fronted by 3 HTTP API gateways.
 
 ## Stack
 
@@ -47,13 +47,12 @@ npm run test:test       # Against test environment
 
 ## Service Architecture
 
-11 independent Cloud Run services. **4 HTTP gateways** (public-facing) + **7 domain services** (private).
+10 independent Cloud Run services. **3 HTTP gateways** (public-facing) + **7 domain services** (private).
 
 ```
 Internet
     │
     ├── api-client   (HTTP, Firebase JWT)    → user, billing, pipeline, activity, registry
-    ├── api-admin    (HTTP, admin auth)       → user, billing, pipeline, activity
     ├── api-public   (HTTP, no auth)          → registry, activity (showcases)
     └── api-webhook  (HTTP, HMAC/OAuth)       → pipeline (via Pub/Sub)
                                                 user (resolve integration)
@@ -83,7 +82,6 @@ server/
 │   │   ├── go.mod, go.sum          # Single root module (all services share it)
 │   │   ├── services/               # One directory per Cloud Run service
 │   │   │   ├── api-client/         # HTTP gateway (Firebase JWT)
-│   │   │   ├── api-admin/          # HTTP gateway (admin auth)
 │   │   │   ├── api-public/         # HTTP gateway (no auth)
 │   │   │   ├── api-webhook/        # HTTP gateway (HMAC/OAuth)
 │   │   │   │   └── internal/webhook/sources/  # strava/, fitbit/, hevy/, polar/, oura/, wahoo/, mobile/, parkrun/

@@ -12,16 +12,6 @@ services:
     environment:
       - PORT=8080
 
-  api-admin:
-    build:
-      context: .
-      args:
-        SERVICE_NAME: api-admin
-    ports:
-      - "8081:8080"
-    environment:
-      - PORT=8080
-
   api-public:
     build:
       context: .

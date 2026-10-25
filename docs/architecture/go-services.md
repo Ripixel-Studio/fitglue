@@ -6,14 +6,11 @@ FitGlue's server is composed of **11 Go Cloud Run services** organized under `sr
 
 ```
 src/go/
-├── services/                          # All 11 Cloud Run services
+├── services/                          # All 10 Cloud Run services
 │   ├── api-client/                    # Authenticated user HTTP gateway
 │   │   ├── main.go                    # Composition root: wires gRPC clients → chi router
 │   │   └── internal/
 │   │       └── server/                # HTTP handlers + middleware
-│   ├── api-admin/                     # Admin HTTP gateway
-│   │   ├── main.go
-│   │   └── internal/server/
 │   ├── api-public/                    # Unauthenticated HTTP gateway
 │   │   ├── main.go
 │   │   └── internal/server/
@@ -91,7 +88,6 @@ If it compiles, it's wired correctly — no runtime dependency resolution.
 | Service | Owns | Transport | Data Store |
 |---------|------|-----------|-----------|
 | `service.api.client` | None (thin marshaller) | HTTP (Firebase JWT) | None |
-| `service.api.admin` | None (thin marshaller) | HTTP (admin auth) | None |
 | `service.api.public` | None (thin marshaller) | HTTP (no auth) | None |
 | `service.api.webhook` | None (thin orchestrator) | HTTP (HMAC / mobile JWT) | Transient |
 | `service.user` | User profiles, integrations, OAuth tokens, counters | gRPC | Firestore `users/` |

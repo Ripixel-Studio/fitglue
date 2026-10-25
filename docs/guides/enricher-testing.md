@@ -3,7 +3,7 @@
 This guide provides testing procedures for enricher providers in the FitGlue pipeline.
 
 > [!IMPORTANT]
-> The `./fitglue-admin` CLI referenced in setup steps below has been retired. User and pipeline setup is now done via `service.api.admin` REST endpoints (e.g., `curl -X POST https://<domain>/admin/users/...`). You can also manage users and pipelines through the [Admin Console](https://fitglue.tech/app/admin) in the web dashboard. The test scenarios and validation steps themselves remain accurate.
+> The `./fitglue-admin` CLI referenced in setup steps below has been retired, and the admin API that replaced it has since been removed too. Set up users and pipelines through the web dashboard or direct Firestore access. The test scenarios and validation steps themselves remain accurate.
 
 ## Overview
 
@@ -484,4 +484,3 @@ make test-integration
 - Add more routes to Virtual GPS library
 - Implement PR Tracker enricher
 - Create automated E2E tests for all enrichers
-- Add enricher configuration UI to admin CLI

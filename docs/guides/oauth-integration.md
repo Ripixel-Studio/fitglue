@@ -107,16 +107,6 @@ The web dashboard provides "Connect" buttons for each provider at **Settings →
 4. Provider redirects back to FitGlue via `service.api.client`
 5. `service.api.client` exchanges the code for tokens and stores them via `service.user`
 
-### Via Admin API
-
-For programmatic setup or testing:
-
-```bash
-# Initiate OAuth flow for a user
-curl -X POST https://<domain>/admin/users/<userId>/connect/<provider>
-# Returns an authorization URL to visit in a browser
-```
-
 ## Token Refresh
 
 OAuth tokens expire and must be refreshed periodically:

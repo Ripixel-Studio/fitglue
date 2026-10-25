@@ -52,11 +52,7 @@ If the user hasn't authenticated yet, direct them to the Fitbit connection page 
 4. Verify the redirect completes successfully
 
 ### B. Subscribe to Updates (Critical Step)
-Updates are **not** automatic until you explicitly subscribe to the `activities` collection for that user. This is managed automatically when the user connects via the web dashboard. For manual setup via the admin API:
-
-```bash
-curl -X POST https://<domain>/admin/users/<USER_ID>/fitbit/subscribe
-```
+Updates are **not** automatic until you explicitly subscribe to the `activities` collection for that user. This is managed automatically when the user connects via the web dashboard.
 
 **Expected Output:**
 ```

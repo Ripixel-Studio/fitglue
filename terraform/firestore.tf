@@ -176,8 +176,8 @@ resource "google_firestore_index" "executions_user_sync_timestamp" {
 # default to COLLECTION scope only; a collection-group single-field query (e.g.
 # CollectionGroup("activities").OrderBy("synced_at", ...) with no other filter)
 # still needs an explicit `google_firestore_field` override with a
-# COLLECTION_GROUP index_config entry. See pipeline_runs_created_at below for
-# a worked example — its absence caused a prod outage in AdminListPipelineRuns.
+# COLLECTION_GROUP index_config entry (the absence of one caused a prod outage
+# in the since-deleted admin pipeline-run listing).
 #
 # If you need COMPOSITE collection group indexes (2+ fields), add them here.
 # Example:
@@ -360,12 +360,12 @@ resource "google_firestore_index" "pipeline_runs_pipeline_created" {
 }
 
 # -------------------------------------------------------------------
-# Admin Pipeline Runs - Collection Group Indexes
-# Used by admin handler to query pipeline_runs across all users
+# Pipeline Runs - Collection Group Index
+# Used by api-client's platform stats to count pipeline_runs across all users
 # -------------------------------------------------------------------
 
 # Collection group index for status + created_at
-# Used by admin handler when filtering by status
+# Used by GetPlatformStats: CollectionGroup("pipeline_runs").Where("status","==",..).OrderBy("created_at",Desc)
 resource "google_firestore_index" "pipeline_runs_cg_status_created" {
   project     = var.project_id
   database    = google_firestore_database.database.name
@@ -380,37 +380,6 @@ resource "google_firestore_index" "pipeline_runs_cg_status_created" {
   fields {
     field_path = "created_at"
     order      = "DESCENDING"
-  }
-}
-
-# Single-field index override for created_at at COLLECTION_GROUP scope.
-# The unfiltered admin listing (no status/source) runs a plain
-# CollectionGroup("pipeline_runs").OrderBy("created_at", Desc) query. Firestore's
-# automatic single-field indexes default to COLLECTION scope only — they do NOT
-# cover collection-group queries — so that query fails with FailedPrecondition
-# without this override. (The earlier note here claiming this wasn't needed was
-# wrong; the composite indexes above only cover the status/source-filtered cases.)
-# Ascending/descending COLLECTION entries are repeated to preserve the automatic
-# defaults, since specifying any index for a field replaces the full auto set.
-resource "google_firestore_field" "pipeline_runs_created_at" {
-  project    = var.project_id
-  database   = google_firestore_database.database.name
-  collection = "pipeline_runs"
-  field      = "created_at"
-
-  index_config {
-    indexes {
-      order       = "ASCENDING"
-      query_scope = "COLLECTION"
-    }
-    indexes {
-      order       = "DESCENDING"
-      query_scope = "COLLECTION"
-    }
-    indexes {
-      order       = "DESCENDING"
-      query_scope = "COLLECTION_GROUP"
-    }
   }
 }
 
@@ -483,48 +452,6 @@ resource "google_firestore_index" "showcased_activities_user_created" {
 
   fields {
     field_path = "created_at"
-    order      = "DESCENDING"
-  }
-}
-
-# Collection group index for source + created_at
-# Used by admin handler when filtering by source
-resource "google_firestore_index" "pipeline_runs_cg_source_created" {
-  project     = var.project_id
-  database    = google_firestore_database.database.name
-  collection  = "pipeline_runs"
-  query_scope = "COLLECTION_GROUP"
-
-  fields {
-    field_path = "source"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "created_at"
-    order      = "DESCENDING"
-  }
-}
-
-# -------------------------------------------------------------------
-# Admin Audit Log Index
-# Used by the admin console to list a single user's audit trail:
-#   .where('target_user_id','==',uid).orderBy('timestamp','desc')
-# The unfiltered, timestamp-ordered listing uses the automatic single-field index.
-# -------------------------------------------------------------------
-resource "google_firestore_index" "admin_audit_log_target_timestamp" {
-  project     = var.project_id
-  database    = google_firestore_database.database.name
-  collection  = "admin_audit_log"
-  query_scope = "COLLECTION"
-
-  fields {
-    field_path = "target_user_id"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "timestamp"
     order      = "DESCENDING"
   }
 }

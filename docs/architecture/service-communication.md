@@ -99,10 +99,6 @@ Web/Mobile → service.api.client → service.user      (GetProfile, UpdateProfi
                                 → service.registry   (GetRegistry)
                                 → service.billing    (GetSubscription)
 
-Admin CLI  → service.api.admin  → service.user      (ListUsers, GetUser, DeleteUser)
-                                → service.pipeline   (admin pipeline ops)
-                                → service.activity   (admin activity ops)
-
 Public     → service.api.public → service.registry  (public registry listing)
                                 → service.activity   (GetPublicShowcase)
 
