@@ -60,13 +60,11 @@ Domain services implement the gRPC server interface generated from `.proto` defi
 type Service struct {
     store  Store           // injected
     logger infra.Logger    // injected
-    email  email.Sender    // injected
-    auth   *firebase.AuthClient
 }
 
 // NewService is the constructor — accepts all dependencies explicitly
-func NewService(store Store, logger infra.Logger, email email.Sender, auth *firebase.AuthClient) *Service {
-    return &Service{store: store, logger: logger, email: email, auth: auth}
+func NewService(store Store, logger infra.Logger) *Service {
+    return &Service{store: store, logger: logger}
 }
 
 // Implements pb.UserServiceServer — generated gRPC interface

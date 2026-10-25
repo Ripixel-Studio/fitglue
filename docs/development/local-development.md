@@ -31,8 +31,6 @@ Edit `.env` for local secrets (bypasses Google Secret Manager):
 ```bash
 GOOGLE_CLOUD_PROJECT=fitglue-server-dev
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
-EMAIL_APP_PASSWORD=local-only
-SYSTEM_EMAIL=noreply@fitglue.tech
 ```
 
 ## 3. Starting Services

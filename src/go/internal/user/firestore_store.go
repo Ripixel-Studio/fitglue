@@ -102,156 +102,6 @@ func (s *FirestoreStore) UpdateProfile(ctx context.Context, userID string, profi
 	return err
 }
 
-func (s *FirestoreStore) DeleteUser(ctx context.Context, userID string) error {
-	userDocRef := s.client.Collection("users").Doc(userID)
-
-	// Helper to delete all docs in a collection/query
-	deleteDocs := func(iter *firestore.DocumentIterator) error {
-		defer iter.Stop()
-		batch := s.client.Batch()
-		count := 0
-		for {
-			doc, err := iter.Next()
-			if err == iterator.Done {
-				break
-			}
-			if err != nil {
-				return err
-			}
-			batch.Delete(doc.Ref)
-			count++
-			// Commit in chunks if larger than 500
-			if count == 500 {
-				if _, err := batch.Commit(ctx); err != nil {
-					return err
-				}
-				batch = s.client.Batch()
-				count = 0
-			}
-		}
-		if count > 0 {
-			if _, err := batch.Commit(ctx); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	// 1. Delete pipeline_runs & destination_outcomes
-	runsIter := userDocRef.Collection("pipeline_runs").Documents(ctx)
-	defer runsIter.Stop()
-	for {
-		doc, err := runsIter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		outcomesIter := doc.Ref.Collection("destination_outcomes").Documents(ctx)
-		if err := deleteDocs(outcomesIter); err != nil {
-			return err
-		}
-		_, err = doc.Ref.Delete(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	// 2-9. Delete user sub-collections
-	subCollections := []string{
-		"synchronized_activities",
-		"raw_activities",
-		"executions",
-		"pending_inputs",
-		"pipelines",
-		"counters",
-		"booster_data",
-		"personal_records",
-		"uploaded_activities",
-		"plugin_defaults",
-	}
-	for _, sub := range subCollections {
-		if err := deleteDocs(userDocRef.Collection(sub).Documents(ctx)); err != nil {
-			return err
-		}
-	}
-
-	// 10-12. Delete top-level collections by user_id
-	topCollections := []string{
-		"ingress_api_keys",
-		"showcased_activities",
-		"showcase_profiles",
-	}
-	for _, col := range topCollections {
-		iter := s.client.Collection(col).Where("user_id", "==", userID).Documents(ctx)
-		if err := deleteDocs(iter); err != nil {
-			return err
-		}
-	}
-
-	// 13. Delete user document
-	_, err := userDocRef.Delete(ctx)
-	return err
-}
-
-// ListShowcaseExecutionIDs returns the pipeline execution IDs recorded on the
-// user's showcase documents. Called before DeleteUser removes those documents,
-// so account deletion can purge execution-keyed showcase assets (route
-// thumbnails) from GCS.
-func (s *FirestoreStore) ListShowcaseExecutionIDs(ctx context.Context, userID string) ([]string, error) {
-	iter := s.client.Collection("showcased_activities").Where("user_id", "==", userID).Documents(ctx)
-	defer iter.Stop()
-	var ids []string
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if v, err := doc.DataAt("pipeline_execution_id"); err == nil {
-			if id, ok := v.(string); ok && id != "" {
-				ids = append(ids, id)
-			}
-		}
-	}
-	return ids, nil
-}
-
-func (s *FirestoreStore) FindUsersByDateRange(ctx context.Context, start, end time.Time) ([]*pbuser.UserProfile, error) {
-	var users []*pbuser.UserProfile
-	iter := s.client.Collection("users").
-		Where("created_at", ">=", start).
-		Where("created_at", "<", end).
-		Documents(ctx)
-	defer iter.Stop()
-
-	for {
-		doc, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		b, err := json.Marshal(normalizeUserData(doc.Data()))
-		if err != nil {
-			return nil, err
-		}
-		var profile pbuser.UserProfile
-		err = protojson.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(b, &profile)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, &profile)
-	}
-
-	return users, nil
-}
-
 func (s *FirestoreStore) GetIntegrations(ctx context.Context, userID string) (*pbuser.UserIntegrations, error) {
 	doc, err := s.client.Collection("users").Doc(userID).Get(ctx)
 	if err != nil {
@@ -661,4 +511,50 @@ func (s *FirestoreStore) CreateUser(ctx context.Context, userID string) (*pbuser
 	}
 
 	return profile, nil
+}
+
+// BootstrapOwner upserts the single owner's user document. A missing document
+// is created with the same shape CreateUser has always written (so the
+// integrations, counters, personal-records and plugin-defaults subcollections
+// carry over untouched); an existing one is left alone apart from the identity
+// fields merged below. access_enabled is forced on: the waitlist gate it used
+// to drive is gone with admin and billing, and the owner is never waitlisted.
+// Returns true when the document was created.
+func (s *FirestoreStore) BootstrapOwner(ctx context.Context, userID, email, displayName string) (bool, error) {
+	if userID == "" {
+		return false, errors.New("userID is required")
+	}
+	docRef := s.client.Collection("users").Doc(userID)
+
+	created := false
+	snap, err := docRef.Get(ctx)
+	if err != nil {
+		if status.Code(err) != codes.NotFound {
+			return false, err
+		}
+		if _, err := s.CreateUser(ctx, userID); err != nil {
+			return false, err
+		}
+		created = true
+	} else if !snap.Exists() {
+		if _, err := s.CreateUser(ctx, userID); err != nil {
+			return false, err
+		}
+		created = true
+	}
+
+	identity := map[string]interface{}{
+		"user_id":        userID,
+		"access_enabled": true,
+	}
+	if email != "" {
+		identity["email"] = email
+	}
+	if displayName != "" {
+		identity["display_name"] = displayName
+	}
+	if _, err := docRef.Set(ctx, identity, firestore.MergeAll); err != nil {
+		return created, err
+	}
+	return created, nil
 }

@@ -75,25 +75,7 @@ func (m *mockUserServiceClient) SetBoosterData(ctx context.Context, in *userpb.S
 func (m *mockUserServiceClient) DeleteBoosterData(ctx context.Context, in *userpb.DeleteBoosterDataRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	return nil, nil
 }
-func (m *mockUserServiceClient) DeleteUser(ctx context.Context, in *userpb.DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, nil
-}
-func (m *mockUserServiceClient) SendVerificationEmail(ctx context.Context, in *userpb.SendVerificationEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, nil
-}
-func (m *mockUserServiceClient) SendPasswordResetEmail(ctx context.Context, in *userpb.SendPasswordResetEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, nil
-}
-func (m *mockUserServiceClient) SendEmailChangeVerification(ctx context.Context, in *userpb.SendEmailChangeVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, nil
-}
-func (m *mockUserServiceClient) GenerateRegistrationSummary(ctx context.Context, in *userpb.GenerateRegistrationSummaryRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, nil
-}
 func (m *mockUserServiceClient) ResolveUserByIntegration(ctx context.Context, in *userpb.ResolveUserByIntegrationRequest, opts ...grpc.CallOption) (*userpb.ResolveUserByIntegrationResponse, error) {
-	return nil, nil
-}
-func (m *mockUserServiceClient) ListUsers(ctx context.Context, in *userpb.ListUsersRequest, opts ...grpc.CallOption) (*userpb.ListUsersResponse, error) {
 	return nil, nil
 }
 func (m *mockUserServiceClient) ListPersonalRecords(ctx context.Context, in *userpb.ListPersonalRecordsRequest, opts ...grpc.CallOption) (*userpb.ListPersonalRecordsResponse, error) {

@@ -41,11 +41,6 @@ service ClientGatewayService {
       body: "*"
     };
   }
-  rpc DeleteSelf(EmptyRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      delete: "/users/me"
-    };
-  }
 
   // ===================== Integrations =====================
   rpc ListIntegrations(EmptyRequest) returns (fitglue.models.user.UserIntegrations) {
@@ -163,25 +158,6 @@ service ClientGatewayService {
   rpc DeletePluginDefaults(PluginIdRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/users/me/plugin-defaults/{plugin_id}"
-    };
-  }
-
-  // ===================== Auth Email =====================
-  rpc SendVerificationEmail(EmptyRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/users/me/auth-email/send-verification"
-    };
-  }
-  rpc SendEmailChangeVerification(SendEmailChangeGatewayRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/users/me/auth-email/send-email-change"
-      body: "*"
-    };
-  }
-  rpc SendPasswordReset(SendPasswordResetGatewayRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/auth-email/send-password-reset"
-      body: "*"
     };
   }
 
@@ -559,14 +535,6 @@ message ListPluginDefaultsGatewayResponse {
 message SetPluginDefaultsGatewayRequest {
   string plugin_id = 1;
   google.protobuf.Struct defaults = 2;
-}
-
-// Auth Email
-message SendEmailChangeGatewayRequest {
-  string new_email = 1;
-}
-message SendPasswordResetGatewayRequest {
-  string email = 1;
 }
 
 // Pipelines

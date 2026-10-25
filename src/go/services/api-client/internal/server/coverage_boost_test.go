@@ -182,79 +182,7 @@ func TestHandleDeleteBoosterData(t *testing.T) {
 }
 
 // =============================================================
-// users.go — delete self / email handlers
 // =============================================================
-
-func TestHandleDeleteSelf(t *testing.T) {
-	s := serverWithDeps(&APIServer{userService: &mockUserServiceClient{}})
-	w := httptest.NewRecorder()
-	s.handleDeleteSelf(w, httptest.NewRequest(http.MethodDelete, "/", nil))
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
-	}
-	w = httptest.NewRecorder()
-	s.handleDeleteSelf(w, withToken(httptest.NewRequest(http.MethodDelete, "/", nil), "u1"))
-	if w.Code != http.StatusNoContent {
-		t.Errorf("expected 204, got %d", w.Code)
-	}
-}
-
-func TestHandleSendVerificationEmail(t *testing.T) {
-	s := serverWithDeps(&APIServer{userService: &mockUserServiceClient{}})
-	w := httptest.NewRecorder()
-	s.handleSendVerificationEmail(w, httptest.NewRequest(http.MethodPost, "/", nil))
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
-	}
-	w = httptest.NewRecorder()
-	s.handleSendVerificationEmail(w, withToken(httptest.NewRequest(http.MethodPost, "/", nil), "u1"))
-	if w.Code != http.StatusNoContent {
-		t.Errorf("expected 204, got %d", w.Code)
-	}
-}
-
-func TestHandleSendEmailChangeVerification(t *testing.T) {
-	s := serverWithDeps(&APIServer{userService: &mockUserServiceClient{}})
-	t.Run("no token", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleSendEmailChangeVerification(w, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`)))
-		if w.Code != http.StatusUnauthorized {
-			t.Errorf("expected 401, got %d", w.Code)
-		}
-	})
-	t.Run("invalid body", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleSendEmailChangeVerification(w, withToken(httptest.NewRequest(http.MethodPost, "/", strings.NewReader("bad")), "u1"))
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("expected 400, got %d", w.Code)
-		}
-	})
-	t.Run("success", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleSendEmailChangeVerification(w, withToken(httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"newEmail":"a@b.com"}`)), "u1"))
-		if w.Code != http.StatusNoContent {
-			t.Errorf("expected 204, got %d", w.Code)
-		}
-	})
-}
-
-func TestHandleSendPasswordResetEmail(t *testing.T) {
-	s := serverWithDeps(&APIServer{userService: &mockUserServiceClient{}})
-	t.Run("invalid body", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleSendPasswordResetEmail(w, httptest.NewRequest(http.MethodPost, "/", strings.NewReader("bad")))
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("expected 400, got %d", w.Code)
-		}
-	})
-	t.Run("success (no token required)", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleSendPasswordResetEmail(w, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"email":"a@b.com"}`)))
-		if w.Code != http.StatusNoContent {
-			t.Errorf("expected 204, got %d", w.Code)
-		}
-	})
-}
 
 // =============================================================
 // users.go — personal records
@@ -1005,15 +933,6 @@ func TestUserHandlers_ServiceErrors(t *testing.T) {
 			t.Errorf("expected 500, got %d", w.Code)
 		}
 	})
-	t.Run("deleteSelf error", func(t *testing.T) {
-		svc := &errUserClient{}
-		s := serverWithDeps(&APIServer{userService: svc})
-		w := httptest.NewRecorder()
-		s.handleDeleteSelf(w, withToken(httptest.NewRequest(http.MethodDelete, "/", nil), "u1"))
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("expected 500, got %d", w.Code)
-		}
-	})
 }
 
 func TestHandleSetIntegration_Branches(t *testing.T) {
@@ -1069,27 +988,11 @@ func (e *errUserClient) GetBoosterData(_ context.Context, _ *userpb.GetBoosterDa
 	return nil, status.Error(codes.Internal, "boom")
 }
 
-func (e *errUserClient) DeleteUser(_ context.Context, _ *userpb.DeleteUserRequest, _ ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Internal, "boom")
-}
-
 func (e *errUserClient) SetBoosterData(_ context.Context, _ *userpb.SetBoosterDataRequest, _ ...grpc.CallOption) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Internal, "boom")
 }
 
 func (e *errUserClient) DeleteBoosterData(_ context.Context, _ *userpb.DeleteBoosterDataRequest, _ ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Internal, "boom")
-}
-
-func (e *errUserClient) SendVerificationEmail(_ context.Context, _ *userpb.SendVerificationEmailRequest, _ ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Internal, "boom")
-}
-
-func (e *errUserClient) SendPasswordResetEmail(_ context.Context, _ *userpb.SendPasswordResetEmailRequest, _ ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Internal, "boom")
-}
-
-func (e *errUserClient) SendEmailChangeVerification(_ context.Context, _ *userpb.SendEmailChangeVerificationRequest, _ ...grpc.CallOption) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Internal, "boom")
 }
 
@@ -1133,9 +1036,6 @@ func TestUserHandlers_MoreServiceErrors(t *testing.T) {
 	}{
 		{"setBooster", s.handleSetBoosterData, httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{"a":"b"}`))},
 		{"deleteBooster", s.handleDeleteBoosterData, httptest.NewRequest(http.MethodDelete, "/", nil)},
-		{"sendVerification", s.handleSendVerificationEmail, httptest.NewRequest(http.MethodPost, "/", nil)},
-		{"sendPasswordReset", s.handleSendPasswordResetEmail, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"email":"a@b.com"}`))},
-		{"sendEmailChange", s.handleSendEmailChangeVerification, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"newEmail":"a@b.com"}`))},
 		{"listPRs", s.handleListPersonalRecords, httptest.NewRequest(http.MethodGet, "/", nil)},
 		{"setPR", s.handleSetPersonalRecord, httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{}`))},
 		{"deletePR", s.handleDeletePersonalRecord, httptest.NewRequest(http.MethodDelete, "/", nil)},

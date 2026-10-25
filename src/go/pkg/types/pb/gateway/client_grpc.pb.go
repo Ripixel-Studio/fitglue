@@ -25,7 +25,6 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	ClientGatewayService_GetProfile_FullMethodName                         = "/fitglue.gateway.ClientGatewayService/GetProfile"
 	ClientGatewayService_UpdateProfile_FullMethodName                      = "/fitglue.gateway.ClientGatewayService/UpdateProfile"
-	ClientGatewayService_DeleteSelf_FullMethodName                         = "/fitglue.gateway.ClientGatewayService/DeleteSelf"
 	ClientGatewayService_ListIntegrations_FullMethodName                   = "/fitglue.gateway.ClientGatewayService/ListIntegrations"
 	ClientGatewayService_GetIntegration_FullMethodName                     = "/fitglue.gateway.ClientGatewayService/GetIntegration"
 	ClientGatewayService_SetIntegration_FullMethodName                     = "/fitglue.gateway.ClientGatewayService/SetIntegration"
@@ -46,9 +45,6 @@ const (
 	ClientGatewayService_ListPluginDefaults_FullMethodName                 = "/fitglue.gateway.ClientGatewayService/ListPluginDefaults"
 	ClientGatewayService_SetPluginDefaults_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/SetPluginDefaults"
 	ClientGatewayService_DeletePluginDefaults_FullMethodName               = "/fitglue.gateway.ClientGatewayService/DeletePluginDefaults"
-	ClientGatewayService_SendVerificationEmail_FullMethodName              = "/fitglue.gateway.ClientGatewayService/SendVerificationEmail"
-	ClientGatewayService_SendEmailChangeVerification_FullMethodName        = "/fitglue.gateway.ClientGatewayService/SendEmailChangeVerification"
-	ClientGatewayService_SendPasswordReset_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/SendPasswordReset"
 	ClientGatewayService_ListPipelines_FullMethodName                      = "/fitglue.gateway.ClientGatewayService/ListPipelines"
 	ClientGatewayService_GetPipeline_FullMethodName                        = "/fitglue.gateway.ClientGatewayService/GetPipeline"
 	ClientGatewayService_CreatePipeline_FullMethodName                     = "/fitglue.gateway.ClientGatewayService/CreatePipeline"
@@ -114,7 +110,6 @@ type ClientGatewayServiceClient interface {
 	// ===================== User Profile =====================
 	GetProfile(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.UserProfile, error)
 	UpdateProfile(ctx context.Context, in *UpdateProfileGatewayRequest, opts ...grpc.CallOption) (*user.UserProfile, error)
-	DeleteSelf(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// ===================== Integrations =====================
 	ListIntegrations(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.UserIntegrations, error)
 	GetIntegration(ctx context.Context, in *ProviderRequest, opts ...grpc.CallOption) (*GetIntegrationGatewayResponse, error)
@@ -141,10 +136,6 @@ type ClientGatewayServiceClient interface {
 	ListPluginDefaults(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListPluginDefaultsGatewayResponse, error)
 	SetPluginDefaults(ctx context.Context, in *SetPluginDefaultsGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeletePluginDefaults(ctx context.Context, in *PluginIdRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// ===================== Auth Email =====================
-	SendVerificationEmail(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	SendEmailChangeVerification(ctx context.Context, in *SendEmailChangeGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	SendPasswordReset(ctx context.Context, in *SendPasswordResetGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// ===================== Pipelines =====================
 	ListPipelines(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListPipelinesGatewayResponse, error)
 	GetPipeline(ctx context.Context, in *PipelineIdRequest, opts ...grpc.CallOption) (*pipeline.PipelineConfig, error)
@@ -245,16 +236,6 @@ func (c *clientGatewayServiceClient) UpdateProfile(ctx context.Context, in *Upda
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(user.UserProfile)
 	err := c.cc.Invoke(ctx, ClientGatewayService_UpdateProfile_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) DeleteSelf(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, ClientGatewayService_DeleteSelf_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -455,36 +436,6 @@ func (c *clientGatewayServiceClient) DeletePluginDefaults(ctx context.Context, i
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, ClientGatewayService_DeletePluginDefaults_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) SendVerificationEmail(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, ClientGatewayService_SendVerificationEmail_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) SendEmailChangeVerification(ctx context.Context, in *SendEmailChangeGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, ClientGatewayService_SendEmailChangeVerification_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) SendPasswordReset(ctx context.Context, in *SendPasswordResetGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, ClientGatewayService_SendPasswordReset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -995,7 +946,6 @@ type ClientGatewayServiceServer interface {
 	// ===================== User Profile =====================
 	GetProfile(context.Context, *EmptyRequest) (*user.UserProfile, error)
 	UpdateProfile(context.Context, *UpdateProfileGatewayRequest) (*user.UserProfile, error)
-	DeleteSelf(context.Context, *EmptyRequest) (*emptypb.Empty, error)
 	// ===================== Integrations =====================
 	ListIntegrations(context.Context, *EmptyRequest) (*user.UserIntegrations, error)
 	GetIntegration(context.Context, *ProviderRequest) (*GetIntegrationGatewayResponse, error)
@@ -1022,10 +972,6 @@ type ClientGatewayServiceServer interface {
 	ListPluginDefaults(context.Context, *EmptyRequest) (*ListPluginDefaultsGatewayResponse, error)
 	SetPluginDefaults(context.Context, *SetPluginDefaultsGatewayRequest) (*emptypb.Empty, error)
 	DeletePluginDefaults(context.Context, *PluginIdRequest) (*emptypb.Empty, error)
-	// ===================== Auth Email =====================
-	SendVerificationEmail(context.Context, *EmptyRequest) (*emptypb.Empty, error)
-	SendEmailChangeVerification(context.Context, *SendEmailChangeGatewayRequest) (*emptypb.Empty, error)
-	SendPasswordReset(context.Context, *SendPasswordResetGatewayRequest) (*emptypb.Empty, error)
 	// ===================== Pipelines =====================
 	ListPipelines(context.Context, *EmptyRequest) (*ListPipelinesGatewayResponse, error)
 	GetPipeline(context.Context, *PipelineIdRequest) (*pipeline.PipelineConfig, error)
@@ -1118,9 +1064,6 @@ func (UnimplementedClientGatewayServiceServer) GetProfile(context.Context, *Empt
 func (UnimplementedClientGatewayServiceServer) UpdateProfile(context.Context, *UpdateProfileGatewayRequest) (*user.UserProfile, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateProfile not implemented")
 }
-func (UnimplementedClientGatewayServiceServer) DeleteSelf(context.Context, *EmptyRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method DeleteSelf not implemented")
-}
 func (UnimplementedClientGatewayServiceServer) ListIntegrations(context.Context, *EmptyRequest) (*user.UserIntegrations, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListIntegrations not implemented")
 }
@@ -1180,15 +1123,6 @@ func (UnimplementedClientGatewayServiceServer) SetPluginDefaults(context.Context
 }
 func (UnimplementedClientGatewayServiceServer) DeletePluginDefaults(context.Context, *PluginIdRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeletePluginDefaults not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) SendVerificationEmail(context.Context, *EmptyRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SendVerificationEmail not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) SendEmailChangeVerification(context.Context, *SendEmailChangeGatewayRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SendEmailChangeVerification not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) SendPasswordReset(context.Context, *SendPasswordResetGatewayRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SendPasswordReset not implemented")
 }
 func (UnimplementedClientGatewayServiceServer) ListPipelines(context.Context, *EmptyRequest) (*ListPipelinesGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPipelines not implemented")
@@ -1390,24 +1324,6 @@ func _ClientGatewayService_UpdateProfile_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClientGatewayServiceServer).UpdateProfile(ctx, req.(*UpdateProfileGatewayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_DeleteSelf_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).DeleteSelf(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_DeleteSelf_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).DeleteSelf(ctx, req.(*EmptyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1768,60 +1684,6 @@ func _ClientGatewayService_DeletePluginDefaults_Handler(srv interface{}, ctx con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClientGatewayServiceServer).DeletePluginDefaults(ctx, req.(*PluginIdRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_SendVerificationEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).SendVerificationEmail(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_SendVerificationEmail_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).SendVerificationEmail(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_SendEmailChangeVerification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendEmailChangeGatewayRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).SendEmailChangeVerification(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_SendEmailChangeVerification_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).SendEmailChangeVerification(ctx, req.(*SendEmailChangeGatewayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_SendPasswordReset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendPasswordResetGatewayRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).SendPasswordReset(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_SendPasswordReset_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).SendPasswordReset(ctx, req.(*SendPasswordResetGatewayRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2724,10 +2586,6 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ClientGatewayService_UpdateProfile_Handler,
 		},
 		{
-			MethodName: "DeleteSelf",
-			Handler:    _ClientGatewayService_DeleteSelf_Handler,
-		},
-		{
 			MethodName: "ListIntegrations",
 			Handler:    _ClientGatewayService_ListIntegrations_Handler,
 		},
@@ -2806,18 +2664,6 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeletePluginDefaults",
 			Handler:    _ClientGatewayService_DeletePluginDefaults_Handler,
-		},
-		{
-			MethodName: "SendVerificationEmail",
-			Handler:    _ClientGatewayService_SendVerificationEmail_Handler,
-		},
-		{
-			MethodName: "SendEmailChangeVerification",
-			Handler:    _ClientGatewayService_SendEmailChangeVerification_Handler,
-		},
-		{
-			MethodName: "SendPasswordReset",
-			Handler:    _ClientGatewayService_SendPasswordReset_Handler,
 		},
 		{
 			MethodName: "ListPipelines",

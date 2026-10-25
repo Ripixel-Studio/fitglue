@@ -48,7 +48,7 @@ src/go/
     ├── types/pb/                      # Generated protobuf Go + gRPC stubs
     ├── plugin/                        # Plugin manifest types and registration
     ├── integrations/                  # Generated OpenAPI clients (oapi-codegen)
-    └── infrastructure/                # Email, secrets, etc.
+    └── infrastructure/                # Pub/Sub adapter, storage, secrets, etc.
 ```
 
 ## IoC Composition Pattern
@@ -66,7 +66,7 @@ func main() {
     store := user.NewFirestoreStore(fsClient)
 
     // 3. Domain service (business logic)
-    svc := user.NewService(store, logger, emailSender, authClient)
+    svc := user.NewService(store, logger)
 
     // 4. gRPC server
     server := grpc.NewServer()

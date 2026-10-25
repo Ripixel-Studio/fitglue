@@ -307,22 +307,3 @@ resource "google_secret_manager_secret_version" "github_webhook_secret_initial" 
 # Note: To update a secret value after initial creation, use:
 # gcloud secrets versions add <secret-id> --data-file=- <<< "your-actual-secret-value"
 
-# =============================================================================
-# Email App Password (for SMTP via Gmail)
-# =============================================================================
-resource "google_secret_manager_secret" "email_app_password" {
-  secret_id = "email-app-password"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "email_app_password_initial" {
-  secret      = google_secret_manager_secret.email_app_password.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-

@@ -162,12 +162,6 @@ resource "google_pubsub_subscription" "parkrun_results_check_sub" {
   }
 }
 
-# Registration summary topic - triggered daily by Cloud Scheduler
-resource "google_pubsub_topic" "registration_summary_trigger" {
-  name    = "topic-registration-summary-trigger"
-  project = var.project_id
-}
-
 resource "google_pubsub_subscription" "destination_upload_sub" {
   name  = "sub-destination-upload"
   topic = google_pubsub_topic.destination_upload.name

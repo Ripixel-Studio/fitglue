@@ -102,9 +102,6 @@ func (s *APIServer) setupRoutes() {
 		// Unauthenticated callback
 		r.Get("/oauth/{provider}/callback", s.handleOAuthCallback)
 
-		// Password reset doesn't require authentication
-		r.Post("/auth-email/send-password-reset", s.handleSendPasswordResetEmail)
-
 		// Integration request (unauthenticated - contact form)
 		r.Post("/integrations/request", s.handleIntegrationRequest)
 

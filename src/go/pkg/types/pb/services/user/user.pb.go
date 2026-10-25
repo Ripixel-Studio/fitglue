@@ -121,235 +121,6 @@ func (x *ResolveUserByIntegrationResponse) GetProfile() *user.UserProfile {
 	return nil
 }
 
-type SendVerificationEmailRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendVerificationEmailRequest) Reset() {
-	*x = SendVerificationEmailRequest{}
-	mi := &file_services_user_user_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendVerificationEmailRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendVerificationEmailRequest) ProtoMessage() {}
-
-func (x *SendVerificationEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendVerificationEmailRequest.ProtoReflect.Descriptor instead.
-func (*SendVerificationEmailRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *SendVerificationEmailRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-type SendPasswordResetEmailRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendPasswordResetEmailRequest) Reset() {
-	*x = SendPasswordResetEmailRequest{}
-	mi := &file_services_user_user_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendPasswordResetEmailRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendPasswordResetEmailRequest) ProtoMessage() {}
-
-func (x *SendPasswordResetEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendPasswordResetEmailRequest.ProtoReflect.Descriptor instead.
-func (*SendPasswordResetEmailRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *SendPasswordResetEmailRequest) GetEmail() string {
-	if x != nil {
-		return x.Email
-	}
-	return ""
-}
-
-type SendEmailChangeVerificationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	NewEmail      string                 `protobuf:"bytes,2,opt,name=new_email,json=newEmail,proto3" json:"new_email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendEmailChangeVerificationRequest) Reset() {
-	*x = SendEmailChangeVerificationRequest{}
-	mi := &file_services_user_user_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendEmailChangeVerificationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendEmailChangeVerificationRequest) ProtoMessage() {}
-
-func (x *SendEmailChangeVerificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendEmailChangeVerificationRequest.ProtoReflect.Descriptor instead.
-func (*SendEmailChangeVerificationRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *SendEmailChangeVerificationRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *SendEmailChangeVerificationRequest) GetNewEmail() string {
-	if x != nil {
-		return x.NewEmail
-	}
-	return ""
-}
-
-type SendWelcomeEmailRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendWelcomeEmailRequest) Reset() {
-	*x = SendWelcomeEmailRequest{}
-	mi := &file_services_user_user_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendWelcomeEmailRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendWelcomeEmailRequest) ProtoMessage() {}
-
-func (x *SendWelcomeEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendWelcomeEmailRequest.ProtoReflect.Descriptor instead.
-func (*SendWelcomeEmailRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *SendWelcomeEmailRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-type GenerateRegistrationSummaryRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Optional date override (e.g. "2026-02-23"), uses previous 24 hours if empty
-	DateOverride  string `protobuf:"bytes,1,opt,name=date_override,json=dateOverride,proto3" json:"date_override,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GenerateRegistrationSummaryRequest) Reset() {
-	*x = GenerateRegistrationSummaryRequest{}
-	mi := &file_services_user_user_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GenerateRegistrationSummaryRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GenerateRegistrationSummaryRequest) ProtoMessage() {}
-
-func (x *GenerateRegistrationSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GenerateRegistrationSummaryRequest.ProtoReflect.Descriptor instead.
-func (*GenerateRegistrationSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *GenerateRegistrationSummaryRequest) GetDateOverride() string {
-	if x != nil {
-		return x.DateOverride
-	}
-	return ""
-}
-
 type CreateUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -359,7 +130,7 @@ type CreateUserRequest struct {
 
 func (x *CreateUserRequest) Reset() {
 	*x = CreateUserRequest{}
-	mi := &file_services_user_user_proto_msgTypes[7]
+	mi := &file_services_user_user_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -371,7 +142,7 @@ func (x *CreateUserRequest) String() string {
 func (*CreateUserRequest) ProtoMessage() {}
 
 func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[7]
+	mi := &file_services_user_user_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -384,116 +155,12 @@ func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserRequest.ProtoReflect.Descriptor instead.
 func (*CreateUserRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{7}
+	return file_services_user_user_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateUserRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
-	}
-	return ""
-}
-
-type ListUsersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
-	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListUsersRequest) Reset() {
-	*x = ListUsersRequest{}
-	mi := &file_services_user_user_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListUsersRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListUsersRequest) ProtoMessage() {}
-
-func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListUsersRequest.ProtoReflect.Descriptor instead.
-func (*ListUsersRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *ListUsersRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-func (x *ListUsersRequest) GetPageToken() string {
-	if x != nil {
-		return x.PageToken
-	}
-	return ""
-}
-
-type ListUsersResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Users         []*user.UserProfile    `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
-	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListUsersResponse) Reset() {
-	*x = ListUsersResponse{}
-	mi := &file_services_user_user_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListUsersResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListUsersResponse) ProtoMessage() {}
-
-func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListUsersResponse.ProtoReflect.Descriptor instead.
-func (*ListUsersResponse) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *ListUsersResponse) GetUsers() []*user.UserProfile {
-	if x != nil {
-		return x.Users
-	}
-	return nil
-}
-
-func (x *ListUsersResponse) GetNextPageToken() string {
-	if x != nil {
-		return x.NextPageToken
 	}
 	return ""
 }
@@ -507,7 +174,7 @@ type GetProfileRequest struct {
 
 func (x *GetProfileRequest) Reset() {
 	*x = GetProfileRequest{}
-	mi := &file_services_user_user_proto_msgTypes[10]
+	mi := &file_services_user_user_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +186,7 @@ func (x *GetProfileRequest) String() string {
 func (*GetProfileRequest) ProtoMessage() {}
 
 func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[10]
+	mi := &file_services_user_user_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +199,7 @@ func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProfileRequest.ProtoReflect.Descriptor instead.
 func (*GetProfileRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{10}
+	return file_services_user_user_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetProfileRequest) GetUserId() string {
@@ -552,7 +219,7 @@ type UpdateProfileRequest struct {
 
 func (x *UpdateProfileRequest) Reset() {
 	*x = UpdateProfileRequest{}
-	mi := &file_services_user_user_proto_msgTypes[11]
+	mi := &file_services_user_user_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -564,7 +231,7 @@ func (x *UpdateProfileRequest) String() string {
 func (*UpdateProfileRequest) ProtoMessage() {}
 
 func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[11]
+	mi := &file_services_user_user_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -577,7 +244,7 @@ func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProfileRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProfileRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{11}
+	return file_services_user_user_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UpdateProfileRequest) GetUserId() string {
@@ -604,7 +271,7 @@ type GetIntegrationRequest struct {
 
 func (x *GetIntegrationRequest) Reset() {
 	*x = GetIntegrationRequest{}
-	mi := &file_services_user_user_proto_msgTypes[12]
+	mi := &file_services_user_user_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -616,7 +283,7 @@ func (x *GetIntegrationRequest) String() string {
 func (*GetIntegrationRequest) ProtoMessage() {}
 
 func (x *GetIntegrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[12]
+	mi := &file_services_user_user_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -629,7 +296,7 @@ func (x *GetIntegrationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIntegrationRequest.ProtoReflect.Descriptor instead.
 func (*GetIntegrationRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{12}
+	return file_services_user_user_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetIntegrationRequest) GetUserId() string {
@@ -657,7 +324,7 @@ type GetIntegrationResponse struct {
 
 func (x *GetIntegrationResponse) Reset() {
 	*x = GetIntegrationResponse{}
-	mi := &file_services_user_user_proto_msgTypes[13]
+	mi := &file_services_user_user_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -669,7 +336,7 @@ func (x *GetIntegrationResponse) String() string {
 func (*GetIntegrationResponse) ProtoMessage() {}
 
 func (x *GetIntegrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[13]
+	mi := &file_services_user_user_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -682,7 +349,7 @@ func (x *GetIntegrationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIntegrationResponse.ProtoReflect.Descriptor instead.
 func (*GetIntegrationResponse) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{13}
+	return file_services_user_user_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetIntegrationResponse) GetIntegrations() *user.UserIntegrations {
@@ -703,7 +370,7 @@ type SetIntegrationRequest struct {
 
 func (x *SetIntegrationRequest) Reset() {
 	*x = SetIntegrationRequest{}
-	mi := &file_services_user_user_proto_msgTypes[14]
+	mi := &file_services_user_user_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -715,7 +382,7 @@ func (x *SetIntegrationRequest) String() string {
 func (*SetIntegrationRequest) ProtoMessage() {}
 
 func (x *SetIntegrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[14]
+	mi := &file_services_user_user_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -728,7 +395,7 @@ func (x *SetIntegrationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetIntegrationRequest.ProtoReflect.Descriptor instead.
 func (*SetIntegrationRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{14}
+	return file_services_user_user_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *SetIntegrationRequest) GetUserId() string {
@@ -762,7 +429,7 @@ type DeleteIntegrationRequest struct {
 
 func (x *DeleteIntegrationRequest) Reset() {
 	*x = DeleteIntegrationRequest{}
-	mi := &file_services_user_user_proto_msgTypes[15]
+	mi := &file_services_user_user_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -774,7 +441,7 @@ func (x *DeleteIntegrationRequest) String() string {
 func (*DeleteIntegrationRequest) ProtoMessage() {}
 
 func (x *DeleteIntegrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[15]
+	mi := &file_services_user_user_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -787,7 +454,7 @@ func (x *DeleteIntegrationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteIntegrationRequest.ProtoReflect.Descriptor instead.
 func (*DeleteIntegrationRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{15}
+	return file_services_user_user_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DeleteIntegrationRequest) GetUserId() string {
@@ -813,7 +480,7 @@ type ListIntegrationsRequest struct {
 
 func (x *ListIntegrationsRequest) Reset() {
 	*x = ListIntegrationsRequest{}
-	mi := &file_services_user_user_proto_msgTypes[16]
+	mi := &file_services_user_user_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -825,7 +492,7 @@ func (x *ListIntegrationsRequest) String() string {
 func (*ListIntegrationsRequest) ProtoMessage() {}
 
 func (x *ListIntegrationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[16]
+	mi := &file_services_user_user_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -838,7 +505,7 @@ func (x *ListIntegrationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIntegrationsRequest.ProtoReflect.Descriptor instead.
 func (*ListIntegrationsRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{16}
+	return file_services_user_user_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListIntegrationsRequest) GetUserId() string {
@@ -857,7 +524,7 @@ type ListCountersRequest struct {
 
 func (x *ListCountersRequest) Reset() {
 	*x = ListCountersRequest{}
-	mi := &file_services_user_user_proto_msgTypes[17]
+	mi := &file_services_user_user_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -869,7 +536,7 @@ func (x *ListCountersRequest) String() string {
 func (*ListCountersRequest) ProtoMessage() {}
 
 func (x *ListCountersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[17]
+	mi := &file_services_user_user_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -882,7 +549,7 @@ func (x *ListCountersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCountersRequest.ProtoReflect.Descriptor instead.
 func (*ListCountersRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{17}
+	return file_services_user_user_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListCountersRequest) GetUserId() string {
@@ -901,7 +568,7 @@ type ListCountersResponse struct {
 
 func (x *ListCountersResponse) Reset() {
 	*x = ListCountersResponse{}
-	mi := &file_services_user_user_proto_msgTypes[18]
+	mi := &file_services_user_user_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -913,7 +580,7 @@ func (x *ListCountersResponse) String() string {
 func (*ListCountersResponse) ProtoMessage() {}
 
 func (x *ListCountersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[18]
+	mi := &file_services_user_user_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -926,7 +593,7 @@ func (x *ListCountersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCountersResponse.ProtoReflect.Descriptor instead.
 func (*ListCountersResponse) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{18}
+	return file_services_user_user_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListCountersResponse) GetCounters() []*user.Counter {
@@ -947,7 +614,7 @@ type UpdateCounterRequest struct {
 
 func (x *UpdateCounterRequest) Reset() {
 	*x = UpdateCounterRequest{}
-	mi := &file_services_user_user_proto_msgTypes[19]
+	mi := &file_services_user_user_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -959,7 +626,7 @@ func (x *UpdateCounterRequest) String() string {
 func (*UpdateCounterRequest) ProtoMessage() {}
 
 func (x *UpdateCounterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[19]
+	mi := &file_services_user_user_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -972,7 +639,7 @@ func (x *UpdateCounterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCounterRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCounterRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{19}
+	return file_services_user_user_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpdateCounterRequest) GetUserId() string {
@@ -996,50 +663,6 @@ func (x *UpdateCounterRequest) GetCount() int64 {
 	return 0
 }
 
-type DeleteUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteUserRequest) Reset() {
-	*x = DeleteUserRequest{}
-	mi := &file_services_user_user_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteUserRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteUserRequest) ProtoMessage() {}
-
-func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[20]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
-func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{20}
-}
-
-func (x *DeleteUserRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
 type GetBoosterDataRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -1050,7 +673,7 @@ type GetBoosterDataRequest struct {
 
 func (x *GetBoosterDataRequest) Reset() {
 	*x = GetBoosterDataRequest{}
-	mi := &file_services_user_user_proto_msgTypes[21]
+	mi := &file_services_user_user_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1062,7 +685,7 @@ func (x *GetBoosterDataRequest) String() string {
 func (*GetBoosterDataRequest) ProtoMessage() {}
 
 func (x *GetBoosterDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[21]
+	mi := &file_services_user_user_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1075,7 +698,7 @@ func (x *GetBoosterDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBoosterDataRequest.ProtoReflect.Descriptor instead.
 func (*GetBoosterDataRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{21}
+	return file_services_user_user_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetBoosterDataRequest) GetUserId() string {
@@ -1102,7 +725,7 @@ type GetBoosterDataResponse struct {
 
 func (x *GetBoosterDataResponse) Reset() {
 	*x = GetBoosterDataResponse{}
-	mi := &file_services_user_user_proto_msgTypes[22]
+	mi := &file_services_user_user_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1114,7 +737,7 @@ func (x *GetBoosterDataResponse) String() string {
 func (*GetBoosterDataResponse) ProtoMessage() {}
 
 func (x *GetBoosterDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[22]
+	mi := &file_services_user_user_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1127,7 +750,7 @@ func (x *GetBoosterDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBoosterDataResponse.ProtoReflect.Descriptor instead.
 func (*GetBoosterDataResponse) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{22}
+	return file_services_user_user_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetBoosterDataResponse) GetData() map[string]*structpb.Struct {
@@ -1148,7 +771,7 @@ type SetBoosterDataRequest struct {
 
 func (x *SetBoosterDataRequest) Reset() {
 	*x = SetBoosterDataRequest{}
-	mi := &file_services_user_user_proto_msgTypes[23]
+	mi := &file_services_user_user_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1160,7 +783,7 @@ func (x *SetBoosterDataRequest) String() string {
 func (*SetBoosterDataRequest) ProtoMessage() {}
 
 func (x *SetBoosterDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[23]
+	mi := &file_services_user_user_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1173,7 +796,7 @@ func (x *SetBoosterDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBoosterDataRequest.ProtoReflect.Descriptor instead.
 func (*SetBoosterDataRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{23}
+	return file_services_user_user_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SetBoosterDataRequest) GetUserId() string {
@@ -1207,7 +830,7 @@ type DeleteBoosterDataRequest struct {
 
 func (x *DeleteBoosterDataRequest) Reset() {
 	*x = DeleteBoosterDataRequest{}
-	mi := &file_services_user_user_proto_msgTypes[24]
+	mi := &file_services_user_user_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1219,7 +842,7 @@ func (x *DeleteBoosterDataRequest) String() string {
 func (*DeleteBoosterDataRequest) ProtoMessage() {}
 
 func (x *DeleteBoosterDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[24]
+	mi := &file_services_user_user_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1232,7 +855,7 @@ func (x *DeleteBoosterDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteBoosterDataRequest.ProtoReflect.Descriptor instead.
 func (*DeleteBoosterDataRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{24}
+	return file_services_user_user_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DeleteBoosterDataRequest) GetUserId() string {
@@ -1259,7 +882,7 @@ type ListPersonalRecordsRequest struct {
 
 func (x *ListPersonalRecordsRequest) Reset() {
 	*x = ListPersonalRecordsRequest{}
-	mi := &file_services_user_user_proto_msgTypes[25]
+	mi := &file_services_user_user_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1271,7 +894,7 @@ func (x *ListPersonalRecordsRequest) String() string {
 func (*ListPersonalRecordsRequest) ProtoMessage() {}
 
 func (x *ListPersonalRecordsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[25]
+	mi := &file_services_user_user_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1284,7 +907,7 @@ func (x *ListPersonalRecordsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPersonalRecordsRequest.ProtoReflect.Descriptor instead.
 func (*ListPersonalRecordsRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{25}
+	return file_services_user_user_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListPersonalRecordsRequest) GetUserId() string {
@@ -1303,7 +926,7 @@ type ListPersonalRecordsResponse struct {
 
 func (x *ListPersonalRecordsResponse) Reset() {
 	*x = ListPersonalRecordsResponse{}
-	mi := &file_services_user_user_proto_msgTypes[26]
+	mi := &file_services_user_user_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1315,7 +938,7 @@ func (x *ListPersonalRecordsResponse) String() string {
 func (*ListPersonalRecordsResponse) ProtoMessage() {}
 
 func (x *ListPersonalRecordsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[26]
+	mi := &file_services_user_user_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1328,7 +951,7 @@ func (x *ListPersonalRecordsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPersonalRecordsResponse.ProtoReflect.Descriptor instead.
 func (*ListPersonalRecordsResponse) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{26}
+	return file_services_user_user_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListPersonalRecordsResponse) GetRecords() []*user.PersonalRecord {
@@ -1351,7 +974,7 @@ type SetPersonalRecordRequest struct {
 
 func (x *SetPersonalRecordRequest) Reset() {
 	*x = SetPersonalRecordRequest{}
-	mi := &file_services_user_user_proto_msgTypes[27]
+	mi := &file_services_user_user_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1363,7 +986,7 @@ func (x *SetPersonalRecordRequest) String() string {
 func (*SetPersonalRecordRequest) ProtoMessage() {}
 
 func (x *SetPersonalRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[27]
+	mi := &file_services_user_user_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1376,7 +999,7 @@ func (x *SetPersonalRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPersonalRecordRequest.ProtoReflect.Descriptor instead.
 func (*SetPersonalRecordRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{27}
+	return file_services_user_user_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SetPersonalRecordRequest) GetUserId() string {
@@ -1424,7 +1047,7 @@ type DeletePersonalRecordRequest struct {
 
 func (x *DeletePersonalRecordRequest) Reset() {
 	*x = DeletePersonalRecordRequest{}
-	mi := &file_services_user_user_proto_msgTypes[28]
+	mi := &file_services_user_user_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1436,7 +1059,7 @@ func (x *DeletePersonalRecordRequest) String() string {
 func (*DeletePersonalRecordRequest) ProtoMessage() {}
 
 func (x *DeletePersonalRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[28]
+	mi := &file_services_user_user_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1449,7 +1072,7 @@ func (x *DeletePersonalRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePersonalRecordRequest.ProtoReflect.Descriptor instead.
 func (*DeletePersonalRecordRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{28}
+	return file_services_user_user_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *DeletePersonalRecordRequest) GetUserId() string {
@@ -1476,7 +1099,7 @@ type ListPluginDefaultsRequest struct {
 
 func (x *ListPluginDefaultsRequest) Reset() {
 	*x = ListPluginDefaultsRequest{}
-	mi := &file_services_user_user_proto_msgTypes[29]
+	mi := &file_services_user_user_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1488,7 +1111,7 @@ func (x *ListPluginDefaultsRequest) String() string {
 func (*ListPluginDefaultsRequest) ProtoMessage() {}
 
 func (x *ListPluginDefaultsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[29]
+	mi := &file_services_user_user_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1501,7 +1124,7 @@ func (x *ListPluginDefaultsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPluginDefaultsRequest.ProtoReflect.Descriptor instead.
 func (*ListPluginDefaultsRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{29}
+	return file_services_user_user_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListPluginDefaultsRequest) GetUserId() string {
@@ -1520,7 +1143,7 @@ type ListPluginDefaultsResponse struct {
 
 func (x *ListPluginDefaultsResponse) Reset() {
 	*x = ListPluginDefaultsResponse{}
-	mi := &file_services_user_user_proto_msgTypes[30]
+	mi := &file_services_user_user_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1532,7 +1155,7 @@ func (x *ListPluginDefaultsResponse) String() string {
 func (*ListPluginDefaultsResponse) ProtoMessage() {}
 
 func (x *ListPluginDefaultsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[30]
+	mi := &file_services_user_user_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1545,7 +1168,7 @@ func (x *ListPluginDefaultsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPluginDefaultsResponse.ProtoReflect.Descriptor instead.
 func (*ListPluginDefaultsResponse) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{30}
+	return file_services_user_user_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListPluginDefaultsResponse) GetDefaults() map[string]*structpb.Struct {
@@ -1566,7 +1189,7 @@ type SetPluginDefaultsRequest struct {
 
 func (x *SetPluginDefaultsRequest) Reset() {
 	*x = SetPluginDefaultsRequest{}
-	mi := &file_services_user_user_proto_msgTypes[31]
+	mi := &file_services_user_user_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1578,7 +1201,7 @@ func (x *SetPluginDefaultsRequest) String() string {
 func (*SetPluginDefaultsRequest) ProtoMessage() {}
 
 func (x *SetPluginDefaultsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[31]
+	mi := &file_services_user_user_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1591,7 +1214,7 @@ func (x *SetPluginDefaultsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPluginDefaultsRequest.ProtoReflect.Descriptor instead.
 func (*SetPluginDefaultsRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{31}
+	return file_services_user_user_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *SetPluginDefaultsRequest) GetUserId() string {
@@ -1625,7 +1248,7 @@ type DeletePluginDefaultsRequest struct {
 
 func (x *DeletePluginDefaultsRequest) Reset() {
 	*x = DeletePluginDefaultsRequest{}
-	mi := &file_services_user_user_proto_msgTypes[32]
+	mi := &file_services_user_user_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1637,7 +1260,7 @@ func (x *DeletePluginDefaultsRequest) String() string {
 func (*DeletePluginDefaultsRequest) ProtoMessage() {}
 
 func (x *DeletePluginDefaultsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[32]
+	mi := &file_services_user_user_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1650,7 +1273,7 @@ func (x *DeletePluginDefaultsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePluginDefaultsRequest.ProtoReflect.Descriptor instead.
 func (*DeletePluginDefaultsRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{32}
+	return file_services_user_user_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *DeletePluginDefaultsRequest) GetUserId() string {
@@ -1678,7 +1301,7 @@ type DeleteCounterRequest struct {
 
 func (x *DeleteCounterRequest) Reset() {
 	*x = DeleteCounterRequest{}
-	mi := &file_services_user_user_proto_msgTypes[33]
+	mi := &file_services_user_user_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1690,7 +1313,7 @@ func (x *DeleteCounterRequest) String() string {
 func (*DeleteCounterRequest) ProtoMessage() {}
 
 func (x *DeleteCounterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_user_user_proto_msgTypes[33]
+	mi := &file_services_user_user_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1703,7 +1326,7 @@ func (x *DeleteCounterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCounterRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCounterRequest) Descriptor() ([]byte, []int) {
-	return file_services_user_user_proto_rawDescGZIP(), []int{33}
+	return file_services_user_user_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *DeleteCounterRequest) GetUserId() string {
@@ -1729,27 +1352,9 @@ const file_services_user_user_proto_rawDesc = "" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12!\n" +
 	"\fprovider_uid\x18\x02 \x01(\tR\vproviderUid\"^\n" +
 	" ResolveUserByIntegrationResponse\x12:\n" +
-	"\aprofile\x18\x01 \x01(\v2 .fitglue.models.user.UserProfileR\aprofile\"7\n" +
-	"\x1cSendVerificationEmailRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"5\n" +
-	"\x1dSendPasswordResetEmailRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\"Z\n" +
-	"\"SendEmailChangeVerificationRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
-	"\tnew_email\x18\x02 \x01(\tR\bnewEmail\"2\n" +
-	"\x17SendWelcomeEmailRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"I\n" +
-	"\"GenerateRegistrationSummaryRequest\x12#\n" +
-	"\rdate_override\x18\x01 \x01(\tR\fdateOverride\",\n" +
+	"\aprofile\x18\x01 \x01(\v2 .fitglue.models.user.UserProfileR\aprofile\",\n" +
 	"\x11CreateUserRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"G\n" +
-	"\x10ListUsersRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x1d\n" +
-	"\n" +
-	"page_token\x18\x02 \x01(\tR\tpageToken\"s\n" +
-	"\x11ListUsersResponse\x126\n" +
-	"\x05users\x18\x01 \x03(\v2 .fitglue.models.user.UserProfileR\x05users\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\",\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\",\n" +
 	"\x11GetProfileRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"k\n" +
 	"\x14UpdateProfileRequest\x12\x17\n" +
@@ -1777,9 +1382,7 @@ const file_services_user_user_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
 	"counter_id\x18\x02 \x01(\tR\tcounterId\x12\x14\n" +
-	"\x05count\x18\x03 \x01(\x03R\x05count\",\n" +
-	"\x11DeleteUserRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"O\n" +
+	"\x05count\x18\x03 \x01(\x03R\x05count\"O\n" +
 	"\x15GetBoosterDataRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
@@ -1831,13 +1434,12 @@ const file_services_user_user_proto_rawDesc = "" +
 	"\x14DeleteCounterRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
-	"counter_id\x18\x02 \x01(\tR\tcounterId2\xb7\x1e\n" +
+	"counter_id\x18\x02 \x01(\tR\tcounterId2\xef\x17\n" +
 	"\vUserService\x12m\n" +
 	"\n" +
 	"CreateUser\x12(.fitglue.services.user.CreateUserRequest\x1a .fitglue.models.user.UserProfile\"\x13\x82\xd3\xe4\x93\x02\r:\x01*\"\b/v2/user\x12|\n" +
 	"\n" +
-	"GetProfile\x12(.fitglue.services.user.GetProfileRequest\x1a .fitglue.models.user.UserProfile\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/v2/user/{user_id}/profile\x12w\n" +
-	"\tListUsers\x12'.fitglue.services.user.ListUsersRequest\x1a(.fitglue.services.user.ListUsersResponse\"\x17\x82\xd3\xe4\x93\x02\x11\x12\x0f/v2/admin/users\x12\x8b\x01\n" +
+	"GetProfile\x12(.fitglue.services.user.GetProfileRequest\x1a .fitglue.models.user.UserProfile\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/v2/user/{user_id}/profile\x12\x8b\x01\n" +
 	"\rUpdateProfile\x12+.fitglue.services.user.UpdateProfileRequest\x1a .fitglue.models.user.UserProfile\"+\x82\xd3\xe4\x93\x02%:\aprofile2\x1a/v2/user/{user_id}/profile\x12\xa1\x01\n" +
 	"\x0eGetIntegration\x12,.fitglue.services.user.GetIntegrationRequest\x1a-.fitglue.services.user.GetIntegrationResponse\"2\x82\xd3\xe4\x93\x02,\x12*/v2/user/{user_id}/integrations/{provider}\x12\x8d\x01\n" +
 	"\x0eSetIntegration\x12,.fitglue.services.user.SetIntegrationRequest\x1a\x16.google.protobuf.Empty\"5\x82\xd3\xe4\x93\x02/:\x01*\x1a*/v2/user/{user_id}/integrations/{provider}\x12\x90\x01\n" +
@@ -1847,13 +1449,7 @@ const file_services_user_user_proto_rawDesc = "" +
 	"\rUpdateCounter\x12+.fitglue.services.user.UpdateCounterRequest\x1a\x1c.fitglue.models.user.Counter\"3\x82\xd3\xe4\x93\x02-:\x01*2(/v2/user/{user_id}/counters/{counter_id}\x12\x96\x01\n" +
 	"\x0eGetBoosterData\x12,.fitglue.services.user.GetBoosterDataRequest\x1a-.fitglue.services.user.GetBoosterDataResponse\"'\x82\xd3\xe4\x93\x02!\x12\x1f/v2/user/{user_id}/booster-data\x12\x92\x01\n" +
 	"\x0eSetBoosterData\x12,.fitglue.services.user.SetBoosterDataRequest\x1a\x16.google.protobuf.Empty\":\x82\xd3\xe4\x93\x024:\x04data\x1a,/v2/user/{user_id}/booster-data/{booster_id}\x12\x92\x01\n" +
-	"\x11DeleteBoosterData\x12/.fitglue.services.user.DeleteBoosterDataRequest\x1a\x16.google.protobuf.Empty\"4\x82\xd3\xe4\x93\x02.*,/v2/user/{user_id}/booster-data/{booster_id}\x12j\n" +
-	"\n" +
-	"DeleteUser\x12(.fitglue.services.user.DeleteUserRequest\x1a\x16.google.protobuf.Empty\"\x1a\x82\xd3\xe4\x93\x02\x14*\x12/v2/user/{user_id}\x12\x90\x01\n" +
-	"\x15SendVerificationEmail\x123.fitglue.services.user.SendVerificationEmailRequest\x1a\x16.google.protobuf.Empty\"*\x82\xd3\xe4\x93\x02$:\x01*\"\x1f/v2/user/{user_id}/email/verify\x12\x90\x01\n" +
-	"\x16SendPasswordResetEmail\x124.fitglue.services.user.SendPasswordResetEmailRequest\x1a\x16.google.protobuf.Empty\"(\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/v2/user/email/reset-password\x12\x9c\x01\n" +
-	"\x1bSendEmailChangeVerification\x129.fitglue.services.user.SendEmailChangeVerificationRequest\x1a\x16.google.protobuf.Empty\"*\x82\xd3\xe4\x93\x02$:\x01*\"\x1f/v2/user/{user_id}/email/change\x12\x9b\x01\n" +
-	"\x1bGenerateRegistrationSummary\x129.fitglue.services.user.GenerateRegistrationSummaryRequest\x1a\x16.google.protobuf.Empty\")\x82\xd3\xe4\x93\x02#:\x01*\"\x1e/v2/admin/registration-summary\x12\xbf\x01\n" +
+	"\x11DeleteBoosterData\x12/.fitglue.services.user.DeleteBoosterDataRequest\x1a\x16.google.protobuf.Empty\"4\x82\xd3\xe4\x93\x02.*,/v2/user/{user_id}/booster-data/{booster_id}\x12\xbf\x01\n" +
 	"\x18ResolveUserByIntegration\x126.fitglue.services.user.ResolveUserByIntegrationRequest\x1a7.fitglue.services.user.ResolveUserByIntegrationResponse\"2\x82\xd3\xe4\x93\x02,\x12*/v2/user/resolve/{provider}/{provider_uid}\x12\xa9\x01\n" +
 	"\x13ListPersonalRecords\x121.fitglue.services.user.ListPersonalRecordsRequest\x1a2.fitglue.services.user.ListPersonalRecordsResponse\"+\x82\xd3\xe4\x93\x02%\x12#/v2/user/{user_id}/personal-records\x12\xa7\x01\n" +
 	"\x11SetPersonalRecord\x12/.fitglue.services.user.SetPersonalRecordRequest\x1a#.fitglue.models.user.PersonalRecord\"<\x82\xd3\xe4\x93\x026:\x01*\x1a1/v2/user/{user_id}/personal-records/{record_type}\x12\x9d\x01\n" +
@@ -1875,122 +1471,101 @@ func file_services_user_user_proto_rawDescGZIP() []byte {
 	return file_services_user_user_proto_rawDescData
 }
 
-var file_services_user_user_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_services_user_user_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_services_user_user_proto_goTypes = []any{
-	(*ResolveUserByIntegrationRequest)(nil),    // 0: fitglue.services.user.ResolveUserByIntegrationRequest
-	(*ResolveUserByIntegrationResponse)(nil),   // 1: fitglue.services.user.ResolveUserByIntegrationResponse
-	(*SendVerificationEmailRequest)(nil),       // 2: fitglue.services.user.SendVerificationEmailRequest
-	(*SendPasswordResetEmailRequest)(nil),      // 3: fitglue.services.user.SendPasswordResetEmailRequest
-	(*SendEmailChangeVerificationRequest)(nil), // 4: fitglue.services.user.SendEmailChangeVerificationRequest
-	(*SendWelcomeEmailRequest)(nil),            // 5: fitglue.services.user.SendWelcomeEmailRequest
-	(*GenerateRegistrationSummaryRequest)(nil), // 6: fitglue.services.user.GenerateRegistrationSummaryRequest
-	(*CreateUserRequest)(nil),                  // 7: fitglue.services.user.CreateUserRequest
-	(*ListUsersRequest)(nil),                   // 8: fitglue.services.user.ListUsersRequest
-	(*ListUsersResponse)(nil),                  // 9: fitglue.services.user.ListUsersResponse
-	(*GetProfileRequest)(nil),                  // 10: fitglue.services.user.GetProfileRequest
-	(*UpdateProfileRequest)(nil),               // 11: fitglue.services.user.UpdateProfileRequest
-	(*GetIntegrationRequest)(nil),              // 12: fitglue.services.user.GetIntegrationRequest
-	(*GetIntegrationResponse)(nil),             // 13: fitglue.services.user.GetIntegrationResponse
-	(*SetIntegrationRequest)(nil),              // 14: fitglue.services.user.SetIntegrationRequest
-	(*DeleteIntegrationRequest)(nil),           // 15: fitglue.services.user.DeleteIntegrationRequest
-	(*ListIntegrationsRequest)(nil),            // 16: fitglue.services.user.ListIntegrationsRequest
-	(*ListCountersRequest)(nil),                // 17: fitglue.services.user.ListCountersRequest
-	(*ListCountersResponse)(nil),               // 18: fitglue.services.user.ListCountersResponse
-	(*UpdateCounterRequest)(nil),               // 19: fitglue.services.user.UpdateCounterRequest
-	(*DeleteUserRequest)(nil),                  // 20: fitglue.services.user.DeleteUserRequest
-	(*GetBoosterDataRequest)(nil),              // 21: fitglue.services.user.GetBoosterDataRequest
-	(*GetBoosterDataResponse)(nil),             // 22: fitglue.services.user.GetBoosterDataResponse
-	(*SetBoosterDataRequest)(nil),              // 23: fitglue.services.user.SetBoosterDataRequest
-	(*DeleteBoosterDataRequest)(nil),           // 24: fitglue.services.user.DeleteBoosterDataRequest
-	(*ListPersonalRecordsRequest)(nil),         // 25: fitglue.services.user.ListPersonalRecordsRequest
-	(*ListPersonalRecordsResponse)(nil),        // 26: fitglue.services.user.ListPersonalRecordsResponse
-	(*SetPersonalRecordRequest)(nil),           // 27: fitglue.services.user.SetPersonalRecordRequest
-	(*DeletePersonalRecordRequest)(nil),        // 28: fitglue.services.user.DeletePersonalRecordRequest
-	(*ListPluginDefaultsRequest)(nil),          // 29: fitglue.services.user.ListPluginDefaultsRequest
-	(*ListPluginDefaultsResponse)(nil),         // 30: fitglue.services.user.ListPluginDefaultsResponse
-	(*SetPluginDefaultsRequest)(nil),           // 31: fitglue.services.user.SetPluginDefaultsRequest
-	(*DeletePluginDefaultsRequest)(nil),        // 32: fitglue.services.user.DeletePluginDefaultsRequest
-	(*DeleteCounterRequest)(nil),               // 33: fitglue.services.user.DeleteCounterRequest
-	nil,                                        // 34: fitglue.services.user.GetBoosterDataResponse.DataEntry
-	nil,                                        // 35: fitglue.services.user.ListPluginDefaultsResponse.DefaultsEntry
-	(*user.UserProfile)(nil),                   // 36: fitglue.models.user.UserProfile
-	(*user.UserIntegrations)(nil),              // 37: fitglue.models.user.UserIntegrations
-	(*structpb.Struct)(nil),                    // 38: google.protobuf.Struct
-	(*user.Counter)(nil),                       // 39: fitglue.models.user.Counter
-	(*user.PersonalRecord)(nil),                // 40: fitglue.models.user.PersonalRecord
-	(*emptypb.Empty)(nil),                      // 41: google.protobuf.Empty
+	(*ResolveUserByIntegrationRequest)(nil),  // 0: fitglue.services.user.ResolveUserByIntegrationRequest
+	(*ResolveUserByIntegrationResponse)(nil), // 1: fitglue.services.user.ResolveUserByIntegrationResponse
+	(*CreateUserRequest)(nil),                // 2: fitglue.services.user.CreateUserRequest
+	(*GetProfileRequest)(nil),                // 3: fitglue.services.user.GetProfileRequest
+	(*UpdateProfileRequest)(nil),             // 4: fitglue.services.user.UpdateProfileRequest
+	(*GetIntegrationRequest)(nil),            // 5: fitglue.services.user.GetIntegrationRequest
+	(*GetIntegrationResponse)(nil),           // 6: fitglue.services.user.GetIntegrationResponse
+	(*SetIntegrationRequest)(nil),            // 7: fitglue.services.user.SetIntegrationRequest
+	(*DeleteIntegrationRequest)(nil),         // 8: fitglue.services.user.DeleteIntegrationRequest
+	(*ListIntegrationsRequest)(nil),          // 9: fitglue.services.user.ListIntegrationsRequest
+	(*ListCountersRequest)(nil),              // 10: fitglue.services.user.ListCountersRequest
+	(*ListCountersResponse)(nil),             // 11: fitglue.services.user.ListCountersResponse
+	(*UpdateCounterRequest)(nil),             // 12: fitglue.services.user.UpdateCounterRequest
+	(*GetBoosterDataRequest)(nil),            // 13: fitglue.services.user.GetBoosterDataRequest
+	(*GetBoosterDataResponse)(nil),           // 14: fitglue.services.user.GetBoosterDataResponse
+	(*SetBoosterDataRequest)(nil),            // 15: fitglue.services.user.SetBoosterDataRequest
+	(*DeleteBoosterDataRequest)(nil),         // 16: fitglue.services.user.DeleteBoosterDataRequest
+	(*ListPersonalRecordsRequest)(nil),       // 17: fitglue.services.user.ListPersonalRecordsRequest
+	(*ListPersonalRecordsResponse)(nil),      // 18: fitglue.services.user.ListPersonalRecordsResponse
+	(*SetPersonalRecordRequest)(nil),         // 19: fitglue.services.user.SetPersonalRecordRequest
+	(*DeletePersonalRecordRequest)(nil),      // 20: fitglue.services.user.DeletePersonalRecordRequest
+	(*ListPluginDefaultsRequest)(nil),        // 21: fitglue.services.user.ListPluginDefaultsRequest
+	(*ListPluginDefaultsResponse)(nil),       // 22: fitglue.services.user.ListPluginDefaultsResponse
+	(*SetPluginDefaultsRequest)(nil),         // 23: fitglue.services.user.SetPluginDefaultsRequest
+	(*DeletePluginDefaultsRequest)(nil),      // 24: fitglue.services.user.DeletePluginDefaultsRequest
+	(*DeleteCounterRequest)(nil),             // 25: fitglue.services.user.DeleteCounterRequest
+	nil,                                      // 26: fitglue.services.user.GetBoosterDataResponse.DataEntry
+	nil,                                      // 27: fitglue.services.user.ListPluginDefaultsResponse.DefaultsEntry
+	(*user.UserProfile)(nil),                 // 28: fitglue.models.user.UserProfile
+	(*user.UserIntegrations)(nil),            // 29: fitglue.models.user.UserIntegrations
+	(*structpb.Struct)(nil),                  // 30: google.protobuf.Struct
+	(*user.Counter)(nil),                     // 31: fitglue.models.user.Counter
+	(*user.PersonalRecord)(nil),              // 32: fitglue.models.user.PersonalRecord
+	(*emptypb.Empty)(nil),                    // 33: google.protobuf.Empty
 }
 var file_services_user_user_proto_depIdxs = []int32{
-	36, // 0: fitglue.services.user.ResolveUserByIntegrationResponse.profile:type_name -> fitglue.models.user.UserProfile
-	36, // 1: fitglue.services.user.ListUsersResponse.users:type_name -> fitglue.models.user.UserProfile
-	36, // 2: fitglue.services.user.UpdateProfileRequest.profile:type_name -> fitglue.models.user.UserProfile
-	37, // 3: fitglue.services.user.GetIntegrationResponse.integrations:type_name -> fitglue.models.user.UserIntegrations
-	38, // 4: fitglue.services.user.SetIntegrationRequest.integration_data:type_name -> google.protobuf.Struct
-	39, // 5: fitglue.services.user.ListCountersResponse.counters:type_name -> fitglue.models.user.Counter
-	34, // 6: fitglue.services.user.GetBoosterDataResponse.data:type_name -> fitglue.services.user.GetBoosterDataResponse.DataEntry
-	38, // 7: fitglue.services.user.SetBoosterDataRequest.data:type_name -> google.protobuf.Struct
-	40, // 8: fitglue.services.user.ListPersonalRecordsResponse.records:type_name -> fitglue.models.user.PersonalRecord
-	35, // 9: fitglue.services.user.ListPluginDefaultsResponse.defaults:type_name -> fitglue.services.user.ListPluginDefaultsResponse.DefaultsEntry
-	38, // 10: fitglue.services.user.SetPluginDefaultsRequest.defaults:type_name -> google.protobuf.Struct
-	38, // 11: fitglue.services.user.GetBoosterDataResponse.DataEntry.value:type_name -> google.protobuf.Struct
-	38, // 12: fitglue.services.user.ListPluginDefaultsResponse.DefaultsEntry.value:type_name -> google.protobuf.Struct
-	7,  // 13: fitglue.services.user.UserService.CreateUser:input_type -> fitglue.services.user.CreateUserRequest
-	10, // 14: fitglue.services.user.UserService.GetProfile:input_type -> fitglue.services.user.GetProfileRequest
-	8,  // 15: fitglue.services.user.UserService.ListUsers:input_type -> fitglue.services.user.ListUsersRequest
-	11, // 16: fitglue.services.user.UserService.UpdateProfile:input_type -> fitglue.services.user.UpdateProfileRequest
-	12, // 17: fitglue.services.user.UserService.GetIntegration:input_type -> fitglue.services.user.GetIntegrationRequest
-	14, // 18: fitglue.services.user.UserService.SetIntegration:input_type -> fitglue.services.user.SetIntegrationRequest
-	15, // 19: fitglue.services.user.UserService.DeleteIntegration:input_type -> fitglue.services.user.DeleteIntegrationRequest
-	16, // 20: fitglue.services.user.UserService.ListIntegrations:input_type -> fitglue.services.user.ListIntegrationsRequest
-	17, // 21: fitglue.services.user.UserService.ListCounters:input_type -> fitglue.services.user.ListCountersRequest
-	19, // 22: fitglue.services.user.UserService.UpdateCounter:input_type -> fitglue.services.user.UpdateCounterRequest
-	21, // 23: fitglue.services.user.UserService.GetBoosterData:input_type -> fitglue.services.user.GetBoosterDataRequest
-	23, // 24: fitglue.services.user.UserService.SetBoosterData:input_type -> fitglue.services.user.SetBoosterDataRequest
-	24, // 25: fitglue.services.user.UserService.DeleteBoosterData:input_type -> fitglue.services.user.DeleteBoosterDataRequest
-	20, // 26: fitglue.services.user.UserService.DeleteUser:input_type -> fitglue.services.user.DeleteUserRequest
-	2,  // 27: fitglue.services.user.UserService.SendVerificationEmail:input_type -> fitglue.services.user.SendVerificationEmailRequest
-	3,  // 28: fitglue.services.user.UserService.SendPasswordResetEmail:input_type -> fitglue.services.user.SendPasswordResetEmailRequest
-	4,  // 29: fitglue.services.user.UserService.SendEmailChangeVerification:input_type -> fitglue.services.user.SendEmailChangeVerificationRequest
-	6,  // 30: fitglue.services.user.UserService.GenerateRegistrationSummary:input_type -> fitglue.services.user.GenerateRegistrationSummaryRequest
-	0,  // 31: fitglue.services.user.UserService.ResolveUserByIntegration:input_type -> fitglue.services.user.ResolveUserByIntegrationRequest
-	25, // 32: fitglue.services.user.UserService.ListPersonalRecords:input_type -> fitglue.services.user.ListPersonalRecordsRequest
-	27, // 33: fitglue.services.user.UserService.SetPersonalRecord:input_type -> fitglue.services.user.SetPersonalRecordRequest
-	28, // 34: fitglue.services.user.UserService.DeletePersonalRecord:input_type -> fitglue.services.user.DeletePersonalRecordRequest
-	29, // 35: fitglue.services.user.UserService.ListPluginDefaults:input_type -> fitglue.services.user.ListPluginDefaultsRequest
-	31, // 36: fitglue.services.user.UserService.SetPluginDefaults:input_type -> fitglue.services.user.SetPluginDefaultsRequest
-	32, // 37: fitglue.services.user.UserService.DeletePluginDefaults:input_type -> fitglue.services.user.DeletePluginDefaultsRequest
-	33, // 38: fitglue.services.user.UserService.DeleteCounter:input_type -> fitglue.services.user.DeleteCounterRequest
-	36, // 39: fitglue.services.user.UserService.CreateUser:output_type -> fitglue.models.user.UserProfile
-	36, // 40: fitglue.services.user.UserService.GetProfile:output_type -> fitglue.models.user.UserProfile
-	9,  // 41: fitglue.services.user.UserService.ListUsers:output_type -> fitglue.services.user.ListUsersResponse
-	36, // 42: fitglue.services.user.UserService.UpdateProfile:output_type -> fitglue.models.user.UserProfile
-	13, // 43: fitglue.services.user.UserService.GetIntegration:output_type -> fitglue.services.user.GetIntegrationResponse
-	41, // 44: fitglue.services.user.UserService.SetIntegration:output_type -> google.protobuf.Empty
-	41, // 45: fitglue.services.user.UserService.DeleteIntegration:output_type -> google.protobuf.Empty
-	37, // 46: fitglue.services.user.UserService.ListIntegrations:output_type -> fitglue.models.user.UserIntegrations
-	18, // 47: fitglue.services.user.UserService.ListCounters:output_type -> fitglue.services.user.ListCountersResponse
-	39, // 48: fitglue.services.user.UserService.UpdateCounter:output_type -> fitglue.models.user.Counter
-	22, // 49: fitglue.services.user.UserService.GetBoosterData:output_type -> fitglue.services.user.GetBoosterDataResponse
-	41, // 50: fitglue.services.user.UserService.SetBoosterData:output_type -> google.protobuf.Empty
-	41, // 51: fitglue.services.user.UserService.DeleteBoosterData:output_type -> google.protobuf.Empty
-	41, // 52: fitglue.services.user.UserService.DeleteUser:output_type -> google.protobuf.Empty
-	41, // 53: fitglue.services.user.UserService.SendVerificationEmail:output_type -> google.protobuf.Empty
-	41, // 54: fitglue.services.user.UserService.SendPasswordResetEmail:output_type -> google.protobuf.Empty
-	41, // 55: fitglue.services.user.UserService.SendEmailChangeVerification:output_type -> google.protobuf.Empty
-	41, // 56: fitglue.services.user.UserService.GenerateRegistrationSummary:output_type -> google.protobuf.Empty
-	1,  // 57: fitglue.services.user.UserService.ResolveUserByIntegration:output_type -> fitglue.services.user.ResolveUserByIntegrationResponse
-	26, // 58: fitglue.services.user.UserService.ListPersonalRecords:output_type -> fitglue.services.user.ListPersonalRecordsResponse
-	40, // 59: fitglue.services.user.UserService.SetPersonalRecord:output_type -> fitglue.models.user.PersonalRecord
-	41, // 60: fitglue.services.user.UserService.DeletePersonalRecord:output_type -> google.protobuf.Empty
-	30, // 61: fitglue.services.user.UserService.ListPluginDefaults:output_type -> fitglue.services.user.ListPluginDefaultsResponse
-	41, // 62: fitglue.services.user.UserService.SetPluginDefaults:output_type -> google.protobuf.Empty
-	41, // 63: fitglue.services.user.UserService.DeletePluginDefaults:output_type -> google.protobuf.Empty
-	41, // 64: fitglue.services.user.UserService.DeleteCounter:output_type -> google.protobuf.Empty
-	39, // [39:65] is the sub-list for method output_type
-	13, // [13:39] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	28, // 0: fitglue.services.user.ResolveUserByIntegrationResponse.profile:type_name -> fitglue.models.user.UserProfile
+	28, // 1: fitglue.services.user.UpdateProfileRequest.profile:type_name -> fitglue.models.user.UserProfile
+	29, // 2: fitglue.services.user.GetIntegrationResponse.integrations:type_name -> fitglue.models.user.UserIntegrations
+	30, // 3: fitglue.services.user.SetIntegrationRequest.integration_data:type_name -> google.protobuf.Struct
+	31, // 4: fitglue.services.user.ListCountersResponse.counters:type_name -> fitglue.models.user.Counter
+	26, // 5: fitglue.services.user.GetBoosterDataResponse.data:type_name -> fitglue.services.user.GetBoosterDataResponse.DataEntry
+	30, // 6: fitglue.services.user.SetBoosterDataRequest.data:type_name -> google.protobuf.Struct
+	32, // 7: fitglue.services.user.ListPersonalRecordsResponse.records:type_name -> fitglue.models.user.PersonalRecord
+	27, // 8: fitglue.services.user.ListPluginDefaultsResponse.defaults:type_name -> fitglue.services.user.ListPluginDefaultsResponse.DefaultsEntry
+	30, // 9: fitglue.services.user.SetPluginDefaultsRequest.defaults:type_name -> google.protobuf.Struct
+	30, // 10: fitglue.services.user.GetBoosterDataResponse.DataEntry.value:type_name -> google.protobuf.Struct
+	30, // 11: fitglue.services.user.ListPluginDefaultsResponse.DefaultsEntry.value:type_name -> google.protobuf.Struct
+	2,  // 12: fitglue.services.user.UserService.CreateUser:input_type -> fitglue.services.user.CreateUserRequest
+	3,  // 13: fitglue.services.user.UserService.GetProfile:input_type -> fitglue.services.user.GetProfileRequest
+	4,  // 14: fitglue.services.user.UserService.UpdateProfile:input_type -> fitglue.services.user.UpdateProfileRequest
+	5,  // 15: fitglue.services.user.UserService.GetIntegration:input_type -> fitglue.services.user.GetIntegrationRequest
+	7,  // 16: fitglue.services.user.UserService.SetIntegration:input_type -> fitglue.services.user.SetIntegrationRequest
+	8,  // 17: fitglue.services.user.UserService.DeleteIntegration:input_type -> fitglue.services.user.DeleteIntegrationRequest
+	9,  // 18: fitglue.services.user.UserService.ListIntegrations:input_type -> fitglue.services.user.ListIntegrationsRequest
+	10, // 19: fitglue.services.user.UserService.ListCounters:input_type -> fitglue.services.user.ListCountersRequest
+	12, // 20: fitglue.services.user.UserService.UpdateCounter:input_type -> fitglue.services.user.UpdateCounterRequest
+	13, // 21: fitglue.services.user.UserService.GetBoosterData:input_type -> fitglue.services.user.GetBoosterDataRequest
+	15, // 22: fitglue.services.user.UserService.SetBoosterData:input_type -> fitglue.services.user.SetBoosterDataRequest
+	16, // 23: fitglue.services.user.UserService.DeleteBoosterData:input_type -> fitglue.services.user.DeleteBoosterDataRequest
+	0,  // 24: fitglue.services.user.UserService.ResolveUserByIntegration:input_type -> fitglue.services.user.ResolveUserByIntegrationRequest
+	17, // 25: fitglue.services.user.UserService.ListPersonalRecords:input_type -> fitglue.services.user.ListPersonalRecordsRequest
+	19, // 26: fitglue.services.user.UserService.SetPersonalRecord:input_type -> fitglue.services.user.SetPersonalRecordRequest
+	20, // 27: fitglue.services.user.UserService.DeletePersonalRecord:input_type -> fitglue.services.user.DeletePersonalRecordRequest
+	21, // 28: fitglue.services.user.UserService.ListPluginDefaults:input_type -> fitglue.services.user.ListPluginDefaultsRequest
+	23, // 29: fitglue.services.user.UserService.SetPluginDefaults:input_type -> fitglue.services.user.SetPluginDefaultsRequest
+	24, // 30: fitglue.services.user.UserService.DeletePluginDefaults:input_type -> fitglue.services.user.DeletePluginDefaultsRequest
+	25, // 31: fitglue.services.user.UserService.DeleteCounter:input_type -> fitglue.services.user.DeleteCounterRequest
+	28, // 32: fitglue.services.user.UserService.CreateUser:output_type -> fitglue.models.user.UserProfile
+	28, // 33: fitglue.services.user.UserService.GetProfile:output_type -> fitglue.models.user.UserProfile
+	28, // 34: fitglue.services.user.UserService.UpdateProfile:output_type -> fitglue.models.user.UserProfile
+	6,  // 35: fitglue.services.user.UserService.GetIntegration:output_type -> fitglue.services.user.GetIntegrationResponse
+	33, // 36: fitglue.services.user.UserService.SetIntegration:output_type -> google.protobuf.Empty
+	33, // 37: fitglue.services.user.UserService.DeleteIntegration:output_type -> google.protobuf.Empty
+	29, // 38: fitglue.services.user.UserService.ListIntegrations:output_type -> fitglue.models.user.UserIntegrations
+	11, // 39: fitglue.services.user.UserService.ListCounters:output_type -> fitglue.services.user.ListCountersResponse
+	31, // 40: fitglue.services.user.UserService.UpdateCounter:output_type -> fitglue.models.user.Counter
+	14, // 41: fitglue.services.user.UserService.GetBoosterData:output_type -> fitglue.services.user.GetBoosterDataResponse
+	33, // 42: fitglue.services.user.UserService.SetBoosterData:output_type -> google.protobuf.Empty
+	33, // 43: fitglue.services.user.UserService.DeleteBoosterData:output_type -> google.protobuf.Empty
+	1,  // 44: fitglue.services.user.UserService.ResolveUserByIntegration:output_type -> fitglue.services.user.ResolveUserByIntegrationResponse
+	18, // 45: fitglue.services.user.UserService.ListPersonalRecords:output_type -> fitglue.services.user.ListPersonalRecordsResponse
+	32, // 46: fitglue.services.user.UserService.SetPersonalRecord:output_type -> fitglue.models.user.PersonalRecord
+	33, // 47: fitglue.services.user.UserService.DeletePersonalRecord:output_type -> google.protobuf.Empty
+	22, // 48: fitglue.services.user.UserService.ListPluginDefaults:output_type -> fitglue.services.user.ListPluginDefaultsResponse
+	33, // 49: fitglue.services.user.UserService.SetPluginDefaults:output_type -> google.protobuf.Empty
+	33, // 50: fitglue.services.user.UserService.DeletePluginDefaults:output_type -> google.protobuf.Empty
+	33, // 51: fitglue.services.user.UserService.DeleteCounter:output_type -> google.protobuf.Empty
+	32, // [32:52] is the sub-list for method output_type
+	12, // [12:32] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_services_user_user_proto_init() }
@@ -2004,7 +1579,7 @@ func file_services_user_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_user_user_proto_rawDesc), len(file_services_user_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   36,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

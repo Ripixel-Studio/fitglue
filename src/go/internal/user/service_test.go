@@ -3,27 +3,20 @@ package user
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
-	"time"
 
-	firebaseAuth "firebase.google.com/go/v4/auth" // Added
 	"github.com/fitglue/server/src/go/internal/infra"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	pbsvc "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type mockStore struct {
-	profile          *pbuser.UserProfile
-	usersByDateRange []*pbuser.UserProfile
-	err              error
-	deleteCalled     bool
+	profile *pbuser.UserProfile
+	err     error
 }
 
 func (m *mockStore) GetProfile(ctx context.Context, userID string) (*pbuser.UserProfile, error) {
@@ -33,19 +26,6 @@ func (m *mockStore) GetProfile(ctx context.Context, userID string) (*pbuser.User
 func (m *mockStore) UpdateProfile(ctx context.Context, userID string, profile *pbuser.UserProfile) error {
 	m.profile = profile
 	return m.err
-}
-
-func (m *mockStore) DeleteUser(ctx context.Context, userID string) error {
-	m.deleteCalled = true
-	return m.err
-}
-
-func (m *mockStore) ListShowcaseExecutionIDs(ctx context.Context, userID string) ([]string, error) {
-	return nil, nil
-}
-
-func (m *mockStore) FindUsersByDateRange(ctx context.Context, start, end time.Time) ([]*pbuser.UserProfile, error) {
-	return m.usersByDateRange, m.err
 }
 
 func (m *mockStore) FindUserByIntegration(ctx context.Context, provider, providerUID string) (*pbuser.UserProfile, error) {
@@ -146,66 +126,14 @@ func (m mockLogger) Warn(ctx context.Context, msg string, args ...any)  {}
 func (m mockLogger) Error(ctx context.Context, msg string, args ...any) {}
 func (m mockLogger) With(args ...any) infra.Logger                      { return m }
 
-type mockEmailSender struct {
-	lastTo      string
-	lastSubject string
-	lastHTML    string
-	err         error
-}
-
-func (m *mockEmailSender) SendEmail(ctx context.Context, to string, subject string, htmlContent string) error {
-	m.lastTo = to
-	m.lastSubject = subject
-	m.lastHTML = htmlContent
-	return m.err
-}
-
-type mockAuthClient struct {
-	userRecord *firebaseAuth.UserRecord
-	err        error
-	linkErr    error
-	lastEmail  string
-	usersIter  UserIterator
-}
-
-func (m *mockAuthClient) GetUser(ctx context.Context, uid string) (*firebaseAuth.UserRecord, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	if m.userRecord == nil {
-		return &firebaseAuth.UserRecord{
-			UserInfo: &firebaseAuth.UserInfo{
-				Email: uid + "@example.com",
-			},
-		}, nil
-	}
-	return m.userRecord, nil
-}
-
-func (m *mockAuthClient) EmailVerificationLinkWithSettings(ctx context.Context, email string, settings *firebaseAuth.ActionCodeSettings) (string, error) {
-	m.lastEmail = email
-	return "https://mock.link", m.linkErr
-}
-
-func (m *mockAuthClient) PasswordResetLinkWithSettings(ctx context.Context, email string, settings *firebaseAuth.ActionCodeSettings) (string, error) {
-	m.lastEmail = email
-	return "https://mock.link", m.linkErr
-}
-
-func (m *mockAuthClient) Users(ctx context.Context, nextPageToken string) UserIterator {
-	return m.usersIter
-}
-
-func setupTest() (*Service, *mockStore, *mockEmailSender, *mockAuthClient) {
+func setupTest() (*Service, *mockStore) {
 	store := &mockStore{}
-	sender := &mockEmailSender{}
 	logger := mockLogger{}
-	authClient := &mockAuthClient{}
-	return NewService(store, logger, sender, authClient, "https://fitglue.tech", nil), store, sender, authClient
+	return NewService(store, logger), store
 }
 
 func TestGetProfile(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 
 	t.Run("EmptyUserId", func(t *testing.T) {
 		req := &pbsvc.GetProfileRequest{}
@@ -242,284 +170,8 @@ func TestGetProfile(t *testing.T) {
 	})
 }
 
-func TestEmailRPCs(t *testing.T) {
-	svc, _, sender, auth := setupTest()
-
-	t.Run("SendPasswordResetEmail_EmptyEmail", func(t *testing.T) {
-		req := &pbsvc.SendPasswordResetEmailRequest{}
-		resp, err := svc.SendPasswordResetEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Nil(t, resp)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-
-	t.Run("SendPasswordResetEmail_LinkError", func(t *testing.T) {
-		auth.linkErr = errors.New("link error")
-		req := &pbsvc.SendPasswordResetEmailRequest{Email: "test@example.com"}
-		_, err := svc.SendPasswordResetEmail(context.Background(), req)
-		assert.NoError(t, err) // Logs but returns empty pb
-		auth.linkErr = nil
-	})
-
-	t.Run("SendPasswordResetEmail_SenderError", func(t *testing.T) {
-		sender.err = errors.New("sender error")
-		req := &pbsvc.SendPasswordResetEmailRequest{Email: "test@example.com"}
-		_, err := svc.SendPasswordResetEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		sender.err = nil
-	})
-
-	t.Run("SendPasswordResetEmail_Success", func(t *testing.T) {
-		req := &pbsvc.SendPasswordResetEmailRequest{Email: "test@example.com"}
-		_, err := svc.SendPasswordResetEmail(context.Background(), req)
-		assert.NoError(t, err)
-	})
-
-	t.Run("SendVerificationEmail_EmptyUserId", func(t *testing.T) {
-		req := &pbsvc.SendVerificationEmailRequest{}
-		resp, err := svc.SendVerificationEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Nil(t, resp)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-
-	t.Run("SendVerificationEmail_AuthError", func(t *testing.T) {
-		auth.err = errors.New("auth error")
-		req := &pbsvc.SendVerificationEmailRequest{UserId: "user123"}
-		_, err := svc.SendVerificationEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		auth.err = nil
-	})
-
-	t.Run("SendVerificationEmail_NoEmail", func(t *testing.T) {
-		auth.userRecord = &firebaseAuth.UserRecord{}
-		req := &pbsvc.SendVerificationEmailRequest{UserId: "user123"}
-		_, err := svc.SendVerificationEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
-		auth.userRecord = nil
-	})
-
-	t.Run("SendVerificationEmail_AlreadyVerified", func(t *testing.T) {
-		auth.userRecord = &firebaseAuth.UserRecord{
-			UserInfo: &firebaseAuth.UserInfo{
-				Email: "test@example.com",
-			},
-			EmailVerified: true,
-		}
-		req := &pbsvc.SendVerificationEmailRequest{UserId: "user123"}
-		_, err := svc.SendVerificationEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
-		auth.userRecord = nil
-	})
-
-	t.Run("SendVerificationEmail_LinkError", func(t *testing.T) {
-		auth.linkErr = errors.New("link error")
-		req := &pbsvc.SendVerificationEmailRequest{UserId: "user123"}
-		_, err := svc.SendVerificationEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		auth.linkErr = nil
-	})
-
-	t.Run("SendVerificationEmail_SenderError", func(t *testing.T) {
-		sender.err = errors.New("sender error")
-		req := &pbsvc.SendVerificationEmailRequest{UserId: "user123"}
-		_, err := svc.SendVerificationEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		sender.err = nil
-	})
-
-	t.Run("SendVerificationEmail_Success", func(t *testing.T) {
-		req := &pbsvc.SendVerificationEmailRequest{UserId: "user123"}
-		_, err := svc.SendVerificationEmail(context.Background(), req)
-		assert.NoError(t, err)
-	})
-
-	t.Run("SendWelcomeEmail_EmptyUserId", func(t *testing.T) {
-		req := &pbsvc.SendWelcomeEmailRequest{}
-		resp, err := svc.SendWelcomeEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Nil(t, resp)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-
-	t.Run("SendWelcomeEmail_AuthError", func(t *testing.T) {
-		auth.err = errors.New("auth error")
-		req := &pbsvc.SendWelcomeEmailRequest{UserId: "user123"}
-		_, err := svc.SendWelcomeEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		auth.err = nil
-	})
-
-	t.Run("SendWelcomeEmail_NoEmail", func(t *testing.T) {
-		auth.userRecord = &firebaseAuth.UserRecord{}
-		req := &pbsvc.SendWelcomeEmailRequest{UserId: "user123"}
-		_, err := svc.SendWelcomeEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
-		auth.userRecord = nil
-	})
-
-	t.Run("SendWelcomeEmail_SenderError", func(t *testing.T) {
-		sender.err = errors.New("sender error")
-		req := &pbsvc.SendWelcomeEmailRequest{UserId: "user123"}
-		_, err := svc.SendWelcomeEmail(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		sender.err = nil
-	})
-
-	t.Run("SendWelcomeEmail_Success", func(t *testing.T) {
-		req := &pbsvc.SendWelcomeEmailRequest{UserId: "user123"}
-		_, err := svc.SendWelcomeEmail(context.Background(), req)
-		assert.NoError(t, err)
-	})
-
-	t.Run("SendEmailChangeVerification_EmptyFields", func(t *testing.T) {
-		req := &pbsvc.SendEmailChangeVerificationRequest{}
-		resp, err := svc.SendEmailChangeVerification(context.Background(), req)
-		assert.Error(t, err)
-		assert.Nil(t, resp)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-
-	t.Run("SendEmailChangeVerification_AuthError", func(t *testing.T) {
-		auth.err = errors.New("auth error")
-		req := &pbsvc.SendEmailChangeVerificationRequest{UserId: "user123", NewEmail: "new@example.com"}
-		_, err := svc.SendEmailChangeVerification(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		auth.err = nil
-	})
-
-	t.Run("SendEmailChangeVerification_NoEmail", func(t *testing.T) {
-		auth.userRecord = &firebaseAuth.UserRecord{}
-		req := &pbsvc.SendEmailChangeVerificationRequest{UserId: "user123", NewEmail: "new@example.com"}
-		_, err := svc.SendEmailChangeVerification(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
-		auth.userRecord = nil
-	})
-
-	t.Run("SendEmailChangeVerification_LinkError", func(t *testing.T) {
-		auth.linkErr = errors.New("link error")
-		req := &pbsvc.SendEmailChangeVerificationRequest{UserId: "user123", NewEmail: "new@example.com"}
-		_, err := svc.SendEmailChangeVerification(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		auth.linkErr = nil
-	})
-
-	t.Run("SendEmailChangeVerification_SenderError", func(t *testing.T) {
-		sender.err = errors.New("sender error")
-		req := &pbsvc.SendEmailChangeVerificationRequest{UserId: "user123", NewEmail: "new@example.com"}
-		_, err := svc.SendEmailChangeVerification(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		sender.err = nil
-	})
-
-	t.Run("SendEmailChangeVerification_Success", func(t *testing.T) {
-		req := &pbsvc.SendEmailChangeVerificationRequest{UserId: "user123", NewEmail: "new@example.com"}
-		_, err := svc.SendEmailChangeVerification(context.Background(), req)
-		assert.NoError(t, err)
-		assert.Equal(t, "new@example.com", sender.lastTo)
-		assert.Equal(t, "Confirm your new FitGlue email", sender.lastSubject)
-	})
-}
-
-func TestGenerateRegistrationSummary(t *testing.T) {
-	svc, store, sender, auth := setupTest()
-
-	t.Run("GenerateRegistrationSummary_HappyPath", func(t *testing.T) {
-		store.usersByDateRange = []*pbuser.UserProfile{
-			{
-				UserId:        "user1",
-				CreatedAt:     timestamppb.Now(),
-				AccessEnabled: true,
-			},
-			{
-				UserId:        "user2",
-				CreatedAt:     timestamppb.Now(),
-				AccessEnabled: false,
-			},
-		}
-
-		req := &pbsvc.GenerateRegistrationSummaryRequest{
-			DateOverride: "2026-02-23",
-		}
-
-		_, err := svc.GenerateRegistrationSummary(context.Background(), req)
-		assert.NoError(t, err)
-		assert.Equal(t, "james@fitglue.tech", sender.lastTo)
-		assert.Contains(t, sender.lastSubject, "2 new registrations")
-		assert.Contains(t, sender.lastHTML, "user1@example.com")
-		assert.Contains(t, sender.lastHTML, "user2@example.com")
-	})
-
-	t.Run("GenerateRegistrationSummary_InvalidDate", func(t *testing.T) {
-		req := &pbsvc.GenerateRegistrationSummaryRequest{
-			DateOverride: "02-23-2026", // Wrong format
-		}
-
-		resp, err := svc.GenerateRegistrationSummary(context.Background(), req)
-		assert.Error(t, err)
-		assert.Nil(t, resp)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-
-	t.Run("GenerateRegistrationSummary_StoreError", func(t *testing.T) {
-		store.err = errors.New("db error")
-		req := &pbsvc.GenerateRegistrationSummaryRequest{}
-		_, err := svc.GenerateRegistrationSummary(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		store.err = nil
-	})
-
-	t.Run("GenerateRegistrationSummary_SenderError", func(t *testing.T) {
-		sender.err = errors.New("sender error")
-		req := &pbsvc.GenerateRegistrationSummaryRequest{}
-		_, err := svc.GenerateRegistrationSummary(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		sender.err = nil
-	})
-
-	t.Run("GenerateRegistrationSummary_AuthError", func(t *testing.T) {
-		store.usersByDateRange = []*pbuser.UserProfile{
-			{
-				UserId:        "user1",
-				CreatedAt:     timestamppb.Now(),
-				AccessEnabled: true,
-			},
-		}
-		auth.err = errors.New("auth error")
-		req := &pbsvc.GenerateRegistrationSummaryRequest{}
-		_, err := svc.GenerateRegistrationSummary(context.Background(), req)
-		assert.NoError(t, err) // Continues despite auth error
-		assert.Contains(t, sender.lastHTML, "Unknown")
-		auth.err = nil
-		store.usersByDateRange = nil
-	})
-
-	t.Run("GenerateRegistrationSummary_NoUsers", func(t *testing.T) {
-		store.usersByDateRange = nil
-		req := &pbsvc.GenerateRegistrationSummaryRequest{}
-		_, err := svc.GenerateRegistrationSummary(context.Background(), req)
-		assert.NoError(t, err)
-		assert.Contains(t, sender.lastSubject, "No new registrations")
-	})
-}
-
 func TestUpdateProfile(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 
 	t.Run("EmptyUserId", func(t *testing.T) {
 		req := &pbsvc.UpdateProfileRequest{}
@@ -561,42 +213,8 @@ func TestUpdateProfile(t *testing.T) {
 	})
 }
 
-type mockUserIterator struct {
-	users []*firebaseAuth.ExportedUserRecord
-	index int
-	err   error
-}
-
-func (m *mockUserIterator) PageInfo() *iterator.PageInfo {
-	return &iterator.PageInfo{}
-}
-
-func (m *mockUserIterator) Next() (*firebaseAuth.ExportedUserRecord, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	if m.index >= len(m.users) {
-		return nil, iterator.Done
-	}
-	u := m.users[m.index]
-	m.index++
-	return u, nil
-}
-
-func TestListUsers(t *testing.T) {
-	svc, _, _, auth := setupTest()
-
-	t.Run("IteratorNilError", func(t *testing.T) {
-		auth.usersIter = nil // Simulate authClient.Users returning nil iterator
-		req := &pbsvc.ListUsersRequest{}
-		_, err := svc.ListUsers(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-	})
-}
-
 func TestCreateUser(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 
 	t.Run("EmptyUserId", func(t *testing.T) {
 		req := &pbsvc.CreateUserRequest{}
@@ -624,34 +242,8 @@ func TestCreateUser(t *testing.T) {
 	})
 }
 
-func TestDeleteUser(t *testing.T) {
-	svc, store, _, _ := setupTest()
-
-	t.Run("EmptyUserId", func(t *testing.T) {
-		req := &pbsvc.DeleteUserRequest{}
-		_, err := svc.DeleteUser(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.InvalidArgument, status.Code(err))
-	})
-
-	t.Run("StoreError", func(t *testing.T) {
-		store.err = errors.New("db error")
-		req := &pbsvc.DeleteUserRequest{UserId: "user123"}
-		_, err := svc.DeleteUser(context.Background(), req)
-		assert.Error(t, err)
-		assert.Equal(t, codes.Internal, status.Code(err))
-		store.err = nil
-	})
-
-	t.Run("Success", func(t *testing.T) {
-		req := &pbsvc.DeleteUserRequest{UserId: "user123"}
-		_, err := svc.DeleteUser(context.Background(), req)
-		assert.NoError(t, err)
-	})
-}
-
 func TestIntegrationRPCs(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 
 	t.Run("GetIntegration_EmptyUserId", func(t *testing.T) {
 		req := &pbsvc.GetIntegrationRequest{}
@@ -774,7 +366,7 @@ func TestIntegrationRPCs(t *testing.T) {
 }
 
 func TestResolveUserByIntegration(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 
 	t.Run("EmptyFields", func(t *testing.T) {
 		req := &pbsvc.ResolveUserByIntegrationRequest{}
@@ -819,7 +411,7 @@ func TestResolveUserByIntegration(t *testing.T) {
 }
 
 func TestCounterRPCs(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 
 	t.Run("ListCounters_EmptyUserId", func(t *testing.T) {
 		req := &pbsvc.ListCountersRequest{}
@@ -876,7 +468,7 @@ func TestCounterRPCs(t *testing.T) {
 }
 
 func TestBoosterDataRPCs(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 
 	t.Run("GetBoosterData_EmptyUserId", func(t *testing.T) {
 		req := &pbsvc.GetBoosterDataRequest{}
@@ -966,40 +558,4 @@ func TestBoosterDataRPCs(t *testing.T) {
 		_, err := svc.DeleteBoosterData(context.Background(), req)
 		assert.NoError(t, err)
 	})
-}
-
-type failingPurger struct{ err error }
-
-func (f *failingPurger) PurgeUser(context.Context, string, []string) error { return f.err }
-
-func TestDeleteUserAbortsWhenPurgeFails(t *testing.T) {
-	store := &mockStore{}
-	svc := NewService(store, infra.NewLoggerWithComponent("test"), nil, nil, "https://fitglue.tech",
-		&failingPurger{err: fmt.Errorf("gcs down")})
-	_, err := svc.DeleteUser(context.Background(), &pbsvc.DeleteUserRequest{UserId: "u1"})
-	if err == nil {
-		t.Fatal("DeleteUser() error = nil, want failure when purge fails")
-	}
-	if store.deleteCalled {
-		t.Error("store.DeleteUser must not run when the artifact purge fails")
-	}
-}
-
-func TestDeleteUserPurgesBeforeStoreDelete(t *testing.T) {
-	store := &mockStore{}
-	okPurger := &recordingPurger{}
-	svc := NewService(store, infra.NewLoggerWithComponent("test"), nil, nil, "https://fitglue.tech", okPurger)
-	if _, err := svc.DeleteUser(context.Background(), &pbsvc.DeleteUserRequest{UserId: "u1"}); err != nil {
-		t.Fatalf("DeleteUser() error = %v", err)
-	}
-	if !okPurger.called || !store.deleteCalled {
-		t.Errorf("purge called=%v storeDelete called=%v; want both", okPurger.called, store.deleteCalled)
-	}
-}
-
-type recordingPurger struct{ called bool }
-
-func (r *recordingPurger) PurgeUser(context.Context, string, []string) error {
-	r.called = true
-	return nil
 }

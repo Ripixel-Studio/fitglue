@@ -13,27 +13,6 @@ info:
          what the frontend actually sends (no user_id fields).
     version: 0.0.1
 paths:
-    /auth-email/send-password-reset:
-        post:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_SendPasswordReset
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/SendPasswordResetGatewayRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content: {}
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /repost/full-pipeline:
         post:
             tags:
@@ -143,20 +122,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/UserProfile'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-        delete:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_DeleteSelf
-            responses:
-                "200":
-                    description: OK
-                    content: {}
                 default:
                     description: Default error response
                     content:
@@ -525,43 +490,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/GetActivityPhotoUploadUrlGatewayResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /users/me/auth-email/send-email-change:
-        post:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_SendEmailChangeVerification
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/SendEmailChangeGatewayRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content: {}
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /users/me/auth-email/send-verification:
-        post:
-            tags:
-                - ClientGatewayService
-            description: ===================== Auth Email =====================
-            operationId: ClientGatewayService_SendVerificationEmail
-            responses:
-                "200":
-                    description: OK
-                    content: {}
                 default:
                     description: Default error response
                     content:
@@ -3721,17 +3649,6 @@ components:
                 avgStepLengthM:
                     type: number
                     format: double
-        SendEmailChangeGatewayRequest:
-            type: object
-            properties:
-                newEmail:
-                    type: string
-            description: Auth Email
-        SendPasswordResetGatewayRequest:
-            type: object
-            properties:
-                email:
-                    type: string
         Session:
             type: object
             properties:

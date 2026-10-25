@@ -121,43 +121,6 @@ resource "google_cloud_run_v2_service" "backend" {
         }
       }
 
-      # ── User service env vars ──
-      dynamic "env" {
-        for_each = each.key == "user" ? [1] : []
-        content {
-          name  = "FITGLUE_WEB_URL"
-          value = var.base_url
-        }
-      }
-      dynamic "env" {
-        for_each = each.key == "user" ? [1] : []
-        content {
-          name  = "BASE_URL"
-          value = var.base_url
-        }
-      }
-      dynamic "env" {
-        for_each = each.key == "user" ? [1] : []
-        content {
-          name  = "SYSTEM_EMAIL"
-          value = "system@fitglue.tech"
-        }
-      }
-      # Account deletion purges the user's GCS artifacts from both buckets.
-      dynamic "env" {
-        for_each = each.key == "user" ? [1] : []
-        content {
-          name  = "ARTIFACT_BUCKET"
-          value = google_storage_bucket.artifacts_bucket.name
-        }
-      }
-      dynamic "env" {
-        for_each = each.key == "user" ? [1] : []
-        content {
-          name  = "SHOWCASE_ASSETS_BUCKET"
-          value = google_storage_bucket.showcase_assets_bucket.name
-        }
-      }
 
       # ── Activity service env vars ──
       dynamic "env" {
@@ -265,20 +228,6 @@ resource "google_cloud_run_v2_service" "backend" {
           value_source {
             secret_key_ref {
               secret  = google_secret_manager_secret.fitbit_client_secret.secret_id
-              version = "latest"
-            }
-          }
-        }
-      }
-
-      # ── User secrets (Email) ──
-      dynamic "env" {
-        for_each = each.key == "user" ? [1] : []
-        content {
-          name = "EMAIL_APP_PASSWORD"
-          value_source {
-            secret_key_ref {
-              secret  = google_secret_manager_secret.email_app_password.secret_id
               version = "latest"
             }
           }

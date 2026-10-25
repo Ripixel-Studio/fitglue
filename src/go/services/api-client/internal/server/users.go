@@ -33,7 +33,6 @@ func getUserToken(r *http.Request) *auth.Token {
 func (s *APIServer) registerUserRoutes(r chi.Router) {
 	r.Get("/users/me", s.handleGetProfile)
 	r.Put("/users/me", s.handleUpdateProfile)
-	r.Delete("/users/me", s.handleDeleteSelf)
 
 	r.Get("/users/me/integrations", s.handleListIntegrations)
 	r.Get("/users/me/integrations/{provider}", s.handleGetIntegration)
@@ -49,10 +48,6 @@ func (s *APIServer) registerUserRoutes(r chi.Router) {
 
 	// Connection actions (trigger sync, resync, etc)
 	r.Post("/users/me/connections/{provider}/actions", s.handleConnectionActions)
-
-	// Email auth
-	r.Post("/users/me/auth-email/send-verification", s.handleSendVerificationEmail)
-	r.Post("/users/me/auth-email/send-email-change", s.handleSendEmailChangeVerification)
 
 	// Personal Records
 	r.Get("/users/me/personal-records", s.handleListPersonalRecords)
@@ -439,105 +434,6 @@ func (s *APIServer) handleDeleteBoosterData(w http.ResponseWriter, r *http.Reque
 	}
 
 	_, err := s.userService.DeleteBoosterData(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-// =============================================================
-// Delete Self
-// =============================================================
-
-func (s *APIServer) handleDeleteSelf(w http.ResponseWriter, r *http.Request) {
-	token := getUserToken(r)
-	if token == nil {
-		WriteError(w, statusError(http.StatusUnauthorized, "missing user context"))
-		return
-	}
-
-	req := &userpb.DeleteUserRequest{
-		UserId: token.UID,
-	}
-
-	_, err := s.userService.DeleteUser(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-// =============================================================
-// Auth Email
-// =============================================================
-
-func (s *APIServer) handleSendVerificationEmail(w http.ResponseWriter, r *http.Request) {
-	token := getUserToken(r)
-	if token == nil {
-		WriteError(w, statusError(http.StatusUnauthorized, "missing user context"))
-		return
-	}
-
-	req := &userpb.SendVerificationEmailRequest{
-		UserId: token.UID,
-	}
-
-	_, err := s.userService.SendVerificationEmail(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (s *APIServer) handleSendEmailChangeVerification(w http.ResponseWriter, r *http.Request) {
-	token := getUserToken(r)
-	if token == nil {
-		WriteError(w, statusError(http.StatusUnauthorized, "missing user context"))
-		return
-	}
-
-	var reqBody struct {
-		NewEmail string `json:"newEmail"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		WriteError(w, statusError(http.StatusBadRequest, "invalid request body"))
-		return
-	}
-
-	req := &userpb.SendEmailChangeVerificationRequest{
-		UserId:   token.UID,
-		NewEmail: reqBody.NewEmail,
-	}
-
-	_, err := s.userService.SendEmailChangeVerification(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (s *APIServer) handleSendPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
-	var reqBody struct {
-		Email string `json:"email"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		WriteError(w, statusError(http.StatusBadRequest, "invalid request body"))
-		return
-	}
-
-	req := &userpb.SendPasswordResetEmailRequest{
-		Email: reqBody.Email,
-	}
-
-	_, err := s.userService.SendPasswordResetEmail(r.Context(), req)
 	if err != nil {
 		WriteError(w, err)
 		return
