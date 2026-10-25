@@ -149,7 +149,7 @@ build-ctl:
 # (F3.3) and the units' *_SERVICE_URL settings depend on them:
 #
 #   8101 api-webhook   8102 api-client   8103 user        8104 pipeline
-#   8105 activity      8106 destination  8107 api-public (until F1.5b/S4)
+#   8105 activity      8106 destination
 #
 # `make deploy-box` is the whole deploy: build, reload units, restart the
 # service units above that are currently active (not fitglue-caddy, which is
@@ -157,7 +157,7 @@ build-ctl:
 # stopped unit — cutover from Cloud Run is `systemctl --user start fitglue.target`,
 # done once in F3.4. Run it from ~/work/fitglue-server (the checkout the units'
 # ExecStart points at). See docs/guides/box-deploy.md.
-BOX_SERVICES := api-webhook api-client user pipeline activity destination api-public
+BOX_SERVICES := api-webhook api-client user pipeline activity destination
 BOX_TOOLS := fitgluectl bootstrap-owner
 BOX_GOFLAGS := -trimpath -ldflags="-s -w"
 

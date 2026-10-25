@@ -15,8 +15,8 @@ internet ── Tailscale Funnel (443, F3.3) ── Caddy 127.0.0.1:8100 ──�
                                                                    │  /fg/pubsub/destination → 8106 /
                                                                    ▼
           api-webhook 8101 ─┐
-          api-client  8102 ─┼─ gRPC over loopback ─► user 8103, pipeline 8104, activity 8105
-          api-public  8107 ─┘                        destination 8106 ─► user, activity
+          api-client  8102 ─┘─ gRPC over loopback ─► user 8103, pipeline 8104, activity 8105
+                                                     destination 8106 ─► user, activity
                                                             │
                                    Firestore · GCS · Pub/Sub (still Google Cloud)
 ```
@@ -36,7 +36,6 @@ Fixed; Caddy and the units' `*_SERVICE_URL` settings depend on them.
 | 8104 | `fitglue-pipeline` | gRPC + HTTP (`/pubsub/raw`, `/pubsub/run`, `/pubsub/enriched`, `/pubsub/parkrun-check`, `/internal/parkrun-*`, `/health`) | user |
 | 8105 | `fitglue-activity` | gRPC + HTTP (`/pubsub/roundup`, `/health`) | — (POSTs `SITE_EXPORT_HOOK_URL` on the box after site exports) |
 | 8106 | `fitglue-destination` | HTTP (`/` = Pub/Sub push) | user, activity |
-| 8107 | `fitglue-api-public` | HTTP | activity — goes away with F1.5b/S4 |
 
 gRPC between services is plaintext on loopback (`infra.GRPCDial` strips the
 `http://` and dials insecure). On Cloud Run the same code path used TLS + an
@@ -51,7 +50,8 @@ OIDC token; the trust boundary here is the loopback interface.
 | `deploy/box/install.sh` | symlinks the units into `~/.config/systemd/user/`, `daemon-reload`, enables the target (`--no-enable` to skip) |
 | `deploy/box/fitglue.env.example` | every key `~/.jarvis/fitglue.env` must hold, with comments, no values |
 | `deploy/box/caddy/`, `deploy/box/fitglue-caddy.service`, `deploy/box/funnel.md` | the ingress (F3.3, `docs/guides/box-ingress.md`); separate lifecycle, not part of `fitglue.target` |
-| `~/.jarvis/fitglue.env` | secrets + per-box values, written by F3.5, `chmod 600` |
+| `~/.jarvis/fitglue.env` | secrets + per-box values, written by F3.5, `chmod 600` — [`box-secrets.md`](box-secrets.md) |
+| `deploy/box/env-check.sh` | compares the file with the example, names only; exit 1 on a missing/empty required key |
 | `~/.jarvis/fitglue-box-sa.json` | the `fitglue-box` service-account key from F3.2 (`GOOGLE_APPLICATION_CREDENTIALS`) |
 | `bin/` | output of `make build-box`; gitignored |
 
@@ -87,7 +87,11 @@ fallback), `WEB_URL`, `SITE_EXPORT_HOOK_URL` (+ optional `SITE_EXPORT_BUCKET`,
 client pairs (`STRAVA_*`, `FITBIT_*` incl. `FITBIT_OAUTH_CLIENT_SECRET` and
 `FITBIT_SUBSCRIBER_VERIFICATION_TOKEN`, `TRAININGPEAKS_*`, `GITHUB_*` incl.
 `GITHUB_WEBHOOK_SECRET`, `SPOTIFY_*`), `SENTRY_DSN`, and the optional
-`PARKRUN_FETCHER_URL`, `SENTRY_RELEASE`. The example file has the comments.
+`PARKRUN_FETCHER_URL`, `SENTRY_RELEASE`. The example file has the comments;
+where each value came from, how to rotate one and the OAuth callback base are
+in [`box-secrets.md`](box-secrets.md). `deploy/box/env-check.sh` reports what
+is missing (names only). The deployment keys the units fix are repeated in the
+file so a shell running `fitgluectl` can source it; keep the two in step.
 
 Cloud Run also set `DESTINATION_SERVICE_URL` on pipeline; nothing reads it, so
 the units do not carry it.
@@ -184,7 +188,8 @@ Everything stateful:
 - **Pub/Sub** — the topics and push subscriptions; they are the glue between
   pipeline → destination and the lag/retry path. The box publishes to them
   and receives their pushes via Funnel.
-- **Secret Manager** — until F3.5 copies the values into `fitglue.env`.
+- **Secret Manager** — read by nothing on the box since F3.5 (`fitglue.env`
+  has the values); the secrets and `terraform/secrets.tf` go in F4.2.
 - **Cloud Run** — until F3.4 scales it to zero and F4 deletes it. The
   `parkrun-fetcher` service is dead weight (WAF-walled); the box agent
   replaced it.

@@ -14,16 +14,17 @@ If you change scopes or endpoints, change them there.
 
 ## Environment the CLI needs
 
-`fitgluectl` reads the same variables `api-client` runs with. Until F3.5 lands
-`~/.jarvis/fitglue.env`, fetch them from Secret Manager with your own gcloud
-identity and export them for the shell you run the command in (never commit or
-paste them into Slack):
+`fitgluectl` reads the same variables `api-client` runs with. On the box they
+are in `~/.jarvis/fitglue.env` (F3.5, [`box-secrets.md`](box-secrets.md));
+export them for the shell you run the command in with
+`set -a; . ~/.jarvis/fitglue.env; set +a` (never commit or paste them into
+Slack):
 
 | Variable | Used by | Notes |
 |---|---|---|
 | `FITGLUE_OWNER_UID` | `connect`, `connections` | the owner's `users/{uid}` document id (F2.1). `--uid` overrides. |
 | `OAUTH_STATE_SECRET` | `connect <oauth provider>` | **must be the value api-client runs with** — the callback verifies the state with it; a mismatch redirects with `error=invalid_state_signature`. |
-| `FITGLUE_PUBLIC_BASE_URL` | `connect` | public origin of api-client, no trailing slash. Falls back to `API_URL` (the Cloud Run name). The callback is `<base>/api/v2/oauth/<provider>/callback`; it must match what the provider's developer app has registered. |
+| `FITGLUE_PUBLIC_BASE_URL` | `connect` | public origin of api-client, no trailing slash. Falls back to `API_URL` (the Cloud Run name). The callback is `<base>/api/v2/oauth/<provider>/callback`; it must match what the provider's developer app has registered. On the box the base is `https://jarvis.tail3065f7.ts.net/fg`, so register `https://jarvis.tail3065f7.ts.net/fg/api/v2/oauth/<provider>/callback`. |
 | `STRAVA_CLIENT_ID`, `FITBIT_CLIENT_ID`, `GITHUB_CLIENT_ID`, `SPOTIFY_CLIENT_ID` | `connect <that provider>` | only the id is needed to print a URL; the secret is used by the callback's token exchange, on the server side. |
 | `PROJECT_ID` | `connect hevy/intervals`, `connections` | Firestore project; defaults to `fitglue-server-prod`. `--project` overrides. |
 

@@ -15,7 +15,8 @@ internet ──TLS──▶ Tailscale Funnel (jarvis.tail3065f7.ts.net:443)
                                    ├─ /fg/pubsub/pipeline/*    → pipeline    8104  /pubsub/*
                                    ├─ /fg/pubsub/activity/*    → activity    8105  /pubsub/*
                                    ├─ /fg/pubsub/destination/  → destination 8106  /
-                                   ├─ /fg/oauth/*              → api-client  8102  /api/v2/oauth/*
+                                   ├─ /fg/api/v2/oauth/*       → api-client  8102  /api/v2/oauth/*
+                                   ├─ /fg/oauth/*              → api-client  8102  /api/v2/oauth/*  (alias)
                                    └─ *                        → 404, empty body
 ```
 
@@ -37,7 +38,7 @@ internet ──TLS──▶ Tailscale Funnel (jarvis.tail3065f7.ts.net:443)
 | Pub/Sub push: raw / run / enriched / parkrun-check | `https://jarvis.tail3065f7.ts.net/fg/pubsub/pipeline/{raw,run,enriched,parkrun-check}` |
 | Pub/Sub push: roundup | `https://jarvis.tail3065f7.ts.net/fg/pubsub/activity/roundup` |
 | Pub/Sub push: destination | `https://jarvis.tail3065f7.ts.net/fg/pubsub/destination/` |
-| OAuth callback (`fitgluectl connect`) | `https://jarvis.tail3065f7.ts.net/fg/oauth/{provider}/callback` |
+| OAuth callback (`fitgluectl connect`) | `https://jarvis.tail3065f7.ts.net/fg/api/v2/oauth/{provider}/callback` — what `oauthflow` builds from `FITGLUE_PUBLIC_BASE_URL=…/fg`; register this one. `/fg/oauth/{provider}/callback` is an alias (F3.5, `box-secrets.md`) |
 | Liveness from outside | `https://jarvis.tail3065f7.ts.net/fg/webhook/health` |
 
 Pub/Sub push subscriptions keep their OIDC token and Caddy does not look at
