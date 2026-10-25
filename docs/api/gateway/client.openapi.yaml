@@ -34,127 +34,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /billing/cancel:
-        post:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_CancelSubscription
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/SubscriptionState'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /billing/checkout:
-        post:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_CreateCheckoutSession
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/CreateCheckoutGatewayRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/CreateCheckoutGatewayResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /billing/portal:
-        post:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_CreateBillingPortal
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/CreateBillingPortalGatewayRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/CreateBillingPortalGatewayResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /billing/subscription:
-        get:
-            tags:
-                - ClientGatewayService
-            description: ===================== Billing =====================
-            operationId: ClientGatewayService_GetSubscription
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/SubscriptionState'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /billing/tier:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_GetTierStatus
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/GetTierStatusGatewayResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /billing/trial:
-        post:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_StartTrial
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/SubscriptionState'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /registry:
         get:
             tags:
@@ -2528,29 +2407,6 @@ components:
                 lastUpdated:
                     type: string
                     format: date-time
-        CreateBillingPortalGatewayRequest:
-            type: object
-            properties:
-                returnUrl:
-                    type: string
-        CreateBillingPortalGatewayResponse:
-            type: object
-            properties:
-                url:
-                    type: string
-        CreateCheckoutGatewayRequest:
-            type: object
-            properties:
-                successUrl:
-                    type: string
-                cancelUrl:
-                    type: string
-            description: Billing
-        CreateCheckoutGatewayResponse:
-            type: object
-            properties:
-                sessionUrl:
-                    type: string
         CreatePipelineGatewayRequest:
             type: object
             properties:
@@ -3077,18 +2933,6 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/ShowcaseActivityEntryGateway'
-        GetTierStatusGatewayResponse:
-            type: object
-            properties:
-                effectiveTier:
-                    enum:
-                        - USER_TIER_UNSPECIFIED
-                        - USER_TIER_HOBBYIST
-                        - USER_TIER_ATHLETE
-                    type: string
-                    format: enum
-                isTrial:
-                    type: boolean
         GitHubIntegration:
             type: object
             properties:
@@ -5604,39 +5448,6 @@ components:
                     type: object
                     additionalProperties:
                         type: string
-        SubscriptionState:
-            type: object
-            properties:
-                userId:
-                    type: string
-                stripeCustomerId:
-                    type: string
-                    description: Stripe customer ID for billing
-                stripeSubscriptionId:
-                    type: string
-                trialEndsAt:
-                    type: string
-                    description: Athlete trial end date (null = no trial)
-                    format: date-time
-                subscriptionTier:
-                    enum:
-                        - USER_TIER_UNSPECIFIED
-                        - USER_TIER_HOBBYIST
-                        - USER_TIER_ATHLETE
-                    type: string
-                    description: The actual purchased tier (free users won't have this record or it will be free)
-                    format: enum
-                currentPeriodStart:
-                    type: string
-                    format: date-time
-                currentPeriodEnd:
-                    type: string
-                    format: date-time
-                cancelAtPeriodEnd:
-                    type: boolean
-                status:
-                    type: string
-            description: SubscriptionState tracks the user's billing info, decoupled from core profile.
         TemperatureSummary:
             type: object
             properties:
@@ -5883,25 +5694,8 @@ components:
                     type: array
                     items:
                         type: string
-                tier:
-                    enum:
-                        - USER_TIER_UNSPECIFIED
-                        - USER_TIER_HOBBYIST
-                        - USER_TIER_ATHLETE
-                    type: string
-                    format: enum
                 isAdmin:
                     type: boolean
-                syncCountThisMonth:
-                    type: integer
-                    description: Monthly sync tracking
-                    format: int32
-                syncCountResetAt:
-                    type: string
-                    format: date-time
-                preventedSyncCount:
-                    type: integer
-                    format: int32
                 accessEnabled:
                     type: boolean
                     description: Waitlist gate - false until admin enables access
@@ -5909,9 +5703,6 @@ components:
                     allOf:
                         - $ref: '#/components/schemas/NotificationPreferences'
                     description: User's push notification preferences
-                trialEndsAt:
-                    type: string
-                    format: date-time
                 email:
                     type: string
                 displayName:
@@ -5926,7 +5717,9 @@ components:
                 longestStreakDays:
                     type: integer
                     format: int32
-            description: "UserProfile represents the core user identity and preferences, \n cleanly separated from billing and integrations."
+            description: |-
+                UserProfile represents the core user identity and preferences,
+                 cleanly separated from integrations.
         WahooIntegration:
             type: object
             properties:

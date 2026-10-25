@@ -695,12 +695,13 @@ type deferrableMockProvider struct {
 func (d *deferrableMockProvider) ShouldDefer() bool { return true }
 
 // TestProcess_DeferredAndBranding covers the Phase 2 deferred-execution block and
-// the branding provider application (hobbyist users get branding).
+// checks that the branding provider is no longer force-applied: with billing
+// gone there are no non-paying users, so "branding" only runs if a pipeline
+// lists it like any other enricher.
 func TestProcess_DeferredAndBranding(t *testing.T) {
 	db := &MockDatabase{
 		GetUserFunc: func(ctx context.Context, id string) (*user.Record, error) {
-			// Hobbyist (default tier) → ShouldShowBranding true.
-			return &user.Record{UserProfile: &pbuser.UserProfile{UserId: id, Tier: pbuser.UserTier_USER_TIER_HOBBYIST}}, nil
+			return &user.Record{UserProfile: &pbuser.UserProfile{UserId: id}}, nil
 		},
 		GetUserPipelinesFunc: func(ctx context.Context, userId string) ([]*pbpipeline.PipelineConfig, error) {
 			return []*pbpipeline.PipelineConfig{{
@@ -752,8 +753,13 @@ func TestProcess_DeferredAndBranding(t *testing.T) {
 	if !strings.Contains(desc, "deferred line") {
 		t.Errorf("expected deferred description applied, got %q", desc)
 	}
-	if !strings.Contains(desc, "Powered by FitGlue") {
-		t.Errorf("expected branding applied, got %q", desc)
+	if strings.Contains(desc, "Powered by FitGlue") {
+		t.Errorf("branding must not be force-applied any more, got %q", desc)
+	}
+	for _, e := range res.Events[0].AppliedEnrichments {
+		if e == "branding" {
+			t.Error("branding must not be listed as applied")
+		}
 	}
 }
 
@@ -855,47 +861,6 @@ func TestProcess_MissingPipelineID(t *testing.T) {
 	}, "parent", "exec", false)
 	if err == nil || err.Error() != "pipeline_id is required" {
 		t.Fatalf("expected pipeline_id terminal error, got %v", err)
-	}
-}
-
-// TestProcess_TierBlocked covers the tier-limit SKIPPED path, including creation
-// of a visible TIER_BLOCKED pipeline run.
-func TestProcess_TierBlocked(t *testing.T) {
-	created := false
-	db := &MockDatabase{
-		GetUserFunc: func(ctx context.Context, id string) (*user.Record, error) {
-			return &user.Record{UserProfile: &pbuser.UserProfile{
-				UserId:             id,
-				Tier:               pbuser.UserTier_USER_TIER_HOBBYIST,
-				SyncCountThisMonth: 100000,                      // way over the hobbyist limit
-				SyncCountResetAt:   timestamppb.New(time.Now()), // same month → no reset
-			}}, nil
-		},
-		CreatePipelineRunFunc: func(ctx context.Context, userId string, run *pbpipeline.PipelineRun) error {
-			created = true
-			if run.Status != pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_TIER_BLOCKED {
-				t.Errorf("expected TIER_BLOCKED run, got %v", run.Status)
-			}
-			return nil
-		},
-	}
-
-	o := NewOrchestrator(db, &MockBlobStore{}, "bucket", nil)
-	pipelineID := "p1"
-	res, err := o.Process(context.Background(), covLogger(), &pbevents.ActivityPayload{
-		UserId:               "u1",
-		PipelineId:           &pipelineID,
-		Source:               pbactivity.ActivitySource_SOURCE_HEVY,
-		StandardizedActivity: oneSessionActivity(),
-	}, "parent", "exec", false)
-	if err != nil {
-		t.Fatalf("tier-blocked should not error, got %v", err)
-	}
-	if res.Status != pbpipeline.ExecutionStatus_STATUS_SKIPPED {
-		t.Errorf("expected SKIPPED, got %v", res.Status)
-	}
-	if !created {
-		t.Error("expected a TIER_BLOCKED pipeline run to be created")
 	}
 }
 

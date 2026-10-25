@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -102,33 +101,4 @@ func TestJSONResponseMiddleware_Webhook(t *testing.T) {
 
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
 	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestHandleBillingEvent_MissingSignature(t *testing.T) {
-	// Build a minimal server
-	svc := &APIServer{
-		logger: infra.NewLogger(),
-	}
-
-	req := httptest.NewRequest(http.MethodPost, "/api/webhooks/billing", bytes.NewBufferString("{}"))
-	w := httptest.NewRecorder()
-
-	svc.handleBillingEvent(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-
-func TestHandleBillingEvent_MissingRawBody(t *testing.T) {
-	svc := &APIServer{
-		logger: infra.NewLogger(),
-	}
-
-	req := httptest.NewRequest(http.MethodPost, "/api/webhooks/billing", nil)
-	req.Header.Set("Stripe-Signature", "test-sig")
-	// No raw body in context
-	w := httptest.NewRecorder()
-
-	svc.handleBillingEvent(w, req)
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }

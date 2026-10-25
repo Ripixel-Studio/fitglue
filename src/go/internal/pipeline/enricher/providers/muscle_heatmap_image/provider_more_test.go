@@ -112,20 +112,7 @@ func TestGenerateSVG_Woman(t *testing.T) {
 func athleteUser() *user.Record {
 	return &user.Record{UserProfile: &pbuser.UserProfile{
 		UserId: "u1",
-		Tier:   pbuser.UserTier_USER_TIER_ATHLETE,
 	}}
-}
-
-func TestMuscleHeatmapImage_Enrich_NonAthleteSkipped(t *testing.T) {
-	p := NewMuscleHeatmapImageProvider()
-	hobbyist := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1", Tier: pbuser.UserTier_USER_TIER_HOBBYIST}}
-	res, err := p.Enrich(context.Background(), discardLogger(), &pbactivity.StandardizedActivity{}, hobbyist, nil, false)
-	if err != nil {
-		t.Fatalf("Enrich error: %v", err)
-	}
-	if !res.Skipped {
-		t.Errorf("expected skip for non-athlete, got %+v", res)
-	}
 }
 
 func TestMuscleHeatmapImage_Enrich_NoStrengthSets(t *testing.T) {

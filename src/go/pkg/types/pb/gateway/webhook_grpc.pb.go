@@ -24,7 +24,6 @@ const (
 	WebhookGatewayService_StravaEvent_FullMethodName        = "/fitglue.gateway.WebhookGatewayService/StravaEvent"
 	WebhookGatewayService_FitbitVerification_FullMethodName = "/fitglue.gateway.WebhookGatewayService/FitbitVerification"
 	WebhookGatewayService_FitbitEvent_FullMethodName        = "/fitglue.gateway.WebhookGatewayService/FitbitEvent"
-	WebhookGatewayService_BillingEvent_FullMethodName       = "/fitglue.gateway.WebhookGatewayService/BillingEvent"
 )
 
 // WebhookGatewayServiceClient is the client API for WebhookGatewayService service.
@@ -35,7 +34,7 @@ const (
 // served by api-webhook at /api/webhooks/*.
 //
 // No user authentication — instead uses provider-specific verification
-// (Strava hub challenge, Fitbit subscriber verification, Stripe signatures).
+// (Strava hub challenge, Fitbit subscriber verification).
 type WebhookGatewayServiceClient interface {
 	// ===================== Strava =====================
 	StravaVerification(ctx context.Context, in *StravaVerificationRequest, opts ...grpc.CallOption) (*StravaVerificationResponse, error)
@@ -43,8 +42,6 @@ type WebhookGatewayServiceClient interface {
 	// ===================== Fitbit =====================
 	FitbitVerification(ctx context.Context, in *FitbitVerificationRequest, opts ...grpc.CallOption) (*FitbitVerificationResponse, error)
 	FitbitEvent(ctx context.Context, in *WebhookEventRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// ===================== Billing (Stripe) =====================
-	BillingEvent(ctx context.Context, in *BillingWebhookRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type webhookGatewayServiceClient struct {
@@ -95,16 +92,6 @@ func (c *webhookGatewayServiceClient) FitbitEvent(ctx context.Context, in *Webho
 	return out, nil
 }
 
-func (c *webhookGatewayServiceClient) BillingEvent(ctx context.Context, in *BillingWebhookRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, WebhookGatewayService_BillingEvent_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // WebhookGatewayServiceServer is the server API for WebhookGatewayService service.
 // All implementations must embed UnimplementedWebhookGatewayServiceServer
 // for forward compatibility.
@@ -113,7 +100,7 @@ func (c *webhookGatewayServiceClient) BillingEvent(ctx context.Context, in *Bill
 // served by api-webhook at /api/webhooks/*.
 //
 // No user authentication — instead uses provider-specific verification
-// (Strava hub challenge, Fitbit subscriber verification, Stripe signatures).
+// (Strava hub challenge, Fitbit subscriber verification).
 type WebhookGatewayServiceServer interface {
 	// ===================== Strava =====================
 	StravaVerification(context.Context, *StravaVerificationRequest) (*StravaVerificationResponse, error)
@@ -121,8 +108,6 @@ type WebhookGatewayServiceServer interface {
 	// ===================== Fitbit =====================
 	FitbitVerification(context.Context, *FitbitVerificationRequest) (*FitbitVerificationResponse, error)
 	FitbitEvent(context.Context, *WebhookEventRequest) (*emptypb.Empty, error)
-	// ===================== Billing (Stripe) =====================
-	BillingEvent(context.Context, *BillingWebhookRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedWebhookGatewayServiceServer()
 }
 
@@ -144,9 +129,6 @@ func (UnimplementedWebhookGatewayServiceServer) FitbitVerification(context.Conte
 }
 func (UnimplementedWebhookGatewayServiceServer) FitbitEvent(context.Context, *WebhookEventRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method FitbitEvent not implemented")
-}
-func (UnimplementedWebhookGatewayServiceServer) BillingEvent(context.Context, *BillingWebhookRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method BillingEvent not implemented")
 }
 func (UnimplementedWebhookGatewayServiceServer) mustEmbedUnimplementedWebhookGatewayServiceServer() {}
 func (UnimplementedWebhookGatewayServiceServer) testEmbeddedByValue()                               {}
@@ -241,24 +223,6 @@ func _WebhookGatewayService_FitbitEvent_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WebhookGatewayService_BillingEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BillingWebhookRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(WebhookGatewayServiceServer).BillingEvent(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: WebhookGatewayService_BillingEvent_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WebhookGatewayServiceServer).BillingEvent(ctx, req.(*BillingWebhookRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // WebhookGatewayService_ServiceDesc is the grpc.ServiceDesc for WebhookGatewayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -281,10 +245,6 @@ var WebhookGatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FitbitEvent",
 			Handler:    _WebhookGatewayService_FitbitEvent_Handler,
-		},
-		{
-			MethodName: "BillingEvent",
-			Handler:    _WebhookGatewayService_BillingEvent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

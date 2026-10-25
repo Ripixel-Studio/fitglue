@@ -20,7 +20,6 @@ require (
 	github.com/muktihari/fit v0.26.1
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/stretchr/testify v1.11.1
-	github.com/stripe/stripe-go/v76 v76.25.0
 	github.com/teambition/rrule-go v1.8.2
 	golang.org/x/image v0.42.0
 	golang.org/x/net v0.56.0

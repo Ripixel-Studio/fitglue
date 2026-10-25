@@ -21,7 +21,6 @@ import (
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
-	billingpb "github.com/fitglue/server/src/go/pkg/types/pb/services/billing"
 	pipelinepb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
 	registrypb "github.com/fitglue/server/src/go/pkg/types/pb/services/registry"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
@@ -384,90 +383,6 @@ func TestHandleDeleteCounter(t *testing.T) {
 	s.handleDeleteCounter(w, withToken(httptest.NewRequest(http.MethodDelete, "/", nil), "u1"))
 	if w.Code != http.StatusNoContent {
 		t.Errorf("expected 204, got %d", w.Code)
-	}
-}
-
-// =============================================================
-// billing.go — start trial / billing portal
-// =============================================================
-
-func TestHandleStartTrial(t *testing.T) {
-	s := serverWithDeps(&APIServer{billingService: &mockBillingServiceClient{}})
-	w := httptest.NewRecorder()
-	s.handleStartTrial(w, httptest.NewRequest(http.MethodPost, "/", nil))
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
-	}
-	w = httptest.NewRecorder()
-	s.handleStartTrial(w, withToken(httptest.NewRequest(http.MethodPost, "/", nil), "u1"))
-	if w.Code != http.StatusCreated {
-		t.Errorf("expected 201, got %d", w.Code)
-	}
-}
-
-func TestHandleCreateBillingPortal(t *testing.T) {
-	s := serverWithDeps(&APIServer{billingService: &mockBillingServiceClient{}})
-	t.Run("no token", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleCreateBillingPortal(w, httptest.NewRequest(http.MethodPost, "/", nil))
-		if w.Code != http.StatusUnauthorized {
-			t.Errorf("expected 401, got %d", w.Code)
-		}
-	})
-	t.Run("success with body", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleCreateBillingPortal(w, withToken(httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"return_url":"https://x"}`)), "u1"))
-		if w.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d", w.Code)
-		}
-	})
-	t.Run("success empty body (defaults)", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleCreateBillingPortal(w, withToken(httptest.NewRequest(http.MethodPost, "/", nil), "u1"))
-		if w.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d", w.Code)
-		}
-	})
-}
-
-func TestHandleGetSubscription_Error(t *testing.T) {
-	svc := &mockBillingServiceClient{
-		getSubscription: func(_ context.Context, _ *billingpb.GetSubscriptionRequest, _ ...grpc.CallOption) (*pbuser.SubscriptionState, error) {
-			return nil, status.Error(codes.Internal, "boom")
-		},
-	}
-	s := serverWithDeps(&APIServer{billingService: svc})
-	w := httptest.NewRecorder()
-	s.handleGetSubscription(w, withToken(httptest.NewRequest(http.MethodGet, "/", nil), "u1"))
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("expected 500, got %d", w.Code)
-	}
-}
-
-func TestHandleCancelSubscription_NoToken(t *testing.T) {
-	s := serverWithDeps(&APIServer{billingService: &mockBillingServiceClient{}})
-	w := httptest.NewRecorder()
-	s.handleCancelSubscription(w, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`)))
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
-	}
-}
-
-func TestHandleGetTierStatus_NoToken(t *testing.T) {
-	s := serverWithDeps(&APIServer{billingService: &mockBillingServiceClient{}})
-	w := httptest.NewRecorder()
-	s.handleGetTierStatus(w, httptest.NewRequest(http.MethodGet, "/", nil))
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
-	}
-}
-
-func TestHandleCreateCheckoutSession_NoToken(t *testing.T) {
-	s := serverWithDeps(&APIServer{billingService: &mockBillingServiceClient{}})
-	w := httptest.NewRecorder()
-	s.handleCreateCheckoutSession(w, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`)))
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
 	}
 }
 
@@ -1347,7 +1262,7 @@ func TestUserHandlers_MoreServiceErrors(t *testing.T) {
 	}
 }
 
-func TestMoreServiceErrors_ActivityPipelineBilling(t *testing.T) {
+func TestMoreServiceErrors_ActivityPipeline(t *testing.T) {
 	t.Run("listSourceActivities error", func(t *testing.T) {
 		svc := &errPipelineClient{}
 		s := serverWithDeps(&APIServer{pipelineSvc: svc})
@@ -1384,24 +1299,6 @@ func TestMoreServiceErrors_ActivityPipelineBilling(t *testing.T) {
 			t.Errorf("expected 500, got %d", w.Code)
 		}
 	})
-	t.Run("startTrial error", func(t *testing.T) {
-		svc := &errBillingClient{}
-		s := serverWithDeps(&APIServer{billingService: svc})
-		w := httptest.NewRecorder()
-		s.handleStartTrial(w, withToken(httptest.NewRequest(http.MethodPost, "/", nil), "u1"))
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("expected 500, got %d", w.Code)
-		}
-	})
-	t.Run("billingPortal error", func(t *testing.T) {
-		svc := &errBillingClient{}
-		s := serverWithDeps(&APIServer{billingService: svc})
-		w := httptest.NewRecorder()
-		s.handleCreateBillingPortal(w, withToken(httptest.NewRequest(http.MethodPost, "/", nil), "u1"))
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("expected 500, got %d", w.Code)
-		}
-	})
 }
 
 type errPipelineClient struct {
@@ -1418,17 +1315,6 @@ func (e *errPipelineClient) CancelPipeline(_ context.Context, _ *pipelinepb.Canc
 	return nil, status.Error(codes.Internal, "boom")
 }
 func (e *errPipelineClient) CancelPipelineRun(_ context.Context, _ *pipelinepb.CancelPipelineRunRequest, _ ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Internal, "boom")
-}
-
-type errBillingClient struct {
-	mockBillingServiceClient
-}
-
-func (e *errBillingClient) StartTrial(_ context.Context, _ *billingpb.StartTrialRequest, _ ...grpc.CallOption) (*pbuser.SubscriptionState, error) {
-	return nil, status.Error(codes.Internal, "boom")
-}
-func (e *errBillingClient) CreateBillingPortalSession(_ context.Context, _ *billingpb.CreateBillingPortalSessionRequest, _ ...grpc.CallOption) (*billingpb.CreateBillingPortalSessionResponse, error) {
 	return nil, status.Error(codes.Internal, "boom")
 }
 
@@ -1469,20 +1355,6 @@ func TestActivityHandlers_MoreServiceErrors(t *testing.T) {
 			t.Errorf("expected 500, got %d", w.Code)
 		}
 	})
-}
-
-func TestHandleGetTierStatus_Error(t *testing.T) {
-	svc := &mockBillingServiceClient{
-		getTierStatus: func(_ context.Context, _ *billingpb.GetTierStatusRequest, _ ...grpc.CallOption) (*billingpb.GetTierStatusResponse, error) {
-			return nil, status.Error(codes.Internal, "boom")
-		},
-	}
-	s := serverWithDeps(&APIServer{billingService: svc})
-	w := httptest.NewRecorder()
-	s.handleGetTierStatus(w, withToken(httptest.NewRequest(http.MethodGet, "/", nil), "u1"))
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("expected 500, got %d", w.Code)
-	}
 }
 
 type errActivityClient struct {

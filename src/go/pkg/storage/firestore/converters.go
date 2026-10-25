@@ -233,22 +233,8 @@ func UserToFirestore(u *user.Record) map[string]interface{} {
 
 	// Pipelines moved to sub-collection users/{userId}/pipelines
 
-	// Tier management fields
-	if u.Tier == pbuser.UserTier_USER_TIER_ATHLETE {
-		m["tier"] = "athlete"
-	} else {
-		m["tier"] = "hobbyist"
-	}
-	if u.TrialEndsAt != nil {
-		m["trial_ends_at"] = u.TrialEndsAt.AsTime()
-	}
 	m["is_admin"] = u.IsAdmin
-	m["sync_count_this_month"] = u.SyncCountThisMonth
-	if u.Billing != nil {
-		m["stripe_customer_id"] = u.Billing.StripeCustomerId
-	}
 	m["access_enabled"] = u.AccessEnabled
-	m["prevented_sync_count"] = u.PreventedSyncCount
 
 	return m
 }
@@ -258,9 +244,6 @@ func FirestoreToUser(m map[string]interface{}) *user.Record {
 		UserProfile: &pbuser.UserProfile{
 			UserId:    getString(m, "user_id"),
 			CreatedAt: getTime(m, "created_at"),
-		},
-		Billing: &pbuser.SubscriptionState{
-			StripeCustomerId: getString(m, "stripe_customer_id"),
 		},
 	}
 
@@ -416,67 +399,8 @@ func FirestoreToUser(m map[string]interface{}) *user.Record {
 		}
 	}
 
-	// Tier management fields
-	if v, ok := m["tier"]; ok {
-		switch val := v.(type) {
-		case string:
-			switch val {
-			case "athlete", "pro":
-				u.Tier = pbuser.UserTier_USER_TIER_ATHLETE
-			default:
-				u.Tier = pbuser.UserTier_USER_TIER_HOBBYIST
-			}
-		case int64:
-			// Handle legacy numeric values (1=Hobbyist, 2=Athlete)
-			if val == 2 {
-				u.Tier = pbuser.UserTier_USER_TIER_ATHLETE
-			} else {
-				u.Tier = pbuser.UserTier_USER_TIER_HOBBYIST
-			}
-		case int:
-			if val == 2 {
-				u.Tier = pbuser.UserTier_USER_TIER_ATHLETE
-			} else {
-				u.Tier = pbuser.UserTier_USER_TIER_HOBBYIST
-			}
-		case float64:
-			if val == 2 {
-				u.Tier = pbuser.UserTier_USER_TIER_ATHLETE
-			} else {
-				u.Tier = pbuser.UserTier_USER_TIER_HOBBYIST
-			}
-		default:
-			u.Tier = pbuser.UserTier_USER_TIER_HOBBYIST
-		}
-	} else {
-		u.Tier = pbuser.UserTier_USER_TIER_HOBBYIST
-	}
 	u.IsAdmin = getBool(m, "is_admin")
 	u.AccessEnabled = getBool(m, "access_enabled")
-	u.TrialEndsAt = getTime(m, "trial_ends_at")
-	u.SyncCountResetAt = getTime(m, "sync_count_reset_at")
-
-	if v, ok := m["sync_count_this_month"]; ok {
-		switch n := v.(type) {
-		case int64:
-			u.SyncCountThisMonth = int32(n)
-		case int:
-			u.SyncCountThisMonth = int32(n)
-		case float64:
-			u.SyncCountThisMonth = int32(n)
-		}
-	}
-
-	if v, ok := m["prevented_sync_count"]; ok {
-		switch n := v.(type) {
-		case int64:
-			u.PreventedSyncCount = int32(n)
-		case int:
-			u.PreventedSyncCount = int32(n)
-		case float64:
-			u.PreventedSyncCount = int32(n)
-		}
-	}
 
 	if tokens, ok := m["fcm_tokens"].([]interface{}); ok {
 		u.FcmTokens = make([]string, len(tokens))

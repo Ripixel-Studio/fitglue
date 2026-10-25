@@ -18,7 +18,6 @@ import (
 	"google.golang.org/grpc"
 
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
-	billingpb "github.com/fitglue/server/src/go/pkg/types/pb/services/billing"
 	pipelinepb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
 	registrypb "github.com/fitglue/server/src/go/pkg/types/pb/services/registry"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
@@ -70,10 +69,6 @@ func main() {
 	userConn := connect("USER_SERVICE_URL", "localhost:50051")
 	defer userConn.Close()
 	userClient := userpb.NewUserServiceClient(userConn)
-
-	billingConn := connect("BILLING_SERVICE_URL", "localhost:50052")
-	defer billingConn.Close()
-	billingClient := billingpb.NewBillingServiceClient(billingConn)
 
 	pipelineConn := connect("PIPELINE_SERVICE_URL", "localhost:50053")
 	defer pipelineConn.Close()
@@ -128,7 +123,6 @@ func main() {
 		gcsSigner,
 		platformStatsStore,
 		userClient,
-		billingClient,
 		pipelineClient,
 		activityClient,
 		registryClient,

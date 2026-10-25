@@ -12,11 +12,9 @@ import (
 	"context"
 	"log/slog"
 	"testing"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestAICompanionProvider_TierCheck(t *testing.T) {
+func TestAICompanionProvider_NoAPIKeySkips(t *testing.T) {
 	// Clear API key to ensure predictable test behavior
 	t.Setenv("GEMINI_API_KEY", "")
 
@@ -26,117 +24,23 @@ func TestAICompanionProvider_TierCheck(t *testing.T) {
 		Name: "Morning Run",
 		Type: pbactivity.ActivityType_ACTIVITY_TYPE_RUN,
 	}
+	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "user-1"}}
 
-	tests := []struct {
-		name         string
-		user         *user.Record
-		expectStatus string
-	}{
-		{
-			name: "hobbyist user is skipped",
-			user: &user.Record{
-				UserProfile: &pbuser.UserProfile{
-					UserId: "hobbyist-user",
-					Tier:   pbuser.UserTier_USER_TIER_HOBBYIST,
-				},
-			},
-			expectStatus: "skipped",
-		},
-		{
-			name: "athlete user proceeds (but no API key set)",
-			user: &user.Record{
-				UserProfile: &pbuser.UserProfile{
-					UserId: "athlete-user",
-					Tier:   pbuser.UserTier_USER_TIER_ATHLETE,
-				},
-			},
-			expectStatus: "skipped", // API key not configured
-		},
-		{
-			name: "admin user proceeds (but no API key set)",
-			user: &user.Record{
-				UserProfile: &pbuser.UserProfile{
-					UserId:  "admin-user",
-					Tier:    pbuser.UserTier_USER_TIER_HOBBYIST,
-					IsAdmin: true,
-				},
-			},
-			expectStatus: "skipped", // API key not configured
-		},
-		{
-			name: "user on trial proceeds (but no API key set)",
-			user: &user.Record{
-				UserProfile: &pbuser.UserProfile{
-					UserId:      "trial-user",
-					Tier:        pbuser.UserTier_USER_TIER_HOBBYIST,
-					TrialEndsAt: timestamppb.Now(), // Will be expired, but test structure
-				},
-			},
-			expectStatus: "skipped", // Either tier_restricted or api_key_not_configured
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := provider.Enrich(context.Background(), slog.Default(), activity, tt.user, nil, false)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			status := result.Metadata["status"]
-			// For athlete/admin users, accept either "skipped" (no API key) or "error" (invalid API key)
-			// since we don't control the test environment's API key state
-			if tt.expectStatus == "skipped" && (status == "skipped" || status == "error") {
-				// Both outcomes are acceptable - not a failure
-				return
-			}
-
-			if status != tt.expectStatus {
-				t.Errorf("expected status %q, got %q (reason: %s)",
-					tt.expectStatus, status, result.Metadata["reason"])
-			}
-		})
-	}
-}
-
-func TestAICompanionProvider_HobbyistTierSkipped(t *testing.T) {
-	provider := NewAICompanionProvider()
-
-	activity := &pbactivity.StandardizedActivity{
-		Name: "Weight Training",
-		Type: pbactivity.ActivityType_ACTIVITY_TYPE_WEIGHT_TRAINING,
-	}
-
-	hobbyistUser := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "hobbyist-user-123",
-			Tier:   pbuser.UserTier_USER_TIER_HOBBYIST,
-		},
-	}
-
-	result, err := provider.Enrich(context.Background(), slog.Default(), activity, hobbyistUser, nil, false)
+	result, err := provider.Enrich(context.Background(), slog.Default(), activity, u, nil, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	if result.Metadata["status"] != "skipped" {
-		t.Errorf("expected status 'skipped', got %q", result.Metadata["status"])
+	// Accept either "skipped" (no API key) or "error" (invalid API key) since we
+	// don't control the test environment's API key state.
+	if status := result.Metadata["status"]; status != "skipped" && status != "error" {
+		t.Errorf("expected status skipped/error, got %q (reason: %s)", status, result.Metadata["reason"])
 	}
-
-	if result.Metadata["reason"] != "tier_restricted" {
-		t.Errorf("expected reason 'tier_restricted', got %q", result.Metadata["reason"])
+	if result.Metadata["reason"] == "tier_restricted" {
+		t.Error("tier gating was removed with billing; must not skip for tier")
 	}
-
-	if result.Metadata["required_tier"] != "athlete" {
-		t.Errorf("expected required_tier 'athlete', got %q", result.Metadata["required_tier"])
-	}
-
 	// Should not modify activity
-	if result.Name != "" {
-		t.Errorf("expected empty Name for skipped result, got %q", result.Name)
-	}
-	if result.Description != "" {
-		t.Errorf("expected empty Description for skipped result, got %q", result.Description)
+	if result.Name != "" || result.Description != "" {
+		t.Errorf("expected empty Name/Description for skipped result, got %q / %q", result.Name, result.Description)
 	}
 }
 
@@ -154,7 +58,6 @@ func TestAICompanionProvider_ModeConfig(t *testing.T) {
 	athleteUser := &user.Record{
 		UserProfile: &pbuser.UserProfile{
 			UserId: "athlete-user",
-			Tier:   pbuser.UserTier_USER_TIER_ATHLETE,
 		},
 	}
 

@@ -93,15 +93,6 @@ func (m *MockDatabase) CountBillingEvents(_ context.Context, _ string) (int32, e
 func (m *MockDatabase) CountBillingEventsForPeriod(_ context.Context, _, _ string) (int32, error) {
 	return 0, nil
 }
-func (m *MockDatabase) IncrementSyncCount(ctx context.Context, userID string) error {
-	return nil
-}
-func (m *MockDatabase) IncrementPreventedSyncCount(ctx context.Context, userID string) error {
-	return nil
-}
-func (m *MockDatabase) ResetSyncCount(ctx context.Context, userID string) error {
-	return nil
-}
 func (m *MockDatabase) ListPendingInputsByEnricher(ctx context.Context, enricherId string, status pbpipeline.PendingInput_Status) ([]*pbpipeline.PendingInput, error) {
 	return nil, nil
 }

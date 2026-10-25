@@ -68,30 +68,23 @@ func TestFirestoreStore_OfflineCoverageExtra(t *testing.T) {
 }
 
 func TestNormalizeUserData(t *testing.T) {
-	t.Run("MapsLegacyTier", func(t *testing.T) {
-		assert.Equal(t, "USER_TIER_HOBBYIST", normalizeUserData(map[string]interface{}{"tier": "hobbyist"})["tier"])
-		assert.Equal(t, "USER_TIER_ATHLETE", normalizeUserData(map[string]interface{}{"tier": "athlete"})["tier"])
-	})
-
-	t.Run("LeavesProtoEnumNameUntouched", func(t *testing.T) {
-		assert.Equal(t, "USER_TIER_ATHLETE", normalizeUserData(map[string]interface{}{"tier": "USER_TIER_ATHLETE"})["tier"])
-	})
-
-	t.Run("NonStringTierIgnored", func(t *testing.T) {
-		assert.Equal(t, 2, normalizeUserData(map[string]interface{}{"tier": 2})["tier"])
+	t.Run("LeavesUnknownLegacyFieldsAlone", func(t *testing.T) {
+		// Billing-era fields may still exist on old docs; protojson discards
+		// them on read, normalization must not choke on them.
+		assert.Equal(t, "athlete", normalizeUserData(map[string]interface{}{"tier": "athlete"})["tier"])
 	})
 
 	t.Run("DropsCamelCaseDuplicates", func(t *testing.T) {
 		out := normalizeUserData(map[string]interface{}{
-			"isAdmin":       true,
-			"is_admin":      false,
-			"trialEndsAt":   "x",
-			"trial_ends_at": "y",
+			"isAdmin":      true,
+			"is_admin":     false,
+			"displayName":  "x",
+			"display_name": "y",
 		})
 		_, hasCamelAdmin := out["isAdmin"]
 		assert.False(t, hasCamelAdmin, "isAdmin should be dropped")
-		_, hasCamelTrial := out["trialEndsAt"]
-		assert.False(t, hasCamelTrial, "trialEndsAt should be dropped")
+		_, hasCamelName := out["displayName"]
+		assert.False(t, hasCamelName, "displayName should be dropped")
 		assert.Equal(t, false, out["is_admin"], "snake_case is_admin retained")
 	})
 
@@ -103,9 +96,9 @@ func TestNormalizeUserData(t *testing.T) {
 
 	// Regression for SERVER-A ("failed to get profile"): the old TypeScript
 	// backend wrote fields in camelCase; Go services later write the same fields
-	// in snake_case, so legacy user docs accumulate BOTH spellings. Only isAdmin
-	// and trialEndsAt used to be de-duplicated, so fcm_tokens / sync_count_this_month
-	// / streak collisions leaked through and made protojson fail the whole read.
+	// in snake_case, so legacy user docs accumulate BOTH spellings. Only a couple
+	// of fields used to be de-duplicated, so fcm_tokens / streak collisions
+	// leaked through and made protojson fail the whole read.
 	t.Run("DropsAllCamelCaseDuplicatesGenerically", func(t *testing.T) {
 		out := normalizeUserData(map[string]interface{}{
 			"fcmTokens":             []interface{}{"a"},
@@ -138,7 +131,7 @@ func TestGetProfileParsing_LegacyDuplicateKeys(t *testing.T) {
 			"fcmTokens":  []interface{}{"legacy"},
 			"fcm_tokens": []interface{}{"legacy", "new"},
 		},
-		"sync_count collision (billing increment onto legacy doc)": {
+		"sync_count collision (legacy counter written by both backends)": {
 			"user_id":               "u1",
 			"syncCountThisMonth":    int64(4),
 			"sync_count_this_month": int64(4),
@@ -177,11 +170,4 @@ func TestDefaultNotificationPreferences(t *testing.T) {
 		assert.NotNil(t, p)
 		assert.Equal(t, []pbuser.NotificationChannel{pbuser.NotificationChannel_NOTIFICATION_CHANNEL_PUSH}, p.Channels)
 	}
-}
-
-func TestUserLegacyTierMap(t *testing.T) {
-	assert.Equal(t, "USER_TIER_HOBBYIST", legacyTierMap["hobbyist"])
-	assert.Equal(t, "USER_TIER_ATHLETE", legacyTierMap["athlete"])
-	_, ok := legacyTierMap["unknown"]
-	assert.False(t, ok)
 }

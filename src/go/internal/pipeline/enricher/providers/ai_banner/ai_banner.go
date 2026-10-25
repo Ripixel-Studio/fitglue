@@ -17,7 +17,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
-	"github.com/fitglue/server/src/go/pkg/domain/tier"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 
@@ -28,7 +27,6 @@ import (
 )
 
 // AIBannerProvider generates custom header images for activities using Vertex AI Imagen.
-// This is an Athlete-tier only feature.
 // Generated images are stored in Cloud Storage and referenced in activity metadata.
 type AIBannerProvider struct {
 	Service *bootstrap.Service
@@ -61,21 +59,6 @@ func (p *AIBannerProvider) ShouldDefer() bool {
 }
 
 func (p *AIBannerProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
-	// Tier check - Athlete tier only
-	if tier.GetEffectiveTier(user) != tier.TierAthlete {
-		logger.Info("AI Banner skipped: user not on athlete tier",
-			"user_id", user.UserId,
-			"tier", tier.GetEffectiveTier(user),
-		)
-		return &providers.EnrichmentResult{
-			Metadata: map[string]string{
-				"status":        "skipped",
-				"reason":        "tier_restricted",
-				"required_tier": "athlete",
-			},
-		}, nil
-	}
-
 	// Get style configuration
 	style := inputs["style"]
 	if style == "" {

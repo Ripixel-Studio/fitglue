@@ -109,7 +109,6 @@ func TestListUsers_PagerPaths(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, resp.Users, 1)
 		assert.Equal(t, "u3", resp.Users[0].UserId)
-		assert.Equal(t, pbuser.UserTier_USER_TIER_HOBBYIST, resp.Users[0].Tier)
 		assert.Equal(t, "u3@example.com", resp.Users[0].Email)
 	})
 

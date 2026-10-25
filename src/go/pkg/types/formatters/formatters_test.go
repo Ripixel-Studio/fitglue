@@ -7,7 +7,6 @@ import (
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
-	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 )
 
 // --- FormatActivityType / ParseActivityType ---
@@ -149,19 +148,6 @@ func TestFormatEnricherProviderType_Roundtrip(t *testing.T) {
 		if parsed != pt {
 			t.Errorf("roundtrip failed for %v: formatted %q, parsed %v", pt, formatted, parsed)
 		}
-	}
-}
-
-// --- FormatUserTier / ParseUserTier ---
-
-func TestFormatUserTier_Roundtrip(t *testing.T) {
-	// Note: USER_TIER_HOBBYIST has a quirk in the generator - "Hobbyist" is mapped
-	// to UNSPECIFIED in ParseUserTier above. Only verify ATHLETE tier roundtrips.
-	tier := pbuser.UserTier_USER_TIER_ATHLETE
-	formatted := FormatUserTier(tier)
-	parsed := ParseUserTier(formatted)
-	if parsed != tier {
-		t.Errorf("roundtrip failed for %v: formatted %q, parsed %v", tier, formatted, parsed)
 	}
 }
 

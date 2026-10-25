@@ -66,7 +66,6 @@ func TestRouteCoverage(t *testing.T) {
 		infra.NewLogger(),
 		nil, // authClient
 		nil, // userSvc
-		nil, // billingSvc
 		nil, // pipelineSvc
 		nil, // activitySvc
 		nil, // processor

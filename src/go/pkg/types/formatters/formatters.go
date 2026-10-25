@@ -8,7 +8,6 @@ import (
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
-	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 )
 
 func FormatActivityType(value pbactivity.ActivityType) string {
@@ -962,42 +961,6 @@ func ParseEnricherProviderType(input string) pbplugin.EnricherProviderType {
 		return v
 	}
 	return pbplugin.EnricherProviderType_ENRICHER_PROVIDER_UNSPECIFIED
-}
-
-func FormatUserTier(value pbuser.UserTier) string {
-	switch value {
-	case pbuser.UserTier_USER_TIER_UNSPECIFIED:
-		return "Hobbyist"
-	case pbuser.UserTier_USER_TIER_HOBBYIST:
-		return "Hobbyist"
-	case pbuser.UserTier_USER_TIER_ATHLETE:
-		return "Athlete"
-	default:
-		return "Hobbyist"
-	}
-}
-
-func ParseUserTier(input string) pbuser.UserTier {
-	// Try exact proto enum name first (fast path)
-	if v, ok := pbuser.UserTier_value[input]; ok {
-		return pbuser.UserTier(v)
-	}
-
-	// Case-insensitive lookup via display names, short names, and aliases
-	lookup := map[string]pbuser.UserTier{
-		"user_tier_unspecified": pbuser.UserTier_USER_TIER_UNSPECIFIED,
-		"unspecified":           pbuser.UserTier_USER_TIER_UNSPECIFIED,
-		"hobbyist":              pbuser.UserTier_USER_TIER_UNSPECIFIED,
-		"user_tier_hobbyist":    pbuser.UserTier_USER_TIER_HOBBYIST,
-		"user_tier_athlete":     pbuser.UserTier_USER_TIER_ATHLETE,
-		"athlete":               pbuser.UserTier_USER_TIER_ATHLETE,
-	}
-
-	normalized := strings.ToLower(strings.TrimSpace(input))
-	if v, ok := lookup[normalized]; ok {
-		return v
-	}
-	return pbuser.UserTier_USER_TIER_UNSPECIFIED
 }
 
 func FormatExecutionStatus(value pbpipeline.ExecutionStatus) string {

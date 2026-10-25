@@ -42,16 +42,6 @@ services:
     environment:
       - PORT=8080
 
-  billing:
-    build:
-      context: .
-      args:
-        SERVICE_NAME: billing
-    ports:
-      - "50052:8080"
-    environment:
-      - PORT=8080
-
   pipeline:
     build:
       context: .

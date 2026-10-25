@@ -12,7 +12,6 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
-	"github.com/fitglue/server/src/go/pkg/domain/tier"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 
@@ -20,7 +19,7 @@ import (
 )
 
 // RouteThumbnailProvider generates a static map SVG image of the GPS route
-// Athlete tier only
+// Produces a route thumbnail asset for Showcase
 type RouteThumbnailProvider struct {
 	service *bootstrap.Service
 }
@@ -52,12 +51,6 @@ type GPSPoint struct {
 }
 
 func (p *RouteThumbnailProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputConfig map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
-	// Tier check - Athlete only
-	if tier.GetEffectiveTier(user) != tier.TierAthlete {
-		logger.Info("Skipping route thumbnail - Athlete tier required")
-		return &providers.EnrichmentResult{Skipped: true, SkipReason: "Athlete tier required"}, nil
-	}
-
 	// Extract GPS points from all records
 	var points []GPSPoint
 	for _, session := range activity.Sessions {

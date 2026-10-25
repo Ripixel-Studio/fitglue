@@ -66,7 +66,7 @@ func registerTools(server *mcp.Server, api *APIClient) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_profile",
-		Description: "Get the authenticated FitGlue user's profile, including tier and settings.",
+		Description: "Get the authenticated FitGlue user's profile, including settings.",
 		Annotations: readOnly("Get profile"),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ emptyArgs) (*mcp.CallToolResult, any, error) {
 		return text(api.Get(ctx, "/users/me", nil))

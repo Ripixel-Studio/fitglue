@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
-	"github.com/fitglue/server/src/go/pkg/domain/tier"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
@@ -22,10 +21,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
-)
-
-const (
-	HobbyistRetentionDays = 30
 )
 
 // Uploader implements destination.Destination for Showcase
@@ -220,14 +215,6 @@ func (u *Uploader) generateShowcaseID(ctx context.Context, title string, startTi
 	return "", fmt.Errorf("failed to generate unique showcase ID after 5 attempts")
 }
 
-func calculateExpiration(userRec *user.Record, createdAt time.Time) *time.Time {
-	if tier.GetEffectiveTier(userRec) == tier.TierAthlete {
-		return nil
-	}
-	expiry := createdAt.AddDate(0, 0, HobbyistRetentionDays)
-	return &expiry
-}
-
 // resolveOwnerDisplayName determines the display name for the showcase activity owner.
 // Fallback chain: User Profile name → Firebase Auth display name → email prefix → showcase profile → "FitGlue Athlete".
 func (u *Uploader) resolveOwnerDisplayName(ctx context.Context, userID string, userRec *user.Record, logger *slog.Logger) string {
@@ -326,7 +313,6 @@ func (u *Uploader) Create(ctx context.Context, payload *pbevents.ActivityPayload
 	if existing != nil && existing.CreatedAt != nil {
 		createdAt = existing.CreatedAt.AsTime()
 	}
-	expiresAt := calculateExpiration(userRec, createdAt)
 
 	activityTypeVal, ok := pbactivity.ActivityType_value[payload.Metadata["activity_type"]]
 	activityType := pbactivity.ActivityType_ACTIVITY_TYPE_UNSPECIFIED
@@ -399,10 +385,6 @@ func (u *Uploader) Create(ctx context.Context, payload *pbevents.ActivityPayload
 		showcasedActivity.FitFileUri = u.persistDurableFitFile(ctx, logger, payload.UserId, showcaseID, uri)
 	}
 
-	if expiresAt != nil {
-		showcasedActivity.ExpiresAt = timestamppb.New(*expiresAt)
-	}
-
 	if err := u.svc.DB.SetShowcasedActivity(ctx, payload.UserId, showcasedActivity); err != nil {
 		return "", fmt.Errorf("failed to persist showcased activity: %w", err)
 	}
@@ -454,7 +436,6 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 	}
 
 	createdAt := time.Now()
-	expiresAt := calculateExpiration(userRec, createdAt)
 
 	var startTime time.Time
 	if payload.Timestamp != nil {
@@ -514,10 +495,6 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 
 	if uri := payload.Metadata["fit_file_uri"]; uri != "" {
 		showcasedActivity.FitFileUri = u.persistDurableFitFile(ctx, logger, payload.UserId, showcaseID, uri)
-	}
-
-	if expiresAt != nil {
-		showcasedActivity.ExpiresAt = timestamppb.New(*expiresAt)
 	}
 
 	if err := u.svc.DB.SetShowcasedActivity(ctx, payload.UserId, showcasedActivity); err != nil {

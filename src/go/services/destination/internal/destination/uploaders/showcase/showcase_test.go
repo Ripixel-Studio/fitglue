@@ -6,12 +6,9 @@ import (
 	"io"
 	"log/slog"
 	"testing"
-	"time"
 
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
-	"github.com/fitglue/server/src/go/pkg/domain/user"
 	"github.com/fitglue/server/src/go/pkg/testing/mocks"
-	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,28 +100,4 @@ func TestPersistDurableFitFile_CopiesToShowcaseAssetsBucket(t *testing.T) {
 
 	assert.Equal(t, "gs://showcase-assets-bucket/showcase_data/user-1/showcase-1.fit", uri)
 	assert.Equal(t, "showcase_data/user-1/showcase-1.fit", writtenObject)
-}
-
-func TestCalculateExpiration(t *testing.T) {
-	now := time.Now()
-
-	// Hobbyist test
-	hobbyRec := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "hobbyist",
-		},
-	}
-	expHobby := calculateExpiration(hobbyRec, now)
-	assert.NotNil(t, expHobby)
-	assert.True(t, expHobby.After(now.AddDate(0, 0, 29)))
-
-	// Athlete test
-	athleteRec := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "athlete",
-			Tier:   pbuser.UserTier_USER_TIER_ATHLETE,
-		},
-	}
-	expAthlete := calculateExpiration(athleteRec, now)
-	assert.Nil(t, expAthlete)
 }

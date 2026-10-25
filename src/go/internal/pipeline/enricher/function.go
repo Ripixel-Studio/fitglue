@@ -40,7 +40,6 @@ import (
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/ai_companion"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/auto_increment"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/best_efforts"
-	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/branding"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/cadence_summary"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/calories_burned"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/condition_matcher"

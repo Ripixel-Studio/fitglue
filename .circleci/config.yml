@@ -145,7 +145,7 @@ jobs:
 
             TAG="${CIRCLE_SHA1:0:12}"
             REGISTRY="us-central1-docker.pkg.dev/fitglue-server-<< parameters.target >>/fitglue-services"
-            SERVICES="api-client api-public api-webhook user billing pipeline activity registry destination notification"
+            SERVICES="api-client api-public api-webhook user pipeline activity registry destination notification"
 
             for svc in $SERVICES; do
               IMAGE="$REGISTRY/$svc:$TAG"

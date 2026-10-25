@@ -119,17 +119,12 @@ func TestUserRoundTrip(t *testing.T) {
 	now := timestamppb.New(time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC))
 	orig := &user.Record{
 		UserProfile: &pbuser.UserProfile{
-			UserId:             "u-123",
-			CreatedAt:          now,
-			Tier:               pbuser.UserTier_USER_TIER_ATHLETE,
-			TrialEndsAt:        now,
-			IsAdmin:            true,
-			SyncCountThisMonth: 7,
-			AccessEnabled:      true,
-			PreventedSyncCount: 3,
-			FcmTokens:          []string{"tok1", "tok2"},
+			UserId:        "u-123",
+			CreatedAt:     now,
+			IsAdmin:       true,
+			AccessEnabled: true,
+			FcmTokens:     []string{"tok1", "tok2"},
 		},
-		Billing: &pbuser.SubscriptionState{StripeCustomerId: "cus_abc"},
 		Integrations: &pbuser.UserIntegrations{
 			Hevy:          &pbuser.HevyIntegration{Enabled: true, ApiKey: "k", UserId: "h-uid"},
 			Fitbit:        &pbuser.FitbitIntegration{Enabled: true, AccessToken: "fa", RefreshToken: "fr", ExpiresAt: now, FitbitUserId: "fid"},
@@ -149,12 +144,6 @@ func TestUserRoundTrip(t *testing.T) {
 	}
 
 	m := UserToFirestore(orig)
-	// Firestore serializes proto int32 fields as int64.
-	for _, k := range []string{"sync_count_this_month", "prevented_sync_count"} {
-		if v, ok := m[k].(int32); ok {
-			m[k] = int64(v)
-		}
-	}
 	got := FirestoreToUser(m)
 
 	if got.UserId != "u-123" {
@@ -163,17 +152,8 @@ func TestUserRoundTrip(t *testing.T) {
 	if got.CreatedAt.AsTime() != now.AsTime() {
 		t.Errorf("CreatedAt mismatch")
 	}
-	if got.Tier != pbuser.UserTier_USER_TIER_ATHLETE {
-		t.Errorf("Tier: got %v", got.Tier)
-	}
 	if !got.IsAdmin || !got.AccessEnabled {
 		t.Errorf("admin/access flags lost")
-	}
-	if got.SyncCountThisMonth != 7 || got.PreventedSyncCount != 3 {
-		t.Errorf("counts mismatch: %d %d", got.SyncCountThisMonth, got.PreventedSyncCount)
-	}
-	if got.Billing == nil || got.Billing.StripeCustomerId != "cus_abc" {
-		t.Errorf("billing lost")
 	}
 	if len(got.FcmTokens) != 2 || got.FcmTokens[0] != "tok1" {
 		t.Errorf("fcm tokens mismatch: %v", got.FcmTokens)
@@ -226,85 +206,32 @@ func TestUserRoundTrip(t *testing.T) {
 	}
 }
 
-func TestUserToFirestore_HobbyistDefault(t *testing.T) {
+func TestUserToFirestore_NoIntegrations(t *testing.T) {
 	orig := &user.Record{
 		UserProfile: &pbuser.UserProfile{
 			UserId:    "u",
 			CreatedAt: timestamppb.Now(),
-			Tier:      pbuser.UserTier_USER_TIER_HOBBYIST,
 		},
 	}
 	m := UserToFirestore(orig)
-	if m["tier"] != "hobbyist" {
-		t.Errorf("tier: got %v", m["tier"])
-	}
 	// No integrations -> map should not include integrations key.
 	if _, ok := m["integrations"]; ok {
 		t.Error("integrations should be absent when nil")
 	}
-	// No billing -> no stripe key.
-	if _, ok := m["stripe_customer_id"]; ok {
-		t.Error("stripe_customer_id should be absent when billing nil")
-	}
-	// No trial_ends_at.
-	if _, ok := m["trial_ends_at"]; ok {
-		t.Error("trial_ends_at should be absent when nil")
+	// Billing-era fields are never written any more.
+	for _, k := range []string{"tier", "trial_ends_at", "stripe_customer_id", "sync_count_this_month", "prevented_sync_count"} {
+		if _, ok := m[k]; ok {
+			t.Errorf("%s should not be written", k)
+		}
 	}
 }
 
-func TestFirestoreToUser_TierVariants(t *testing.T) {
-	cases := []struct {
-		name string
-		val  interface{}
-		want pbuser.UserTier
-	}{
-		{"string-athlete", "athlete", pbuser.UserTier_USER_TIER_ATHLETE},
-		{"string-pro", "pro", pbuser.UserTier_USER_TIER_ATHLETE},
-		{"string-other", "hobbyist", pbuser.UserTier_USER_TIER_HOBBYIST},
-		{"int64-2", int64(2), pbuser.UserTier_USER_TIER_ATHLETE},
-		{"int64-1", int64(1), pbuser.UserTier_USER_TIER_HOBBYIST},
-		{"int-2", int(2), pbuser.UserTier_USER_TIER_ATHLETE},
-		{"int-1", int(1), pbuser.UserTier_USER_TIER_HOBBYIST},
-		{"float-2", float64(2), pbuser.UserTier_USER_TIER_ATHLETE},
-		{"float-1", float64(1), pbuser.UserTier_USER_TIER_HOBBYIST},
-		{"unknown-type", true, pbuser.UserTier_USER_TIER_HOBBYIST},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			got := FirestoreToUser(map[string]interface{}{"tier": c.val})
-			if got.Tier != c.want {
-				t.Errorf("got %v want %v", got.Tier, c.want)
-			}
-		})
-	}
-	// Missing tier defaults to hobbyist.
-	if FirestoreToUser(map[string]interface{}{}).Tier != pbuser.UserTier_USER_TIER_HOBBYIST {
-		t.Error("missing tier should default to hobbyist")
-	}
-}
-
-func TestFirestoreToUser_NumericCountVariants(t *testing.T) {
+func TestFirestoreToUser_FcmTokensStringSlice(t *testing.T) {
 	m := map[string]interface{}{
-		"sync_count_this_month": int64(5),
-		"prevented_sync_count":  float64(9),
+		"tier":       "athlete", // legacy billing-era field: ignored
+		"fcm_tokens": []string{"a"},
 	}
 	got := FirestoreToUser(m)
-	if got.SyncCountThisMonth != 5 {
-		t.Errorf("sync count: %d", got.SyncCountThisMonth)
-	}
-	if got.PreventedSyncCount != 9 {
-		t.Errorf("prevented count: %d", got.PreventedSyncCount)
-	}
-
-	m = map[string]interface{}{
-		"sync_count_this_month": int(8),
-		"prevented_sync_count":  int(4),
-		"fcm_tokens":            []string{"a"},
-	}
-	got = FirestoreToUser(m)
-	if got.SyncCountThisMonth != 8 || got.PreventedSyncCount != 4 {
-		t.Errorf("int counts mismatch")
-	}
 	if len(got.FcmTokens) != 1 || got.FcmTokens[0] != "a" {
 		t.Errorf("fcm []string path: %v", got.FcmTokens)
 	}

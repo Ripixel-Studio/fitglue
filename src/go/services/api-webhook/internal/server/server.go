@@ -10,7 +10,6 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/infra"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
-	billingpb "github.com/fitglue/server/src/go/pkg/types/pb/services/billing"
 	pipelinepb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook"
@@ -22,7 +21,6 @@ type APIServer struct {
 	logger      infra.Logger
 	authClient  *auth.Client
 	userService userpb.UserServiceClient
-	billingSvc  billingpb.BillingServiceClient
 	pipelineSvc pipelinepb.PipelineServiceClient
 	activitySvc activitypb.ActivityServiceClient
 	processor   *webhook.Processor
@@ -33,7 +31,6 @@ func NewAPIServer(
 	logger infra.Logger,
 	authClient *auth.Client,
 	userSvc userpb.UserServiceClient,
-	billingSvc billingpb.BillingServiceClient,
 	pipelineSvc pipelinepb.PipelineServiceClient,
 	activitySvc activitypb.ActivityServiceClient,
 	processor *webhook.Processor,
@@ -43,7 +40,6 @@ func NewAPIServer(
 		logger:      logger,
 		authClient:  authClient,
 		userService: userSvc,
-		billingSvc:  billingSvc,
 		pipelineSvc: pipelineSvc,
 		activitySvc: activitySvc,
 		processor:   processor,
@@ -74,7 +70,6 @@ func (s *APIServer) setupRoutes() {
 		s.registerStravaRoutes(r)
 		s.registerFitbitRoutes(r)
 		s.registerHevyRoutes(r)
-		s.registerBillingRoutes(r)
 	})
 }
 
@@ -111,45 +106,6 @@ func (s *APIServer) registerHevyRoutes(r chi.Router) {
 
 func (s *APIServer) handleHevyEvent(w http.ResponseWriter, r *http.Request) {
 	s.processor.HandleEvent(w, r, "hevy")
-}
-
-func (s *APIServer) registerBillingRoutes(r chi.Router) {
-	r.With(RawBodyMiddleware).Post("/billing", s.handleBillingEvent)
-}
-
-func (s *APIServer) handleBillingEvent(w http.ResponseWriter, r *http.Request) {
-	signature := r.Header.Get("Stripe-Signature")
-	if signature == "" {
-		s.logger.Warn(r.Context(), "Dropping Stripe webhook request: missing signature")
-		WriteError(w, statusError(http.StatusBadRequest, "Missing Stripe signature"))
-		return
-	}
-
-	bodyContext := r.Context().Value(RawBodyContextKey{})
-	var rawBody []byte
-	if bodyContext != nil {
-		rawBody = bodyContext.([]byte)
-	} else {
-		// Fallback if middleware wasn't used or failed
-		s.logger.Error(r.Context(), "Dropping Stripe webhook request: missing raw body from middleware")
-		WriteError(w, statusError(http.StatusInternalServerError, "Missing raw body from middleware"))
-		return
-	}
-
-	req := &billingpb.HandleWebhookEventRequest{
-		Payload:   rawBody,
-		Signature: signature,
-	}
-
-	_, err := s.billingSvc.HandleWebhookEvent(r.Context(), req)
-	if err != nil {
-		s.logger.Error(r.Context(), "Stripe webhook handling failed", "err", err)
-		WriteError(w, err)
-		return
-	}
-
-	s.logger.Info(r.Context(), "Successfully processed Stripe webhook event")
-	w.WriteHeader(http.StatusOK)
 }
 
 // statusError is a helper for manually generating an error satisfying gRPC status layout

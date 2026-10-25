@@ -14,7 +14,6 @@ All inter-service communication in FitGlue uses **gRPC** with protobuf-defined c
 | Service | Port | Protocol |
 |---------|------|----------|
 | `service.user` | 8080+ (Cloud Run auto) | gRPC |
-| `service.billing` | 8080+ | gRPC |
 | `service.pipeline` | 8080+ | gRPC + Pub/Sub consumer |
 | `service.activity` | 8080+ | gRPC + Pub/Sub consumer |
 | `service.registry` | 8080+ | gRPC |
@@ -97,14 +96,12 @@ Web/Mobile → service.api.client → service.user      (GetProfile, UpdateProfi
                                 → service.pipeline   (ListPipelines, CreatePipeline, etc.)
                                 → service.activity   (ListActivities, GetShowcase, etc.)
                                 → service.registry   (GetRegistry)
-                                → service.billing    (GetSubscription)
 
 Public     → service.api.public → service.registry  (public registry listing)
                                 → service.activity   (GetPublicShowcase)
 
 Webhooks   → service.api.webhook → service.user     (GetIntegration via RPC)
                                  → Pub/Sub           (publishes topic-raw-activity)
-           → service.billing     (Stripe webhook)
 ```
 
 ## Related Documentation

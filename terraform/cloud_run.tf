@@ -6,7 +6,6 @@ locals {
   }
   backend_services = {
     "user"         = { is_public = false }
-    "billing"      = { is_public = false }
     "pipeline"     = { is_public = false }
     "activity"     = { is_public = false }
     "registry"     = { is_public = false }
@@ -268,44 +267,6 @@ resource "google_cloud_run_v2_service" "backend" {
           value_source {
             secret_key_ref {
               secret  = google_secret_manager_secret.fitbit_client_secret.secret_id
-              version = "latest"
-            }
-          }
-        }
-      }
-
-      # ── Billing secrets (Stripe) ──
-      dynamic "env" {
-        for_each = each.key == "billing" ? [1] : []
-        content {
-          name = "STRIPE_SECRET_KEY"
-          value_source {
-            secret_key_ref {
-              secret  = google_secret_manager_secret.stripe_secret_key.secret_id
-              version = "latest"
-            }
-          }
-        }
-      }
-      dynamic "env" {
-        for_each = each.key == "billing" ? [1] : []
-        content {
-          name = "STRIPE_WEBHOOK_SECRET"
-          value_source {
-            secret_key_ref {
-              secret  = google_secret_manager_secret.stripe_webhook_secret.secret_id
-              version = "latest"
-            }
-          }
-        }
-      }
-      dynamic "env" {
-        for_each = each.key == "billing" ? [1] : []
-        content {
-          name = "STRIPE_PRICE_ID"
-          value_source {
-            secret_key_ref {
-              secret  = google_secret_manager_secret.stripe_price_id.secret_id
               version = "latest"
             }
           }
@@ -599,10 +560,6 @@ resource "google_cloud_run_v2_service" "frontend" {
       env {
         name  = "USER_SERVICE_URL"
         value = google_cloud_run_v2_service.backend["user"].uri
-      }
-      env {
-        name  = "BILLING_SERVICE_URL"
-        value = google_cloud_run_v2_service.backend["billing"].uri
       }
       env {
         name  = "PIPELINE_SERVICE_URL"
@@ -1049,7 +1006,7 @@ resource "google_cloud_run_v2_service_iam_member" "destination_to_activity" {
 # Pub/Sub push subscriptions use OIDC tokens with each service's own SA,
 # so the SA needs run.invoker on itself to authenticate the push.
 locals {
-  pubsub_push_targets = ["pipeline", "destination", "activity", "notification", "billing"]
+  pubsub_push_targets = ["pipeline", "destination", "activity", "notification"]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "pubsub_self_invoke" {

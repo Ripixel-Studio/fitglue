@@ -37,11 +37,6 @@ type Database interface {
 	CountBillingEvents(ctx context.Context, userID string) (int32, error)
 	CountBillingEventsForPeriod(ctx context.Context, userID, period string) (int32, error)
 
-	// Sync Count (for tier limits)
-	IncrementSyncCount(ctx context.Context, userID string) error
-	IncrementPreventedSyncCount(ctx context.Context, userID string) error
-	ResetSyncCount(ctx context.Context, userID string) error
-
 	// Pending Inputs
 	GetPendingInput(ctx context.Context, userId string, id string) (*pbpipeline.PendingInput, error)
 	CreatePendingInput(ctx context.Context, userId string, input *pbpipeline.PendingInput) error
