@@ -149,13 +149,13 @@ build-ctl:
 # existing document keeps every field and subcollection and only has the
 # identity fields merged in. Uses Application Default Credentials against
 # GOOGLE_CLOUD_PROJECT (or PROJECT=...).
-# Usage: make bootstrap-owner UID=<firebase uid> EMAIL=<email> [DISPLAY_NAME="James"] [PROJECT=fitglue-server-prod]
+# Usage: make bootstrap-owner UID=<owner uid, = FITGLUE_OWNER_UID> EMAIL=<email> [DISPLAY_NAME="James"] [PROJECT=fitglue-server-prod]
 bootstrap-owner:
 ifndef UID
-	$(error Usage: make bootstrap-owner UID=<firebase uid> EMAIL=<email> [DISPLAY_NAME=...] [PROJECT=...])
+	$(error Usage: make bootstrap-owner UID=<owner uid> EMAIL=<email> [DISPLAY_NAME=...] [PROJECT=...])
 endif
 ifndef EMAIL
-	$(error Usage: make bootstrap-owner UID=<firebase uid> EMAIL=<email> [DISPLAY_NAME=...] [PROJECT=...])
+	$(error Usage: make bootstrap-owner UID=<owner uid> EMAIL=<email> [DISPLAY_NAME=...] [PROJECT=...])
 endif
 	cd $(GO_SRC_DIR) && $(GOCMD) run ./cmd/bootstrap-owner -uid "$(UID)" -email "$(EMAIL)" -display-name "$(DISPLAY_NAME)" -project "$(PROJECT)"
 

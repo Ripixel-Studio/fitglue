@@ -2,22 +2,44 @@ package server
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"firebase.google.com/go/v4/auth"
 	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 type contextKey string
 
-const userContextKey = contextKey("userToken")
+const userContextKey = contextKey("principal")
 
-// AuthMiddleware verifies the Firebase ID token
-func AuthMiddleware(authClient *auth.Client) func(http.Handler) http.Handler {
+// Principal is the authenticated caller. FitGlue is single-user: every request
+// that presents the static API token acts as the owner, so the only field is
+// the owner's user id (the Firestore `users/{uid}` document the data is keyed
+// by).
+type Principal struct {
+	UID string
+}
+
+// AuthConfig is the static bearer credential api-client checks on every
+// authenticated route, and the user it resolves to. Both come from the
+// environment (FITGLUE_API_TOKEN, FITGLUE_OWNER_UID) and are required.
+type AuthConfig struct {
+	Token    string
+	OwnerUID string
+}
+
+// AuthMiddleware authenticates requests with a static bearer token.
+//
+// `Authorization: Bearer <token>` is compared against cfg.Token in constant
+// time; a missing, malformed or mismatched header is a 401. On success the
+// request context carries a Principal for cfg.OwnerUID, which handlers read
+// through getUserToken. An empty cfg.Token never matches, so a misconfigured
+// server rejects everything rather than accepting anything.
+func AuthMiddleware(cfg AuthConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
@@ -26,15 +48,13 @@ func AuthMiddleware(authClient *auth.Client) func(http.Handler) http.Handler {
 				return
 			}
 
-			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-			token, err := authClient.VerifyIDToken(r.Context(), tokenStr)
-			if err != nil {
+			presented := strings.TrimPrefix(authHeader, "Bearer ")
+			if cfg.Token == "" || subtle.ConstantTimeCompare([]byte(presented), []byte(cfg.Token)) != 1 {
 				http.Error(w, "invalid token", http.StatusUnauthorized)
 				return
 			}
 
-			// Add token details to context
-			ctx := context.WithValue(r.Context(), userContextKey, token)
+			ctx := context.WithValue(r.Context(), userContextKey, &Principal{UID: cfg.OwnerUID})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

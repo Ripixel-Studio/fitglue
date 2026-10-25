@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"firebase.google.com/go/v4/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
@@ -19,7 +18,6 @@ import (
 type APIServer struct {
 	router      *chi.Mux
 	logger      infra.Logger
-	authClient  *auth.Client
 	userService userpb.UserServiceClient
 	pipelineSvc pipelinepb.PipelineServiceClient
 	activitySvc activitypb.ActivityServiceClient
@@ -29,7 +27,6 @@ type APIServer struct {
 // NewAPIServer constructs the application routing and API middleware stack
 func NewAPIServer(
 	logger infra.Logger,
-	authClient *auth.Client,
 	userSvc userpb.UserServiceClient,
 	pipelineSvc pipelinepb.PipelineServiceClient,
 	activitySvc activitypb.ActivityServiceClient,
@@ -38,7 +35,6 @@ func NewAPIServer(
 	s := &APIServer{
 		router:      chi.NewRouter(),
 		logger:      logger,
-		authClient:  authClient,
 		userService: userSvc,
 		pipelineSvc: pipelineSvc,
 		activitySvc: activitySvc,

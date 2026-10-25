@@ -18,7 +18,7 @@ FitGlue uses a **type-safe, self-registering plugin architecture** for extensibl
 | Hevy | API Key / HMAC | Strength workouts, webhook sync |
 | Fitbit | OAuth | Activity notifications, polling |
 | Strava | OAuth | Activity webhooks |
-| FIT Upload | Firebase JWT | Manual FIT file upload |
+| FIT Upload | Static bearer token | Manual FIT file upload |
 | Parkrun Results | Public ID | Race results via athlete ID |
 
 ### Enrichers (Pipeline Steps)

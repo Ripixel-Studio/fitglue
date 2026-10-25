@@ -11,7 +11,7 @@ FitGlue is a fitness data aggregation and routing platform built on Google Cloud
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │              API GATEWAY LAYER (HTTP entry points)          │    │
 │  │                                                             │    │
-│  │   service.api.client   ←── Web App / Mobile (Firebase JWT) │    │
+│  │   service.api.client   ←── owner tools (static bearer)    │    │
 │  │   service.api.public   ←── Marketing site (no auth)         │    │
 │  │   service.api.webhook  ←── Third-party webhooks (HMAC)      │    │
 │  └────────────────────────┬────────────────────────────────────┘    │
@@ -49,7 +49,7 @@ Data enters via `service.api.webhook`, which hosts a generic `WebhookProcessor` 
 | Hevy | API Key / HMAC | Webhook push |
 | Strava | OAuth | Webhook push |
 | Fitbit | OAuth | Notification + poll |
-| FIT Upload | Firebase JWT | Direct file upload |
+| FIT Upload | Static bearer token | Direct file upload |
 
 Each source:
 1. Verifies signature/auth

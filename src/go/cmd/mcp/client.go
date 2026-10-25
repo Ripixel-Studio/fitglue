@@ -18,14 +18,16 @@ import (
 // gateway's OpenAPI-documented shapes are the contract.
 type APIClient struct {
 	baseURL string
-	tokens  TokenSource
+	token   string
 	client  *http.Client
 }
 
-func NewAPIClient(baseURL string, tokens TokenSource) *APIClient {
+// NewAPIClient returns a client for the gateway at baseURL that presents token
+// as the static bearer on every request.
+func NewAPIClient(baseURL, token string) *APIClient {
 	return &APIClient{
 		baseURL: strings.TrimRight(baseURL, "/"),
-		tokens:  tokens,
+		token:   token,
 		client:  &http.Client{Timeout: 30 * time.Second},
 	}
 }
@@ -33,11 +35,6 @@ func NewAPIClient(baseURL string, tokens TokenSource) *APIClient {
 // Get performs an authenticated GET against /api/v2 and returns the response
 // body, pretty-printed when it is valid JSON.
 func (c *APIClient) Get(ctx context.Context, path string, query url.Values) (string, error) {
-	token, err := c.tokens.Token(ctx)
-	if err != nil {
-		return "", fmt.Errorf("obtaining auth token: %w", err)
-	}
-
 	u := c.baseURL + "/api/v2" + path
 	if len(query) > 0 {
 		u += "?" + query.Encode()
@@ -46,7 +43,7 @@ func (c *APIClient) Get(ctx context.Context, path string, query url.Values) (str
 	if err != nil {
 		return "", fmt.Errorf("building request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+c.token)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.client.Do(req)
@@ -61,7 +58,7 @@ func (c *APIClient) Get(ctx context.Context, path string, query url.Values) (str
 
 	switch {
 	case resp.StatusCode == http.StatusUnauthorized:
-		return "", fmt.Errorf("unauthorized (HTTP 401) — the Firebase token was rejected; refresh FITGLUE_ID_TOKEN or check the refresh-token config")
+		return "", fmt.Errorf("unauthorized (HTTP 401) — FITGLUE_API_TOKEN does not match the token api-client was started with")
 	case resp.StatusCode == http.StatusNotFound:
 		return "", fmt.Errorf("not found (HTTP 404): %s", path)
 	case resp.StatusCode < 200 || resp.StatusCode > 299:
@@ -78,4 +75,11 @@ func prettyJSON(body []byte) string {
 		return string(body)
 	}
 	return out.String()
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "…"
 }

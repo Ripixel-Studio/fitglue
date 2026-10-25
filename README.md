@@ -28,7 +28,7 @@ FitGlue uses a domain-service architecture: 11 Go Cloud Run services communicati
 ```
 
 **API gateways** sit in front for HTTP clients:
-- `service.api.client` — Web app / mobile (Firebase JWT)
+- `service.api.client` — the owner's tools: Jarvis, `fitgluectl`, `fitglue-mcp` (static bearer token, see [Security](docs/architecture/security.md))
 - `service.api.public` — Unauthenticated (showcase)
 
 **Domain services** own their Firestore data and expose gRPC interfaces:

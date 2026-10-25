@@ -66,10 +66,10 @@ func TestRouteCoverage(t *testing.T) {
 	t.Logf("Found %d ClientGatewayService routes in OpenAPI spec", len(expectedRoutes))
 
 	// Build the actual router using NewAPIServer with mock service clients.
-	// We pass nil for authClient since we only need the router structure, not auth behaviour.
+	// An empty AuthConfig is fine: only the router structure matters here.
 	srv := NewAPIServer(
 		infra.NewLogger(),
-		nil, // authClient
+		AuthConfig{}, // no auth needed: tests inject the Principal or walk routes
 		&mockPublisher{},
 		nil, // apiKeyStore
 		nil, // gcsSigner (not needed for route structure)

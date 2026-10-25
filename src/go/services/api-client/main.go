@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/pubsub"
 	gcstorage "cloud.google.com/go/storage"
 	"github.com/fitglue/server/src/go/internal/infra"
@@ -13,8 +14,6 @@ import (
 	infrastorage "github.com/fitglue/server/src/go/pkg/infrastructure/storage"
 	"github.com/fitglue/server/src/go/services/api-client/internal/server"
 
-	firebase "firebase.google.com/go/v4"
-	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
@@ -32,22 +31,18 @@ func main() {
 	infra.InitSentry()
 	ctx := context.Background()
 
-	// Firebase Auth Setup — use credentials file if set (local dev), otherwise ADC (Cloud Run)
-	var app *firebase.App
-	var err error
-	if creds := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); creds != "" {
-		app, err = firebase.NewApp(ctx, nil, option.WithCredentialsFile(creds))
-	} else {
-		app, err = firebase.NewApp(ctx, nil)
+	// Static bearer auth. FitGlue is single-user: the one token in
+	// FITGLUE_API_TOKEN authenticates every request as FITGLUE_OWNER_UID.
+	// Both are required — refuse to start rather than serve an API nobody
+	// can call (empty token) or that acts as nobody (empty uid).
+	authCfg := server.AuthConfig{
+		Token:    os.Getenv("FITGLUE_API_TOKEN"),
+		OwnerUID: os.Getenv("FITGLUE_OWNER_UID"),
 	}
-	if err != nil {
-		logger.Error(ctx, "failed to initialize firebase app", "err", err)
-		os.Exit(1)
-	}
-
-	authClient, err := app.Auth(ctx)
-	if err != nil {
-		logger.Error(ctx, "failed to initialize firebase auth client", "err", err)
+	if authCfg.Token == "" || authCfg.OwnerUID == "" {
+		logger.Error(ctx, "FITGLUE_API_TOKEN and FITGLUE_OWNER_UID must both be set — api-client authenticates with a static bearer token and acts as that one user",
+			"FITGLUE_API_TOKEN_set", authCfg.Token != "",
+			"FITGLUE_OWNER_UID_set", authCfg.OwnerUID != "")
 		os.Exit(1)
 	}
 
@@ -91,7 +86,7 @@ func main() {
 	publisher := &infraps.PubSubAdapter{Client: pubsubClient, Logger: logger}
 
 	// Setup Firestore Client for API key storage
-	firestoreClient, err := app.Firestore(ctx)
+	firestoreClient, err := firestore.NewClient(ctx, projectID)
 	if err != nil {
 		logger.Error(ctx, "Failed to initialize Firestore client", "error", err)
 		os.Exit(1)
@@ -111,7 +106,7 @@ func main() {
 	// Build API Gateway router
 	apiServer := server.NewAPIServer(
 		logger,
-		authClient,
+		authCfg,
 		publisher,
 		apiKeyStore,
 		gcsSigner,

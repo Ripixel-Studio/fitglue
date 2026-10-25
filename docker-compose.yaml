@@ -11,6 +11,9 @@ services:
       - "8080:8080"
     environment:
       - PORT=8080
+      # Static bearer auth (rethink F2.2): api-client refuses to start without both.
+      - FITGLUE_API_TOKEN=${FITGLUE_API_TOKEN:-local-dev-token}
+      - FITGLUE_OWNER_UID=${FITGLUE_OWNER_UID:-local-owner}
 
   api-public:
     build:

@@ -49,9 +49,9 @@ resource "google_firebase_hosting_release" "assets_redirect" {
 }
 
 resource "google_firebase_hosting_custom_domain" "assets" {
-  provider = google-beta
-  project  = var.project_id
-  site_id  = google_firebase_hosting_site.assets.site_id
+  provider      = google-beta
+  project       = var.project_id
+  site_id       = google_firebase_hosting_site.assets.site_id
   custom_domain = var.environment == "prod" ? "assets.fitglue.tech" : "assets.${var.environment}.fitglue.tech"
 
   # Don't block the apply on DNS/cert propagation; the DNS record below is

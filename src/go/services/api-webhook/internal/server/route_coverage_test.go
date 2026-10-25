@@ -64,7 +64,6 @@ func TestRouteCoverage(t *testing.T) {
 	// Pass nil for all service clients — only the router structure matters
 	srv := NewAPIServer(
 		infra.NewLogger(),
-		nil, // authClient
 		nil, // userSvc
 		nil, // pipelineSvc
 		nil, // activitySvc
