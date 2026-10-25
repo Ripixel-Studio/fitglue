@@ -45,6 +45,11 @@ resource "google_storage_bucket_iam_member" "artifacts_api_client_read" {
 }
 
 # Version config bucket - stores unified FitGlue version across web/server repos
+#
+# RETIRED IN F4: nothing writes this any more (the CircleCI create-release job
+# that published version.json went in F1.8) and fitglue-web's build falls back
+# to 0.0.0 when it is unreadable. Kept only because the bucket is non-empty and
+# versioned, so destroying it needs force_destroy and a deliberate step — F4.2.
 resource "google_storage_bucket" "version_config_bucket" {
   name     = "${var.project_id}-version-config"
   location = var.region

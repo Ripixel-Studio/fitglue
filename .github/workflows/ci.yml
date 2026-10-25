@@ -1,13 +1,12 @@
-# GitHub Actions PR gate.
+# GitHub Actions — the only PR check (build → lint → unit tests).
 #
-# This does NOT replace the CircleCI pipeline (.circleci/config.yml), which
-# remains the source of truth for build/deploy/release on `main`. It mirrors the
-# CircleCI `build-and-test` job's checks (build → lint → test) as a GitHub-native
-# status check so a green tick here can be made a required check and trusted to
-# auto-merge low-risk dependency bumps.
+# CircleCI (.circleci/config.yml) no longer runs on PRs; it is filtered to
+# `main` and only exists to apply terraform + roll Cloud Run images until F3/F4
+# of the single-user conversion move FitGlue onto the box, at which point it is
+# deleted and this workflow is all the CI there is.
 #
 # The repo is a Go monorepo (module at src/go); the root package.json is only
-# release + integration-test tooling. All real checks live in the Makefile.
+# integration-test tooling. All real checks live in the Makefile.
 name: CI
 
 on:

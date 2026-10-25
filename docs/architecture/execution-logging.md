@@ -126,7 +126,10 @@ type FrameworkContext struct {
 - Sentry error capture with context
 - Panic recovery
 
-## Sentry Integration
+## Sentry Integration (optional)
+
+Sentry is enabled per process by `SENTRY_DSN`; with it unset every capture
+below is a no-op. There is one DSN for all services.
 
 ### SentryHandler
 

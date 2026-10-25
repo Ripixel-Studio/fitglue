@@ -191,13 +191,12 @@ terraform apply plan.tfplan
 
 ### CI/CD Deployment
 
-Deployments are automated via CircleCI:
+Until F4 of the single-user conversion, a merge to `main` runs
+`terraform apply -auto-approve -var-file=envs/prod.tfvars` from CircleCI; that
+is how deletion PRs destroy their resources. Only `prod` exists. After F3 the
+apply is run by hand from the box and the CircleCI pipeline is deleted.
 
-1. **Dev**: Automatic on `main` branch
-2. **Test**: Automatic after Dev succeeds
-3. **Prod**: Manual approval required
-
-See [CI/CD Guide](cicd.md) for details.
+See [CI/CD](cicd.md) for details.
 
 ## File Reference
 

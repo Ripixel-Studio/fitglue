@@ -6,7 +6,6 @@
     "ts-proto": "^2.8.3"
   },
   "scripts": {
-    "release": "standard-version --releaseCommitMessageFormat \"chore(release): {{currentTag}} [skip ci]\"",
     "test:integration": "jest",
     "test:local": "TEST_ENVIRONMENT=local jest --testPathPatterns=local.test.ts",
     "test:deployed": "jest --testPathPatterns=deployed.test.ts",
@@ -22,7 +21,6 @@
     "axios": "^1.13.2",
     "firebase-admin": "^13.6.0",
     "jest": "^30.2.0",
-    "standard-version": "^9.5.0",
     "ts-jest": "^29.4.6",
     "ts-morph": "^27.0.2",
     "ts-node": "^10.9.2",

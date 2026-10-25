@@ -126,7 +126,7 @@ All plugins self-register via `init()`. The registry serves configuration via `s
 
 ## Observability
 
-- **Sentry**: `slog`-based `SentryHandler` wraps Go logging; all services integrate
+- **Sentry** (optional): `slog`-based `SentryHandler` wraps Go logging; one `SENTRY_DSN` for all services, unset means off
 - **Health checks**: gRPC health protocol on all domain services
 - **Execution tracking**: `PipelineRun` documents in Firestore per pipeline execution
 
@@ -140,7 +140,7 @@ All plugins self-register via `init()`. The registry serves configuration via `s
 | Storage | Cloud Storage |
 | Secrets | Secret Manager |
 | Inter-service | gRPC (protobuf) |
-| Observability | Sentry |
+| Observability | `slog`; Sentry optional |
 | Infrastructure | Terraform |
 
 ## Environments

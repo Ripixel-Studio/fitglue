@@ -15,7 +15,7 @@ Go backend — 8 Cloud Run microservices communicating via gRPC, fronted by 3 HT
 | Auth | Firebase Authentication (JWT) |
 | AI | Gemini (AI enrichers) |
 | FIT files | muktihari/fit |
-| Error tracking | Sentry |
+| Error tracking | Sentry — optional, one `SENTRY_DSN` for all services; unset means no-op |
 | Container | Docker (distroless, multi-stage) |
 | Infra | Terraform (Cloud Run, Firestore, Pub/Sub, GCS) |
 | Node (tooling) | 22+ (proto generation, integration tests) |
@@ -268,8 +268,7 @@ docker build --build-arg SERVICE_NAME=api-client -t api-client .
 
 ## CI/CD
 
-- Push to main → build + test → auto-deploy to `dev`
-- Manual approval → deploy to `prod`
-- Docker images tagged with 12-char commit hash
-- Content-hash caching: unchanged services are not rebuilt
-- Terraform manages all Cloud Run + Firestore + Pub/Sub infrastructure
+- Pull requests: GitHub Actions (`.github/workflows/ci.yml`) runs `make build`, `make lint`, `make test`. That is the only PR check.
+- Merge to `main`: CircleCI (`.circleci/config.yml`, main-only) builds images and runs `terraform apply` for `prod`. **Retired in F4** — it stays until then because the F1.x deletion PRs rely on apply-on-merge to destroy their cloud resources. The replacement is `make deploy` on the box (F3.1).
+- No release job, no changelog generation, no version bumping: `CHANGELOG.md` is written by hand.
+- See `docs/infrastructure/cicd.md`.

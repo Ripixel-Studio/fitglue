@@ -38,7 +38,7 @@ make test
 
 1. **New RPC Endpoint**: Define in `src/proto`, run `make generate`, and implement the interface in the respective `internal` package and `service`.
 2. **New Webhook Source**: Implement the `SourceProvider` interface in `internal/webhook` and register it inside `services/api-webhook/main.go`.
-3. **Deploying Independent Services**: Use standard CI/CD deployment or run `gcloud run deploy` after building the Docker artifact.
+3. **Deploying**: merging to `main` still applies terraform and rolls the Cloud Run services from CircleCI until F4; after F3 it is `make deploy` on the box. See `docs/infrastructure/cicd.md`.
 
 2. **Proto changes?** Regenerate types:
    ```bash
@@ -65,6 +65,10 @@ make test
 4. Run `make test && make lint`
 5. Commit with a descriptive message
 6. Push and open a PR
+
+### What CI checks
+
+GitHub Actions runs `make build`, `make lint` and `make test` on every PR. Nothing else runs on a PR.
 
 ### PR Checklist
 

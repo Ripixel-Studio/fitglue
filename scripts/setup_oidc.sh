@@ -4,6 +4,11 @@ set -e
 # GCP OIDC Setup for CircleCI
 # This script configures Workload Identity Federation for keyless authentication
 #
+# RETIRED IN F4: the CircleCI deploy job (.circleci/config.yml) still
+# authenticates through the `circleci-pool` this script created, so it stays
+# until F4 deletes the pipeline. The box deploys with a service-account key
+# (F3.2), not OIDC. Only `prod` exists any more; `dev`/`test` are historical.
+#
 # Usage: ./scripts/setup_oidc.sh <environment>
 # Example: ./scripts/setup_oidc.sh test
 

@@ -52,6 +52,12 @@ type loggerWrapper struct {
 
 var loggerWrappers []loggerWrapper
 
+// enabled is true only after Init succeeded with a non-empty DSN. Every
+// capture entry point checks it first so that a process with no SENTRY_DSN
+// (the normal case on the box) does nothing at all: no scope juggling on an
+// unconfigured hub, no "captured" debug lines for events that went nowhere.
+var enabled bool
+
 // RegisterLoggerWrapper records a logging-shim frame identity whose frames are
 // stripped from Sentry stack traces (in addition to this package's own frames),
 // so the reported culprit is the real application call site rather than the shim.
@@ -77,12 +83,14 @@ func isInstrumentationFrame(f sentry.Frame) bool {
 	return false
 }
 
-// Init initializes Sentry for Go Cloud Functions.
-// Safe to call multiple times - will only initialize once.
+// Init initialises the Sentry SDK. Sentry is optional: with an empty DSN it
+// returns nil, logs one Info line, and every other function in this package
+// becomes a no-op. Safe to call more than once; the last call wins.
 func Init(cfg Config, logger *slog.Logger) error {
 	if cfg.DSN == "" {
+		enabled = false
 		if logger != nil {
-			logger.Warn("Sentry DSN not configured - error tracking disabled")
+			logger.Info("Sentry disabled: SENTRY_DSN not set")
 		}
 		return nil
 	}
@@ -99,18 +107,24 @@ func Init(cfg Config, logger *slog.Logger) error {
 	})
 
 	if err != nil {
+		enabled = false
 		if logger != nil {
 			logger.Error("Failed to initialize Sentry", "error", err)
 		}
 		return fmt.Errorf("sentry init: %w", err)
 	}
 
+	enabled = true
 	if logger != nil {
 		logger.Info("Sentry initialized", "environment", cfg.Environment, "release", cfg.Release)
 	}
 
 	return nil
 }
+
+// Enabled reports whether Init succeeded with a DSN, i.e. whether captures go
+// anywhere.
+func Enabled() bool { return enabled }
 
 // beforeSend runs on every outgoing event. It scrubs sensitive request headers
 // and strips this package's instrumentation frames from stack traces so Sentry
@@ -175,7 +189,7 @@ func applyContext(scope *sentry.Scope, context map[string]interface{}) {
 
 // CaptureException captures an exception in Sentry with additional context.
 func CaptureException(err error, context map[string]interface{}, logger *slog.Logger) {
-	if err == nil {
+	if err == nil || !enabled {
 		return
 	}
 
@@ -191,6 +205,9 @@ func CaptureException(err error, context map[string]interface{}, logger *slog.Lo
 
 // CaptureMessage captures a message in Sentry.
 func CaptureMessage(message string, level sentry.Level, context map[string]interface{}, logger *slog.Logger) {
+	if !enabled {
+		return
+	}
 	sentry.WithScope(func(scope *sentry.Scope) {
 		scope.SetLevel(level)
 		applyContext(scope, context)
@@ -205,6 +222,9 @@ func CaptureMessage(message string, level sentry.Level, context map[string]inter
 // Flush waits for all events to be sent to Sentry.
 // Call this before function termination to ensure events are sent.
 func Flush(timeout time.Duration) bool {
+	if !enabled {
+		return true
+	}
 	return sentry.Flush(timeout)
 }
 
@@ -234,8 +254,8 @@ func NewSentryHandler(h slog.Handler) *SentryHandler {
 
 // Handle implements slog.Handler. For Error-level logs, it captures the message to Sentry.
 func (h *SentryHandler) Handle(ctx context.Context, r slog.Record) error {
-	// Capture Error-level logs to Sentry
-	if r.Level >= slog.LevelError {
+	// Capture Error-level logs to Sentry (only when a DSN was configured).
+	if enabled && r.Level >= slog.LevelError {
 		// Build context from attributes
 		context := make(map[string]interface{})
 		r.Attrs(func(a slog.Attr) bool {

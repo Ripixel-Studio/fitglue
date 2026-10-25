@@ -49,9 +49,9 @@ See [Architecture Overview](docs/architecture/overview.md) for the full system d
 | Database | Cloud Firestore |
 | Storage | Cloud Storage (FIT files, GCS payloads) |
 | Inter-service | gRPC (protobuf) |
-| CI/CD | CircleCI + OIDC |
+| CI/CD | GitHub Actions on PRs; CircleCI deploy on `main` until F4 (see [CI/CD](docs/infrastructure/cicd.md)) |
 | Infrastructure | Terraform |
-| Observability | Sentry, structured `slog` |
+| Observability | structured `slog`; Sentry optional via a single `SENTRY_DSN` |
 
 ## Quick Start
 
@@ -130,7 +130,7 @@ fitglue-server/
 - [Error Codes Reference](docs/reference/errors.md) — All error codes and retryability
 
 ### Infrastructure
-- [CI/CD Guide](docs/infrastructure/cicd.md) — Pipeline and Cloud Run deployments
+- [CI/CD](docs/infrastructure/cicd.md) — PR checks on GitHub Actions; the `main` deploy that F4 retires
 
 ### Decisions
 - [Architecture Decisions (ADR)](docs/decisions/ADR.md) — Key design choices
