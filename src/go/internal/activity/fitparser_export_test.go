@@ -2,9 +2,6 @@ package activity
 
 import (
 	"context"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/fitglue/server/src/go/internal/infra"
@@ -39,28 +36,6 @@ func TestParseFitFile_Validation(t *testing.T) {
 		_, err := s.ParseFitFile(ctx, &pbsvc.ParseFitFileRequest{UserId: "u1", FitFileContent: []byte("not a fit file")})
 		if status.Code(err) != codes.InvalidArgument {
 			t.Errorf("expected InvalidArgument for unparseable FIT, got %v", err)
-		}
-	})
-}
-
-func TestHandleExportTrigger_BadRequest(t *testing.T) {
-	s := newLoggerOnlyService()
-
-	t.Run("invalid json", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodPost, "/export", strings.NewReader("{not json"))
-		w := httptest.NewRecorder()
-		s.HandleExportTrigger(w, r)
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("expected 400, got %d", w.Code)
-		}
-	})
-
-	t.Run("missing fields", func(t *testing.T) {
-		r := httptest.NewRequest(http.MethodPost, "/export", strings.NewReader(`{"user_id":"u1"}`))
-		w := httptest.NewRecorder()
-		s.HandleExportTrigger(w, r)
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for missing job_id, got %d", w.Code)
 		}
 	})
 }

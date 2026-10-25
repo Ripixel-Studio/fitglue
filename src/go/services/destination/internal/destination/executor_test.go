@@ -152,12 +152,6 @@ func (m *mockActivityServiceClient) UpdateShowcase(ctx context.Context, in *acti
 func (m *mockActivityServiceClient) DeleteShowcase(ctx context.Context, in *activitypb.DeleteShowcaseRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	return nil, nil
 }
-func (m *mockActivityServiceClient) ExportData(ctx context.Context, in *activitypb.ExportDataRequest, opts ...grpc.CallOption) (*activitypb.ExportDataResponse, error) {
-	return nil, nil
-}
-func (m *mockActivityServiceClient) GetExportJob(ctx context.Context, in *activitypb.GetExportJobRequest, opts ...grpc.CallOption) (*activitypb.ExportJob, error) {
-	return nil, nil
-}
 func (m *mockActivityServiceClient) ExportPipelineRun(ctx context.Context, in *activitypb.ExportPipelineRunRequest, opts ...grpc.CallOption) (*activitypb.ExportPipelineRunResponse, error) {
 	return nil, nil
 }

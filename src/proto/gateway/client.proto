@@ -486,20 +486,6 @@ service ClientGatewayService {
     };
   }
 
-  // ===================== Data Export =====================
-  // Enqueue an asynchronous whole-account export; returns the job. Poll
-  // GetExportJob until status is READY (download_url set) or FAILED.
-  rpc ExportData(EmptyRequest) returns (ExportJobGatewayResponse) {
-    option (google.api.http) = {
-      post: "/users/me/export"
-    };
-  }
-  rpc GetExportJob(GetExportJobGatewayRequest) returns (ExportJobGatewayResponse) {
-    option (google.api.http) = {
-      get: "/users/me/export/{job_id}"
-    };
-  }
-
   // ===================== FIT File Parse =====================
   rpc ParseFitFile(ParseFitFileGatewayRequest) returns (fitglue.models.activity.StandardizedActivity) {
     option (google.api.http) = {
@@ -919,23 +905,6 @@ message GetActivityPhotoUploadUrlGatewayResponse {
   int64 max_size_bytes = 4;
 }
 
-// Data Export
-message ExportDataGatewayResponse {
-  string download_url = 1;
-}
-// status is one of: PENDING | PROCESSING | READY | FAILED
-message ExportJobGatewayResponse {
-  string job_id = 1;
-  string status = 2;
-  string download_url = 3;   // populated when status == READY
-  int64 size_bytes = 4;
-  string expires_at = 5;     // RFC3339; signed-URL expiry
-  string error = 6;          // populated when status == FAILED
-  string created_at = 7;     // RFC3339
-}
-message GetExportJobGatewayRequest {
-  string job_id = 1;
-}
 message ExportPipelineRunGatewayRequest {
   string run_id = 1;
 }

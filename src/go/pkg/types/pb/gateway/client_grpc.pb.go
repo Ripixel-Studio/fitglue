@@ -100,8 +100,6 @@ const (
 	ClientGatewayService_GetShowcaseProfileViewStats_FullMethodName        = "/fitglue.gateway.ClientGatewayService/GetShowcaseProfileViewStats"
 	ClientGatewayService_GetShowcaseRoundupViewStats_FullMethodName        = "/fitglue.gateway.ClientGatewayService/GetShowcaseRoundupViewStats"
 	ClientGatewayService_ListShowcaseViewStats_FullMethodName              = "/fitglue.gateway.ClientGatewayService/ListShowcaseViewStats"
-	ClientGatewayService_ExportData_FullMethodName                         = "/fitglue.gateway.ClientGatewayService/ExportData"
-	ClientGatewayService_GetExportJob_FullMethodName                       = "/fitglue.gateway.ClientGatewayService/GetExportJob"
 	ClientGatewayService_ParseFitFile_FullMethodName                       = "/fitglue.gateway.ClientGatewayService/ParseFitFile"
 	ClientGatewayService_GetExerciseLibrary_FullMethodName                 = "/fitglue.gateway.ClientGatewayService/GetExerciseLibrary"
 	ClientGatewayService_RepostMissedDestination_FullMethodName            = "/fitglue.gateway.ClientGatewayService/RepostMissedDestination"
@@ -242,11 +240,6 @@ type ClientGatewayServiceClient interface {
 	GetShowcaseProfileViewStats(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*activity.ShowcaseViewStats, error)
 	GetShowcaseRoundupViewStats(ctx context.Context, in *GetShowcaseRoundupViewStatsGatewayRequest, opts ...grpc.CallOption) (*activity.ShowcaseViewStats, error)
 	ListShowcaseViewStats(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListShowcaseViewStatsGatewayResponse, error)
-	// ===================== Data Export =====================
-	// Enqueue an asynchronous whole-account export; returns the job. Poll
-	// GetExportJob until status is READY (download_url set) or FAILED.
-	ExportData(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ExportJobGatewayResponse, error)
-	GetExportJob(ctx context.Context, in *GetExportJobGatewayRequest, opts ...grpc.CallOption) (*ExportJobGatewayResponse, error)
 	// ===================== FIT File Parse =====================
 	ParseFitFile(ctx context.Context, in *ParseFitFileGatewayRequest, opts ...grpc.CallOption) (*activity.StandardizedActivity, error)
 	// ===================== Exercise Library =====================
@@ -1045,26 +1038,6 @@ func (c *clientGatewayServiceClient) ListShowcaseViewStats(ctx context.Context, 
 	return out, nil
 }
 
-func (c *clientGatewayServiceClient) ExportData(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ExportJobGatewayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExportJobGatewayResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_ExportData_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) GetExportJob(ctx context.Context, in *GetExportJobGatewayRequest, opts ...grpc.CallOption) (*ExportJobGatewayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExportJobGatewayResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetExportJob_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *clientGatewayServiceClient) ParseFitFile(ctx context.Context, in *ParseFitFileGatewayRequest, opts ...grpc.CallOption) (*activity.StandardizedActivity, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(activity.StandardizedActivity)
@@ -1374,11 +1347,6 @@ type ClientGatewayServiceServer interface {
 	GetShowcaseProfileViewStats(context.Context, *EmptyRequest) (*activity.ShowcaseViewStats, error)
 	GetShowcaseRoundupViewStats(context.Context, *GetShowcaseRoundupViewStatsGatewayRequest) (*activity.ShowcaseViewStats, error)
 	ListShowcaseViewStats(context.Context, *EmptyRequest) (*ListShowcaseViewStatsGatewayResponse, error)
-	// ===================== Data Export =====================
-	// Enqueue an asynchronous whole-account export; returns the job. Poll
-	// GetExportJob until status is READY (download_url set) or FAILED.
-	ExportData(context.Context, *EmptyRequest) (*ExportJobGatewayResponse, error)
-	GetExportJob(context.Context, *GetExportJobGatewayRequest) (*ExportJobGatewayResponse, error)
 	// ===================== FIT File Parse =====================
 	ParseFitFile(context.Context, *ParseFitFileGatewayRequest) (*activity.StandardizedActivity, error)
 	// ===================== Exercise Library =====================
@@ -1644,12 +1612,6 @@ func (UnimplementedClientGatewayServiceServer) GetShowcaseRoundupViewStats(conte
 }
 func (UnimplementedClientGatewayServiceServer) ListShowcaseViewStats(context.Context, *EmptyRequest) (*ListShowcaseViewStatsGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListShowcaseViewStats not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) ExportData(context.Context, *EmptyRequest) (*ExportJobGatewayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ExportData not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) GetExportJob(context.Context, *GetExportJobGatewayRequest) (*ExportJobGatewayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetExportJob not implemented")
 }
 func (UnimplementedClientGatewayServiceServer) ParseFitFile(context.Context, *ParseFitFileGatewayRequest) (*activity.StandardizedActivity, error) {
 	return nil, status.Error(codes.Unimplemented, "method ParseFitFile not implemented")
@@ -3097,42 +3059,6 @@ func _ClientGatewayService_ListShowcaseViewStats_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ClientGatewayService_ExportData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).ExportData(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_ExportData_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).ExportData(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_GetExportJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetExportJobGatewayRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetExportJob(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetExportJob_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetExportJob(ctx, req.(*GetExportJobGatewayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _ClientGatewayService_ParseFitFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ParseFitFileGatewayRequest)
 	if err := dec(in); err != nil {
@@ -3785,14 +3711,6 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListShowcaseViewStats",
 			Handler:    _ClientGatewayService_ListShowcaseViewStats_Handler,
-		},
-		{
-			MethodName: "ExportData",
-			Handler:    _ClientGatewayService_ExportData_Handler,
-		},
-		{
-			MethodName: "GetExportJob",
-			Handler:    _ClientGatewayService_GetExportJob_Handler,
 		},
 		{
 			MethodName: "ParseFitFile",

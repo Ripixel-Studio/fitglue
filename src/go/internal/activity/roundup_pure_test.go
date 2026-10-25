@@ -149,35 +149,6 @@ func TestParsePeriodType(t *testing.T) {
 	}
 }
 
-func TestExportJobMapRoundTrip(t *testing.T) {
-	now := time.Date(2024, 5, 1, 10, 0, 0, 0, time.UTC)
-	orig := &ExportJobRecord{
-		JobID:      "job-1",
-		Status:     "running",
-		ObjectPath: "exports/job-1.zip",
-		SizeBytes:  2048,
-		Error:      "",
-		CreatedAt:  now,
-		UpdatedAt:  now.Add(time.Minute),
-	}
-	m := exportJobToMap(orig)
-	if m["job_id"] != "job-1" || m["size_bytes"].(int64) != 2048 {
-		t.Errorf("unexpected map: %v", m)
-	}
-	back := exportJobFromMap("job-1", m)
-	if back.JobID != orig.JobID || back.Status != orig.Status || back.ObjectPath != orig.ObjectPath ||
-		back.SizeBytes != orig.SizeBytes || !back.CreatedAt.Equal(orig.CreatedAt) || !back.UpdatedAt.Equal(orig.UpdatedAt) {
-		t.Errorf("roundtrip mismatch: %+v vs %+v", back, orig)
-	}
-}
-
-func TestExportJobFromMap_MissingFields(t *testing.T) {
-	rec := exportJobFromMap("job-x", map[string]interface{}{})
-	if rec.JobID != "job-x" || rec.Status != "" || rec.SizeBytes != 0 {
-		t.Errorf("expected zero-value fields, got %+v", rec)
-	}
-}
-
 func TestToInt64(t *testing.T) {
 	cases := []struct {
 		in   interface{}

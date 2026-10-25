@@ -31,8 +31,6 @@ const (
 	ActivityService_CreateShowcase_FullMethodName                     = "/fitglue.services.activity.ActivityService/CreateShowcase"
 	ActivityService_UpdateShowcase_FullMethodName                     = "/fitglue.services.activity.ActivityService/UpdateShowcase"
 	ActivityService_DeleteShowcase_FullMethodName                     = "/fitglue.services.activity.ActivityService/DeleteShowcase"
-	ActivityService_ExportData_FullMethodName                         = "/fitglue.services.activity.ActivityService/ExportData"
-	ActivityService_GetExportJob_FullMethodName                       = "/fitglue.services.activity.ActivityService/GetExportJob"
 	ActivityService_ExportPipelineRun_FullMethodName                  = "/fitglue.services.activity.ActivityService/ExportPipelineRun"
 	ActivityService_ParseFitFile_FullMethodName                       = "/fitglue.services.activity.ActivityService/ParseFitFile"
 	ActivityService_GetShowcasePreferences_FullMethodName             = "/fitglue.services.activity.ActivityService/GetShowcasePreferences"
@@ -79,12 +77,6 @@ type ActivityServiceClient interface {
 	CreateShowcase(ctx context.Context, in *CreateShowcaseRequest, opts ...grpc.CallOption) (*activity.ShowcasedActivity, error)
 	UpdateShowcase(ctx context.Context, in *UpdateShowcaseRequest, opts ...grpc.CallOption) (*activity.ShowcasedActivity, error)
 	DeleteShowcase(ctx context.Context, in *DeleteShowcaseRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// ExportData enqueues an asynchronous whole-account GDPR export job and returns
-	// it immediately. A background worker builds the ZIP and updates the job; poll
-	// GetExportJob until status is READY (download_url populated) or FAILED.
-	ExportData(ctx context.Context, in *ExportDataRequest, opts ...grpc.CallOption) (*ExportDataResponse, error)
-	// GetExportJob returns the current state of a whole-account export job.
-	GetExportJob(ctx context.Context, in *GetExportJobRequest, opts ...grpc.CallOption) (*ExportJob, error)
 	// ExportPipelineRun synchronously builds a per-run ZIP (enriched + payload JSON
 	// and the raw FIT file, where still retained) and returns a signed download URL.
 	ExportPipelineRun(ctx context.Context, in *ExportPipelineRunRequest, opts ...grpc.CallOption) (*ExportPipelineRunResponse, error)
@@ -223,26 +215,6 @@ func (c *activityServiceClient) DeleteShowcase(ctx context.Context, in *DeleteSh
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, ActivityService_DeleteShowcase_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *activityServiceClient) ExportData(ctx context.Context, in *ExportDataRequest, opts ...grpc.CallOption) (*ExportDataResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExportDataResponse)
-	err := c.cc.Invoke(ctx, ActivityService_ExportData_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *activityServiceClient) GetExportJob(ctx context.Context, in *GetExportJobRequest, opts ...grpc.CallOption) (*ExportJob, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExportJob)
-	err := c.cc.Invoke(ctx, ActivityService_GetExportJob_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -491,12 +463,6 @@ type ActivityServiceServer interface {
 	CreateShowcase(context.Context, *CreateShowcaseRequest) (*activity.ShowcasedActivity, error)
 	UpdateShowcase(context.Context, *UpdateShowcaseRequest) (*activity.ShowcasedActivity, error)
 	DeleteShowcase(context.Context, *DeleteShowcaseRequest) (*emptypb.Empty, error)
-	// ExportData enqueues an asynchronous whole-account GDPR export job and returns
-	// it immediately. A background worker builds the ZIP and updates the job; poll
-	// GetExportJob until status is READY (download_url populated) or FAILED.
-	ExportData(context.Context, *ExportDataRequest) (*ExportDataResponse, error)
-	// GetExportJob returns the current state of a whole-account export job.
-	GetExportJob(context.Context, *GetExportJobRequest) (*ExportJob, error)
 	// ExportPipelineRun synchronously builds a per-run ZIP (enriched + payload JSON
 	// and the raw FIT file, where still retained) and returns a signed download URL.
 	ExportPipelineRun(context.Context, *ExportPipelineRunRequest) (*ExportPipelineRunResponse, error)
@@ -570,12 +536,6 @@ func (UnimplementedActivityServiceServer) UpdateShowcase(context.Context, *Updat
 }
 func (UnimplementedActivityServiceServer) DeleteShowcase(context.Context, *DeleteShowcaseRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteShowcase not implemented")
-}
-func (UnimplementedActivityServiceServer) ExportData(context.Context, *ExportDataRequest) (*ExportDataResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ExportData not implemented")
-}
-func (UnimplementedActivityServiceServer) GetExportJob(context.Context, *GetExportJobRequest) (*ExportJob, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetExportJob not implemented")
 }
 func (UnimplementedActivityServiceServer) ExportPipelineRun(context.Context, *ExportPipelineRunRequest) (*ExportPipelineRunResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExportPipelineRun not implemented")
@@ -840,42 +800,6 @@ func _ActivityService_DeleteShowcase_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ActivityServiceServer).DeleteShowcase(ctx, req.(*DeleteShowcaseRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ActivityService_ExportData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ExportDataRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ActivityServiceServer).ExportData(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ActivityService_ExportData_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ActivityServiceServer).ExportData(ctx, req.(*ExportDataRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ActivityService_GetExportJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetExportJobRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ActivityServiceServer).GetExportJob(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ActivityService_GetExportJob_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ActivityServiceServer).GetExportJob(ctx, req.(*GetExportJobRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1322,14 +1246,6 @@ var ActivityService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteShowcase",
 			Handler:    _ActivityService_DeleteShowcase_Handler,
-		},
-		{
-			MethodName: "ExportData",
-			Handler:    _ActivityService_ExportData_Handler,
-		},
-		{
-			MethodName: "GetExportJob",
-			Handler:    _ActivityService_GetExportJob_Handler,
 		},
 		{
 			MethodName: "ExportPipelineRun",

@@ -112,12 +112,6 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --role="roles/resourcemanager.projectIamAdmin" \
   --condition=None
 
-# Grant Logging Config Writer (required for Terraform to create the BigQuery log sink)
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com" \
-  --role="roles/logging.configWriter" \
-  --condition=None
-
 echo "Permissions granted"
 
 # 5. Allow CircleCI to impersonate the Service Account
