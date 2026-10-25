@@ -760,22 +760,6 @@ func TestSentryRecoveryMiddleware_NoPanic(t *testing.T) {
 }
 
 // =============================================================
-// oauth_providers.go — GetOAuthConfig coverage
-// =============================================================
-
-func TestGetOAuthConfig_KnownAndUnknown(t *testing.T) {
-	for _, p := range []string{"strava", "fitbit", "spotify", "github"} {
-		if GetOAuthConfig(p) == nil {
-			// Not all may be defined; that's fine, just exercise the switch.
-			continue
-		}
-	}
-	if GetOAuthConfig("definitely-not-a-provider") != nil {
-		t.Error("expected nil for unknown provider")
-	}
-}
-
-// =============================================================
 // Service-error branches for handlers otherwise only success-tested
 // =============================================================
 

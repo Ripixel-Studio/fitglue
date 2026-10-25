@@ -1,0 +1,216 @@
+# Connecting sources from the box (`fitgluectl connect`)
+
+The React web app used to be the only way to connect Strava, Fitbit, Hevy,
+Intervals.icu and GitHub. It is retired; James (re)connects every provider from
+a terminal on the box with `fitgluectl`. The OAuth **callback** is still an
+HTTP route on `api-client` (`GET /api/v2/oauth/{provider}/callback`), so the
+box needs that service reachable from the public internet at the URL the
+provider was told about — today `https://fitglue.tech`, after F3.3 the
+Tailscale Funnel URL.
+
+The authorise URL, the signed `state` and the callback URL are built in one
+place, `src/go/internal/oauthflow/`, used by both the CLI and `api-client`.
+If you change scopes or endpoints, change them there.
+
+## Environment the CLI needs
+
+`fitgluectl` reads the same variables `api-client` runs with. Until F3.5 lands
+`~/.jarvis/fitglue.env`, fetch them from Secret Manager with your own gcloud
+identity and export them for the shell you run the command in (never commit or
+paste them into Slack):
+
+| Variable | Used by | Notes |
+|---|---|---|
+| `FITGLUE_OWNER_UID` | `connect`, `connections` | the owner's `users/{uid}` document id (F2.1). `--uid` overrides. |
+| `OAUTH_STATE_SECRET` | `connect <oauth provider>` | **must be the value api-client runs with** — the callback verifies the state with it; a mismatch redirects with `error=invalid_state_signature`. |
+| `FITGLUE_PUBLIC_BASE_URL` | `connect` | public origin of api-client, no trailing slash. Falls back to `API_URL` (the Cloud Run name). The callback is `<base>/api/v2/oauth/<provider>/callback`; it must match what the provider's developer app has registered. |
+| `STRAVA_CLIENT_ID`, `FITBIT_CLIENT_ID`, `GITHUB_CLIENT_ID`, `SPOTIFY_CLIENT_ID` | `connect <that provider>` | only the id is needed to print a URL; the secret is used by the callback's token exchange, on the server side. |
+| `PROJECT_ID` | `connect hevy/intervals`, `connections` | Firestore project; defaults to `fitglue-server-prod`. `--project` overrides. |
+
+Firestore access uses Application Default Credentials (`gcloud auth
+application-default login`, or the service-account key the box already has).
+`connect <oauth provider>` never opens Firestore — printing a URL is
+side-effect free — so it needs no credentials at all.
+
+## What is connected right now
+
+```bash
+fitgluectl connections            # table
+fitgluectl connections --json     # same rows as JSON
+```
+
+Columns: provider, enabled, connected (the integration's `created_at`), token
+expiry (OAuth providers; refresh happens automatically on use), whether a
+credential is present, and the provider-side id (Strava athlete id, Fitbit
+user id, ...). Tokens and keys are never printed. Rows come straight from the
+`integrations` map on the owner's user document — the same read the `user`
+service's `ListIntegrations` does.
+
+## OAuth providers: Strava, Fitbit, GitHub, Spotify
+
+```bash
+fitgluectl connect strava
+```
+
+prints one line: the provider's authorise URL, with the owner's uid in an
+HMAC-signed `state` that expires in 10 minutes. Open it in any browser, approve,
+and the provider redirects to the callback on `api-client`, which exchanges the
+code, stores the tokens under `users/{uid}.integrations.{provider}` and then
+redirects the browser to `$WEB_URL/app/connections/{provider}/success`. With
+the web app gone that final redirect lands on a 404 page; **that is fine** —
+the integration was written before the redirect. Confirm with
+`fitgluectl connections`.
+
+Reconnecting (expired refresh token, scope change, re-created developer app)
+is the same command; the callback overwrites the integration document.
+
+### Strava
+
+- Scopes: `read_all,activity:read_all,activity:write` (comma-separated: Strava
+  is the one provider that rejects space-separated scopes).
+- Developer app: <https://www.strava.com/settings/api>. The *Authorization
+  Callback Domain* is a bare host (`fitglue.tech`; after F3.3
+  `jarvis.tail3065f7.ts.net`). Strava compares only the host, so a path prefix
+  on the Funnel URL is fine.
+- The callback stores `athlete_id` from the token response; `api-webhook`
+  resolves incoming events by it (`integrations.strava.athlete_id`).
+- **Webhook subscription (F3.4 b)** is per app, not per user, and is separate
+  from connecting. One subscription exists for the app; its `callback_url` is
+  `<public base>/api/webhooks/strava` and the verify token is
+  `STRAVA_WEBHOOK_VERIFY_TOKEN`. To inspect / re-point it when the base URL
+  changes:
+  ```bash
+  # view
+  curl -G https://www.strava.com/api/v3/push_subscriptions \
+    -d client_id=$STRAVA_CLIENT_ID -d client_secret=$STRAVA_CLIENT_SECRET
+  # Strava has no update call: delete, then create with the new callback_url
+  curl -X DELETE "https://www.strava.com/api/v3/push_subscriptions/<id>?client_id=$STRAVA_CLIENT_ID&client_secret=$STRAVA_CLIENT_SECRET"
+  curl -X POST https://www.strava.com/api/v3/push_subscriptions \
+    -F client_id=$STRAVA_CLIENT_ID -F client_secret=$STRAVA_CLIENT_SECRET \
+    -F callback_url=<public base>/api/webhooks/strava \
+    -F verify_token=$STRAVA_WEBHOOK_VERIFY_TOKEN
+  ```
+  The create call makes Strava `GET` the callback with `hub.challenge` and the
+  verify token; `api-webhook` must already be serving at the new URL or the
+  create fails.
+
+### Fitbit
+
+- Scopes: `activity profile heartrate`.
+- Developer app: <https://dev.fitbit.com/apps>, OAuth 2.0 application type
+  *Server*. Fitbit requires the **full callback URL** registered exactly:
+  `<public base>/api/v2/oauth/fitbit/callback`. (`api-client` also serves the
+  pre-v2 alias `/auth/fitbit/callback`, which is what the current developer
+  app has registered; either works as long as the registered value and
+  `FITGLUE_PUBLIC_BASE_URL` agree on the host.)
+- The token exchange uses HTTP Basic auth with the client id/secret (Fitbit
+  and Spotify do; Strava and GitHub take them in the form body). That is in
+  the callback handler, not in anything the CLI prints.
+- The callback stores `fitbit_user_id`; `api-webhook` resolves notifications
+  by it.
+- **Subscriber verification (F3.4 c)** is set in the Fitbit developer console,
+  not by API: under the app's *Subscriber* settings add the endpoint
+  `<public base>/api/webhooks/fitbit` with the verification code
+  `FITBIT_SUBSCRIBER_VERIFICATION_TOKEN`; Fitbit then `GET`s it with
+  `?verify=<code>` and expects 204 (`api-webhook` returns 204 on a match, 404
+  otherwise). Change the endpoint there when the public base URL changes.
+- **Per-user subscription is a separate API call and nothing in the Go code
+  makes it** (the old guide's claim that the web app did it automatically was
+  wrong; `services/api-webhook/.../fitbit` only verifies and receives). After
+  connecting, subscribe the owner's activities once, with the stored access
+  token (take it from Firestore; it expires in 8h, so do this soon after
+  connecting):
+  ```bash
+  curl -X POST -H "Authorization: Bearer <access_token>" \
+    https://api.fitbit.com/1/user/-/activities/apiSubscriptions/owner.json
+  ```
+  `owner` is the subscription id we choose; one per Fitbit user. A `200`/`201`
+  with `apiSubscriptions` in the body means Fitbit will now POST to the
+  subscriber endpoint. The subscription survives token refreshes but not a
+  revoke-and-reconnect, so repeat it after a reconnect from scratch.
+
+### GitHub
+
+- Scope: `read:user`. The callback stores the token; `github_user_id` is **not**
+  set by the callback (the token response has no user id), so
+  `integrations.github.github_user_id` stays empty unless written by hand. The
+  GitHub webhook source has no HTTP route on `api-webhook` (only strava, fitbit
+  and hevy are routed), so this integration today only feeds the GitHub
+  *destination* uploader.
+- Developer app: GitHub OAuth App (not a GitHub App), *Authorization callback
+  URL* `<public base>/api/v2/oauth/github/callback`.
+
+### Spotify
+
+Spotify was never a web-app connection either (it is an enricher's data
+source), but it has an authorise configuration, so `fitgluectl connect
+spotify` works the same way. Scopes `user-read-recently-played
+user-read-playback-state`; Basic-auth token exchange like Fitbit.
+
+## API-key providers
+
+### Hevy
+
+```bash
+printf '%s\n' "<hevy personal api key>" | fitgluectl connect hevy --api-key-stdin
+```
+
+(`--api-key <key>` also works but lands in shell history.) This does what the
+web app's `PUT /users/me/integrations/hevy` did:
+
+1. writes `users/{uid}.integrations.hevy = {apiKey, enabled: true,
+   consent_given: true, connected_at, created_at}` (`apiKey` is camelCase
+   because that is what the web app sent and what protojson reads back into
+   `HevyIntegration.api_key`; `created_at` is new so `connections` can show
+   it);
+2. mints a random **ingress key**, stores only its hash in
+   `ingress_api_keys/{hash}` with `user_id`, label `hevy-webhook` and scope
+   `webhook:hevy`, and prints the raw key **once**.
+
+`api-webhook` resolves a Hevy event to the owner by that ingress key
+(`FindUserByIntegration("hevy", key)` looks the hash up), then fetches the
+workout with the stored personal API key. So after running the command,
+register the webhook in Hevy (Settings → Developer → Webhooks, or
+`POST https://api.hevyapp.com/v1/webhook-subscription` with the personal key
+in the `api-key` header) with:
+
+- URL: `<public base>/api/webhooks/hevy`
+- auth token: the printed ingress key (Hevy sends it as `Authorization`;
+  `api-webhook` also accepts `X-Api-Key` and `?api_key=`).
+
+Re-running `connect hevy` mints a new ingress key; old hashes are not deleted,
+so a previously registered webhook keeps working until you remove its doc.
+
+### Intervals.icu
+
+```bash
+printf '%s\n' "<intervals api key>" | fitgluectl connect intervals --api-key-stdin --athlete-id i12345
+```
+
+Verifies the pair against `https://intervals.icu/api/v1/athlete/{id}` first
+(like the web flow) and stores `{api_key, athlete_id, enabled, consent_given,
+connected_at, created_at}`. Intervals.icu is a destination (upload) and a
+history source; its webhook source has no route on `api-webhook`.
+
+## Not covered
+
+- **TrainingPeaks** — there has never been an authorise configuration for it:
+  `oauthflow.Provider("trainingpeaks")` is nil and the web app had no connect
+  button. The token *refresh* path exists (`pkg/infrastructure/oauth`,
+  `https://oauth.trainingpeaks.com/token`), so an integration document written
+  by hand with a valid `refresh_token` and `athlete_id` would keep working, but
+  `fitgluectl connect trainingpeaks` refuses rather than guess at the
+  authorise endpoint and scopes. Add a `ProviderConfig` to `oauthflow` once
+  the TrainingPeaks partner app details are known.
+- **Parkrun** needs only `integrations.parkrun.athlete_id`, written via the
+  `user` service (`SetIntegration`) — no credential, no CLI command yet.
+
+## Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| callback redirects with `error=invalid_state_signature` | `OAUTH_STATE_SECRET` in your shell differs from api-client's |
+| `error=state_token_expired` | more than 10 minutes between `connect` and approving |
+| provider says redirect URI mismatch | `FITGLUE_PUBLIC_BASE_URL` (or `API_URL`) does not match the developer app's registered callback |
+| `error=token_exchange_error` | wrong client secret on the api-client side, or the code was used twice (every URL is single use — run `connect` again) |
+| `connections` shows the provider but `api-webhook` ignores events | Strava: `athlete_id` missing; Fitbit: no `apiSubscriptions` call made; Hevy: webhook registered with a stale ingress key |

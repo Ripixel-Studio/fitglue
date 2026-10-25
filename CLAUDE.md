@@ -42,6 +42,12 @@ make plugin-destination name=<name>   # Scaffold new destination uploader
 # Single-user bootstrap (no sign-up path exists; run once, idempotent)
 make bootstrap-owner UID=<owner uid> EMAIL=<email> [DISPLAY_NAME=...]
 
+# Connect sources from the box (the web app's connect flow, as a CLI)
+bin/fitgluectl connect strava|fitbit|github|spotify     # prints the authorise URL; approve in any browser
+bin/fitgluectl connect hevy --api-key-stdin             # stores the key, prints the webhook ingress key once
+bin/fitgluectl connect intervals --api-key-stdin --athlete-id i12345
+bin/fitgluectl connections [--json]                     # what is connected, token expiry
+
 # Integration tests against deployed envs
 npm run test:dev        # Against dev environment
 npm run test:test       # Against test environment
@@ -93,6 +99,7 @@ server/
 │   │   │   ├── pipeline/           # Pipeline orchestration + enrichers (45+ providers)
 │   │   │   │   └── enricher/providers/   # One directory per enricher
 │   │   │   ├── activity/           # Activity CRUD + showcases
+│   │   │   ├── oauthflow/          # OAuth authorise URL + signed state (one impl for api-client and fitgluectl)
 │   │   │   └── infra/              # Logger, Firestore client, gRPC helpers
 │   │   ├── pkg/                    # Shared packages (exported)
 │   │   │   ├── types/pb/           # Generated gRPC stubs — DO NOT EDIT manually
@@ -107,7 +114,7 @@ server/
 │   │   │   ├── parkrun/            # Parkrun results parser
 │   │   │   ├── pending_input/      # Pending user input models
 │   │   │   └── testing/            # Test mocks
-│   │   ├── cmd/                    # CLI tools (fit-gen, fit-inspect, fit-combine, bootstrap-owner, etc.)
+│   │   ├── cmd/                    # CLI tools (fitgluectl, fit-gen, fit-inspect, fit-combine, bootstrap-owner, etc.)
 │   │   └── tests/e2e/              # Godog/Cucumber E2E tests
 │   ├── proto/                      # Protocol Buffer definitions (source of truth)
 │   │   ├── services/               # Service RPC definitions
@@ -215,7 +222,7 @@ FitGlue is single-user. There are no accounts and no identity provider.
 - **The owner's API (`api-client`)**: `Authorization: Bearer $FITGLUE_API_TOKEN`, compared in constant time in `services/api-client/internal/server/middleware.go`. Every authenticated request acts as `FITGLUE_OWNER_UID`; handlers read it from the `Principal` the middleware sets (`getUserToken(r).UID`), never from the request. Both env vars are required at startup. `GET /api/v2/health` and the OAuth callbacks are outside the authenticated group.
 - **Webhooks**: Per-provider signature verification (HMAC, OAuth token, API key)
 - **Service-to-service**: gRPC (private networking on Cloud Run — no auth between services)
-- **OAuth flows**: Handled by `api-client` at `GET /oauth/{provider}/callback` (legacy alias `/auth/{provider}/callback`), reachable without the bearer because the provider redirects the browser there; tokens stored in Firestore under the owner's integrations
+- **OAuth flows**: `fitgluectl connect <provider>` prints the authorise URL (`internal/oauthflow` signs the state with `OAUTH_STATE_SECRET`, callback base from `FITGLUE_PUBLIC_BASE_URL`, else `API_URL`); `api-client` serves the callback at `GET /api/v2/oauth/{provider}/callback` (legacy alias `/auth/{provider}/callback`), reachable without the bearer because the provider redirects the browser there, and stores tokens in Firestore under the owner's integrations. Hevy/Intervals are API keys, stored by the same CLI. See `docs/guides/connect-sources.md`.
 - **Where the values live**: cloud — Secret Manager `fitglue-api-token` and `owner_uid` in `terraform/envs/prod.tfvars`; box (F3.5) — `~/.jarvis/fitglue.env`. Local `make local` uses the defaults in `docker-compose.yaml`.
 
 ## Testing

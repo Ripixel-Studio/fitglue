@@ -47,6 +47,34 @@ Hand-written since F1.8 of the single-user conversion; entries below
   `fitglue.tech` is still served from Firebase Hosting until S4/F4, and
   `outputs.firebase_web_config` feeds the web build.
 
+### Added (rethink F2.3 — OAuth connect flow without the web app)
+
+- `fitgluectl connect <strava|fitbit|github|spotify>` prints the provider's
+  authorise URL — the same URL, state signature (`OAUTH_STATE_SECRET`) and
+  callback (`<FITGLUE_PUBLIC_BASE_URL or API_URL>/api/v2/oauth/<provider>/callback`)
+  the web app's `POST /users/me/integrations/{provider}/connect` produced.
+  `fitgluectl connect hevy --api-key-stdin` stores the Hevy key and mints the
+  webhook ingress key; `fitgluectl connect intervals --api-key-stdin
+  --athlete-id` verifies and stores the Intervals.icu pair.
+  `fitgluectl connections [--json]` lists connected providers with token expiry.
+  `docs/guides/connect-sources.md` has the per-provider steps, including the
+  Strava webhook subscription and Fitbit subscriber/`apiSubscriptions` calls
+  F3.4 needs.
+- `FITGLUE_PUBLIC_BASE_URL`: public origin for OAuth callbacks (and webhook
+  URLs the CLI prints). Takes precedence over `API_URL`, which keeps working.
+
+### Changed
+
+- OAuth authorise-URL construction, state signing/verification and the
+  callback URL moved from `api-client` into `internal/oauthflow`, shared by the
+  CLI and the gateway. The callback's HTTP behaviour (redirect targets, error
+  codes, token exchange) is unchanged. `api-client`'s `oauth_providers.go` is
+  gone; `oauthflow.Provider` is the provider table.
+- The `ingress_api_keys` write lives on `user.FirestoreStore.CreateIngressKey`;
+  `api-client`'s `FirestoreApiKeyStore` delegates to it.
+- `fitgluectl connect trainingpeaks` refuses with an explanation: no authorise
+  configuration has ever existed for TrainingPeaks (only token refresh).
+
 ### Removed (rethink F1.8 — CI and Sentry)
 
 - CircleCI `create-release` job: standard-version tagging and changelog

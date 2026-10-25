@@ -124,6 +124,7 @@ fitglue-server/
 - [Testing Guide](docs/development/testing.md) — Unit, E2E, and integration tests
 - [Enricher Testing](docs/guides/enricher-testing.md) — Testing enrichment providers
 - [OAuth Integration](docs/guides/oauth-integration.md) — Strava and Fitbit OAuth setup
+- [Connecting sources from the box](docs/guides/connect-sources.md) — `fitgluectl connect` / `connections`, per-provider webhook notes
 
 ### Troubleshooting
 - [Troubleshooting Guide](docs/guides/troubleshooting.md) — **Start here** when debugging any issue

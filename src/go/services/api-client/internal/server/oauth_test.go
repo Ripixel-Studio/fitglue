@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/fitglue/server/src/go/internal/oauthflow"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 )
 
@@ -44,7 +45,7 @@ func withOAuthProvider(r *http.Request, provider string) *http.Request {
 
 func firstKnownProvider() string {
 	for _, p := range []string{"strava", "fitbit", "spotify", "github"} {
-		if GetOAuthConfig(p) != nil {
+		if oauthflow.Provider(p) != nil {
 			return p
 		}
 	}
