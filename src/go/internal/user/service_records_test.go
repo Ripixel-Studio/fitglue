@@ -13,7 +13,7 @@ import (
 )
 
 func TestDeleteCounterRPC(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 	ctx := context.Background()
 
 	t.Run("EmptyFields", func(t *testing.T) {
@@ -35,7 +35,7 @@ func TestDeleteCounterRPC(t *testing.T) {
 }
 
 func TestPersonalRecordRPCs(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 	ctx := context.Background()
 
 	t.Run("List_EmptyUserId", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestPersonalRecordRPCs(t *testing.T) {
 }
 
 func TestPluginDefaultsRPCs(t *testing.T) {
-	svc, store, _, _ := setupTest()
+	svc, store := setupTest()
 	ctx := context.Background()
 
 	t.Run("List_EmptyUserId", func(t *testing.T) {

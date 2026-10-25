@@ -47,16 +47,6 @@ func TestFirestoreStore_OfflineCoverage(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("DeleteUser", func(t *testing.T) {
-		err := store.DeleteUser(ctx, "user1")
-		assert.Error(t, err)
-	})
-
-	t.Run("FindUsersByDateRange", func(t *testing.T) {
-		_, err := store.FindUsersByDateRange(ctx, time.Now(), time.Now())
-		assert.Error(t, err)
-	})
-
 	t.Run("GetIntegrations", func(t *testing.T) {
 		_, err := store.GetIntegrations(ctx, "user1")
 		assert.Error(t, err)
@@ -113,6 +103,14 @@ func TestFirestoreStore_OfflineCoverage(t *testing.T) {
 
 	t.Run("CreateUser", func(t *testing.T) {
 		_, err := store.CreateUser(ctx, "user1")
+		assert.Error(t, err)
+	})
+
+	t.Run("BootstrapOwner", func(t *testing.T) {
+		_, err := store.BootstrapOwner(ctx, "", "james@example.com", "James")
+		assert.Error(t, err)
+
+		_, err = store.BootstrapOwner(ctx, "user1", "james@example.com", "James")
 		assert.Error(t, err)
 	})
 }

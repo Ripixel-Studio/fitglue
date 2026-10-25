@@ -39,6 +39,9 @@ make plugin-source name=<name>        # Scaffold new webhook source provider
 make plugin-enricher name=<name>      # Scaffold new enricher step
 make plugin-destination name=<name>   # Scaffold new destination uploader
 
+# Single-user bootstrap (no sign-up path exists; run once, idempotent)
+make bootstrap-owner UID=<firebase uid> EMAIL=<email> [DISPLAY_NAME=...]
+
 # Integration tests against deployed envs
 npm run test:dev        # Against dev environment
 npm run test:test       # Against test environment
@@ -96,7 +99,7 @@ server/
 │   │   │   ├── bootstrap/          # Service init helpers (Firebase, Firestore, Pub/Sub)
 │   │   │   ├── domain/             # Domain models (activity, user, FIT parser/generator)
 │   │   │   ├── integrations/       # Generated OpenAPI clients — DO NOT EDIT manually
-│   │   │   ├── infrastructure/     # Email, Pub/Sub adapter, storage, secrets
+│   │   │   ├── infrastructure/     # Pub/Sub adapter, storage, secrets
 │   │   │   ├── sourceplugins/      # Historical activity sync providers (Fitbit, Hevy, Intervals, Strava)
 │   │   │   ├── storage/            # Firestore client utilities
 │   │   │   ├── errors/             # Error types + retryability
@@ -104,7 +107,7 @@ server/
 │   │   │   ├── parkrun/            # Parkrun results parser
 │   │   │   ├── pending_input/      # Pending user input models
 │   │   │   └── testing/            # Test mocks
-│   │   ├── cmd/                    # CLI tools (fit-gen, fit-inspect, fit-combine, etc.)
+│   │   ├── cmd/                    # CLI tools (fit-gen, fit-inspect, fit-combine, bootstrap-owner, etc.)
 │   │   └── tests/e2e/              # Godog/Cucumber E2E tests
 │   ├── proto/                      # Protocol Buffer definitions (source of truth)
 │   │   ├── services/               # Service RPC definitions

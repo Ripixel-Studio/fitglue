@@ -2,7 +2,7 @@ locals {
   firestore_services = ["user", "pipeline", "activity", "destination", "api-client", "api-webhook"]
   pubsub_publishers  = ["api-webhook", "pipeline", "activity", "api-client", "destination"]
   secret_accessors   = ["api-client", "api-public", "user", "pipeline", "activity", "destination", "api-webhook"]
-  storage_services   = ["activity", "pipeline", "destination", "user"] # user: account-deletion artifact purge
+  storage_services   = ["activity", "pipeline", "destination"]
 }
 
 resource "google_project_iam_member" "cr_firestore_user" {
@@ -31,13 +31,6 @@ resource "google_project_iam_member" "cr_storage_admin" {
   project  = var.project_id
   role     = "roles/storage.objectAdmin"
   member   = "serviceAccount:${google_service_account.cloud_run_sa[each.key].email}"
-}
-
-# Firebase Auth Admin - allows get/delete user
-resource "google_project_iam_member" "cr_firebase_auth_admin" {
-  project = var.project_id
-  role    = "roles/firebaseauth.admin"
-  member  = "serviceAccount:${google_service_account.cloud_run_sa["user"].email}"
 }
 
 # AI Platform User - allows enricher to call Vertex AI Imagen API

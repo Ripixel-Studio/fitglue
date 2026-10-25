@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"time"
 
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -13,9 +12,6 @@ type Store interface {
 	CreateUser(ctx context.Context, userID string) (*pbuser.UserProfile, error)
 	GetProfile(ctx context.Context, userID string) (*pbuser.UserProfile, error)
 	UpdateProfile(ctx context.Context, userID string, profile *pbuser.UserProfile) error
-	DeleteUser(ctx context.Context, userID string) error
-	ListShowcaseExecutionIDs(ctx context.Context, userID string) ([]string, error)
-	FindUsersByDateRange(ctx context.Context, start, end time.Time) ([]*pbuser.UserProfile, error)
 
 	GetIntegrations(ctx context.Context, userID string) (*pbuser.UserIntegrations, error)
 	SetIntegration(ctx context.Context, userID, provider string, data interface{}) error

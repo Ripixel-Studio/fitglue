@@ -22,18 +22,13 @@ service UserService {
       get: "/v2/user/{user_id}/profile"
     };
   }
-  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {
-    option (google.api.http) = {
-      get: "/v2/admin/users"
-    };
-  }
   rpc UpdateProfile(UpdateProfileRequest) returns (fitglue.models.user.UserProfile) {
     option (google.api.http) = {
       patch: "/v2/user/{user_id}/profile"
       body: "profile"
     };
   }
-  
+
   rpc GetIntegration(GetIntegrationRequest) returns (GetIntegrationResponse) {
     option (google.api.http) = {
       get: "/v2/user/{user_id}/integrations/{provider}"
@@ -55,7 +50,7 @@ service UserService {
       get: "/v2/user/{user_id}/integrations"
     };
   }
-  
+
   rpc ListCounters(ListCountersRequest) returns (ListCountersResponse) {
     option (google.api.http) = {
       get: "/v2/user/{user_id}/counters"
@@ -67,7 +62,7 @@ service UserService {
       body: "*"
     };
   }
-  
+
   rpc GetBoosterData(GetBoosterDataRequest) returns (GetBoosterDataResponse) {
     option (google.api.http) = {
       get: "/v2/user/{user_id}/booster-data"
@@ -84,39 +79,8 @@ service UserService {
       delete: "/v2/user/{user_id}/booster-data/{booster_id}"
     };
   }
+
   
-  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      delete: "/v2/user/{user_id}"
-    };
-  }
-  
-  // Email Auth RPCs
-  rpc SendVerificationEmail(SendVerificationEmailRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/v2/user/{user_id}/email/verify"
-      body: "*"
-    };
-  }
-  rpc SendPasswordResetEmail(SendPasswordResetEmailRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/v2/user/email/reset-password"
-      body: "*"
-    };
-  }
-  rpc SendEmailChangeVerification(SendEmailChangeVerificationRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/v2/user/{user_id}/email/change"
-      body: "*"
-    };
-  }
-  // Administrative RPCs
-  rpc GenerateRegistrationSummary(GenerateRegistrationSummaryRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/v2/admin/registration-summary"
-      body: "*"
-    };
-  }
   // Integration Webhook Resolution
   rpc ResolveUserByIntegration(ResolveUserByIntegrationRequest) returns (ResolveUserByIntegrationResponse) {
     option (google.api.http) = {
@@ -177,40 +141,8 @@ message ResolveUserByIntegrationResponse {
   fitglue.models.user.UserProfile profile = 1;
 }
 
-message SendVerificationEmailRequest {
-  string user_id = 1;
-}
-
-message SendPasswordResetEmailRequest {
-  string email = 1;
-}
-
-message SendEmailChangeVerificationRequest {
-  string user_id = 1;
-  string new_email = 2;
-}
-
-message SendWelcomeEmailRequest {
-  string user_id = 1;
-}
-
-message GenerateRegistrationSummaryRequest {
-  // Optional date override (e.g. "2026-02-23"), uses previous 24 hours if empty
-  string date_override = 1;
-}
-
 message CreateUserRequest {
   string user_id = 1;
-}
-
-message ListUsersRequest {
-  int32 limit = 1;
-  string page_token = 2;
-}
-
-message ListUsersResponse {
-  repeated fitglue.models.user.UserProfile users = 1;
-  string next_page_token = 2;
 }
 
 message GetProfileRequest {
@@ -260,10 +192,6 @@ message UpdateCounterRequest {
   string user_id = 1;
   string counter_id = 2;
   int64 count = 3;
-}
-
-message DeleteUserRequest {
-  string user_id = 1;
 }
 
 message GetBoosterDataRequest {

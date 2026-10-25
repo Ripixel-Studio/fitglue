@@ -21,32 +21,26 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_CreateUser_FullMethodName                  = "/fitglue.services.user.UserService/CreateUser"
-	UserService_GetProfile_FullMethodName                  = "/fitglue.services.user.UserService/GetProfile"
-	UserService_ListUsers_FullMethodName                   = "/fitglue.services.user.UserService/ListUsers"
-	UserService_UpdateProfile_FullMethodName               = "/fitglue.services.user.UserService/UpdateProfile"
-	UserService_GetIntegration_FullMethodName              = "/fitglue.services.user.UserService/GetIntegration"
-	UserService_SetIntegration_FullMethodName              = "/fitglue.services.user.UserService/SetIntegration"
-	UserService_DeleteIntegration_FullMethodName           = "/fitglue.services.user.UserService/DeleteIntegration"
-	UserService_ListIntegrations_FullMethodName            = "/fitglue.services.user.UserService/ListIntegrations"
-	UserService_ListCounters_FullMethodName                = "/fitglue.services.user.UserService/ListCounters"
-	UserService_UpdateCounter_FullMethodName               = "/fitglue.services.user.UserService/UpdateCounter"
-	UserService_GetBoosterData_FullMethodName              = "/fitglue.services.user.UserService/GetBoosterData"
-	UserService_SetBoosterData_FullMethodName              = "/fitglue.services.user.UserService/SetBoosterData"
-	UserService_DeleteBoosterData_FullMethodName           = "/fitglue.services.user.UserService/DeleteBoosterData"
-	UserService_DeleteUser_FullMethodName                  = "/fitglue.services.user.UserService/DeleteUser"
-	UserService_SendVerificationEmail_FullMethodName       = "/fitglue.services.user.UserService/SendVerificationEmail"
-	UserService_SendPasswordResetEmail_FullMethodName      = "/fitglue.services.user.UserService/SendPasswordResetEmail"
-	UserService_SendEmailChangeVerification_FullMethodName = "/fitglue.services.user.UserService/SendEmailChangeVerification"
-	UserService_GenerateRegistrationSummary_FullMethodName = "/fitglue.services.user.UserService/GenerateRegistrationSummary"
-	UserService_ResolveUserByIntegration_FullMethodName    = "/fitglue.services.user.UserService/ResolveUserByIntegration"
-	UserService_ListPersonalRecords_FullMethodName         = "/fitglue.services.user.UserService/ListPersonalRecords"
-	UserService_SetPersonalRecord_FullMethodName           = "/fitglue.services.user.UserService/SetPersonalRecord"
-	UserService_DeletePersonalRecord_FullMethodName        = "/fitglue.services.user.UserService/DeletePersonalRecord"
-	UserService_ListPluginDefaults_FullMethodName          = "/fitglue.services.user.UserService/ListPluginDefaults"
-	UserService_SetPluginDefaults_FullMethodName           = "/fitglue.services.user.UserService/SetPluginDefaults"
-	UserService_DeletePluginDefaults_FullMethodName        = "/fitglue.services.user.UserService/DeletePluginDefaults"
-	UserService_DeleteCounter_FullMethodName               = "/fitglue.services.user.UserService/DeleteCounter"
+	UserService_CreateUser_FullMethodName               = "/fitglue.services.user.UserService/CreateUser"
+	UserService_GetProfile_FullMethodName               = "/fitglue.services.user.UserService/GetProfile"
+	UserService_UpdateProfile_FullMethodName            = "/fitglue.services.user.UserService/UpdateProfile"
+	UserService_GetIntegration_FullMethodName           = "/fitglue.services.user.UserService/GetIntegration"
+	UserService_SetIntegration_FullMethodName           = "/fitglue.services.user.UserService/SetIntegration"
+	UserService_DeleteIntegration_FullMethodName        = "/fitglue.services.user.UserService/DeleteIntegration"
+	UserService_ListIntegrations_FullMethodName         = "/fitglue.services.user.UserService/ListIntegrations"
+	UserService_ListCounters_FullMethodName             = "/fitglue.services.user.UserService/ListCounters"
+	UserService_UpdateCounter_FullMethodName            = "/fitglue.services.user.UserService/UpdateCounter"
+	UserService_GetBoosterData_FullMethodName           = "/fitglue.services.user.UserService/GetBoosterData"
+	UserService_SetBoosterData_FullMethodName           = "/fitglue.services.user.UserService/SetBoosterData"
+	UserService_DeleteBoosterData_FullMethodName        = "/fitglue.services.user.UserService/DeleteBoosterData"
+	UserService_ResolveUserByIntegration_FullMethodName = "/fitglue.services.user.UserService/ResolveUserByIntegration"
+	UserService_ListPersonalRecords_FullMethodName      = "/fitglue.services.user.UserService/ListPersonalRecords"
+	UserService_SetPersonalRecord_FullMethodName        = "/fitglue.services.user.UserService/SetPersonalRecord"
+	UserService_DeletePersonalRecord_FullMethodName     = "/fitglue.services.user.UserService/DeletePersonalRecord"
+	UserService_ListPluginDefaults_FullMethodName       = "/fitglue.services.user.UserService/ListPluginDefaults"
+	UserService_SetPluginDefaults_FullMethodName        = "/fitglue.services.user.UserService/SetPluginDefaults"
+	UserService_DeletePluginDefaults_FullMethodName     = "/fitglue.services.user.UserService/DeletePluginDefaults"
+	UserService_DeleteCounter_FullMethodName            = "/fitglue.services.user.UserService/DeleteCounter"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -55,7 +49,6 @@ const (
 type UserServiceClient interface {
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*user.UserProfile, error)
 	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*user.UserProfile, error)
-	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*user.UserProfile, error)
 	GetIntegration(ctx context.Context, in *GetIntegrationRequest, opts ...grpc.CallOption) (*GetIntegrationResponse, error)
 	SetIntegration(ctx context.Context, in *SetIntegrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -66,13 +59,6 @@ type UserServiceClient interface {
 	GetBoosterData(ctx context.Context, in *GetBoosterDataRequest, opts ...grpc.CallOption) (*GetBoosterDataResponse, error)
 	SetBoosterData(ctx context.Context, in *SetBoosterDataRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeleteBoosterData(ctx context.Context, in *DeleteBoosterDataRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Email Auth RPCs
-	SendVerificationEmail(ctx context.Context, in *SendVerificationEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	SendPasswordResetEmail(ctx context.Context, in *SendPasswordResetEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	SendEmailChangeVerification(ctx context.Context, in *SendEmailChangeVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Administrative RPCs
-	GenerateRegistrationSummary(ctx context.Context, in *GenerateRegistrationSummaryRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Integration Webhook Resolution
 	ResolveUserByIntegration(ctx context.Context, in *ResolveUserByIntegrationRequest, opts ...grpc.CallOption) (*ResolveUserByIntegrationResponse, error)
 	// Personal Records
@@ -109,16 +95,6 @@ func (c *userServiceClient) GetProfile(ctx context.Context, in *GetProfileReques
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(user.UserProfile)
 	err := c.cc.Invoke(ctx, UserService_GetProfile_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListUsersResponse)
-	err := c.cc.Invoke(ctx, UserService_ListUsers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -225,56 +201,6 @@ func (c *userServiceClient) DeleteBoosterData(ctx context.Context, in *DeleteBoo
 	return out, nil
 }
 
-func (c *userServiceClient) DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserService_DeleteUser_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) SendVerificationEmail(ctx context.Context, in *SendVerificationEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserService_SendVerificationEmail_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) SendPasswordResetEmail(ctx context.Context, in *SendPasswordResetEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserService_SendPasswordResetEmail_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) SendEmailChangeVerification(ctx context.Context, in *SendEmailChangeVerificationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserService_SendEmailChangeVerification_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) GenerateRegistrationSummary(ctx context.Context, in *GenerateRegistrationSummaryRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserService_GenerateRegistrationSummary_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *userServiceClient) ResolveUserByIntegration(ctx context.Context, in *ResolveUserByIntegrationRequest, opts ...grpc.CallOption) (*ResolveUserByIntegrationResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResolveUserByIntegrationResponse)
@@ -361,7 +287,6 @@ func (c *userServiceClient) DeleteCounter(ctx context.Context, in *DeleteCounter
 type UserServiceServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*user.UserProfile, error)
 	GetProfile(context.Context, *GetProfileRequest) (*user.UserProfile, error)
-	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*user.UserProfile, error)
 	GetIntegration(context.Context, *GetIntegrationRequest) (*GetIntegrationResponse, error)
 	SetIntegration(context.Context, *SetIntegrationRequest) (*emptypb.Empty, error)
@@ -372,13 +297,6 @@ type UserServiceServer interface {
 	GetBoosterData(context.Context, *GetBoosterDataRequest) (*GetBoosterDataResponse, error)
 	SetBoosterData(context.Context, *SetBoosterDataRequest) (*emptypb.Empty, error)
 	DeleteBoosterData(context.Context, *DeleteBoosterDataRequest) (*emptypb.Empty, error)
-	DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error)
-	// Email Auth RPCs
-	SendVerificationEmail(context.Context, *SendVerificationEmailRequest) (*emptypb.Empty, error)
-	SendPasswordResetEmail(context.Context, *SendPasswordResetEmailRequest) (*emptypb.Empty, error)
-	SendEmailChangeVerification(context.Context, *SendEmailChangeVerificationRequest) (*emptypb.Empty, error)
-	// Administrative RPCs
-	GenerateRegistrationSummary(context.Context, *GenerateRegistrationSummaryRequest) (*emptypb.Empty, error)
 	// Integration Webhook Resolution
 	ResolveUserByIntegration(context.Context, *ResolveUserByIntegrationRequest) (*ResolveUserByIntegrationResponse, error)
 	// Personal Records
@@ -406,9 +324,6 @@ func (UnimplementedUserServiceServer) CreateUser(context.Context, *CreateUserReq
 }
 func (UnimplementedUserServiceServer) GetProfile(context.Context, *GetProfileRequest) (*user.UserProfile, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProfile not implemented")
-}
-func (UnimplementedUserServiceServer) ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListUsers not implemented")
 }
 func (UnimplementedUserServiceServer) UpdateProfile(context.Context, *UpdateProfileRequest) (*user.UserProfile, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateProfile not implemented")
@@ -439,21 +354,6 @@ func (UnimplementedUserServiceServer) SetBoosterData(context.Context, *SetBooste
 }
 func (UnimplementedUserServiceServer) DeleteBoosterData(context.Context, *DeleteBoosterDataRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteBoosterData not implemented")
-}
-func (UnimplementedUserServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method DeleteUser not implemented")
-}
-func (UnimplementedUserServiceServer) SendVerificationEmail(context.Context, *SendVerificationEmailRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SendVerificationEmail not implemented")
-}
-func (UnimplementedUserServiceServer) SendPasswordResetEmail(context.Context, *SendPasswordResetEmailRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SendPasswordResetEmail not implemented")
-}
-func (UnimplementedUserServiceServer) SendEmailChangeVerification(context.Context, *SendEmailChangeVerificationRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SendEmailChangeVerification not implemented")
-}
-func (UnimplementedUserServiceServer) GenerateRegistrationSummary(context.Context, *GenerateRegistrationSummaryRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method GenerateRegistrationSummary not implemented")
 }
 func (UnimplementedUserServiceServer) ResolveUserByIntegration(context.Context, *ResolveUserByIntegrationRequest) (*ResolveUserByIntegrationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveUserByIntegration not implemented")
@@ -532,24 +432,6 @@ func _UserService_GetProfile_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).GetProfile(ctx, req.(*GetProfileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_ListUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListUsersRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).ListUsers(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_ListUsers_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).ListUsers(ctx, req.(*ListUsersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -734,96 +616,6 @@ func _UserService_DeleteBoosterData_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_DeleteUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteUserRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).DeleteUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_DeleteUser_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).DeleteUser(ctx, req.(*DeleteUserRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_SendVerificationEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendVerificationEmailRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).SendVerificationEmail(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_SendVerificationEmail_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).SendVerificationEmail(ctx, req.(*SendVerificationEmailRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_SendPasswordResetEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendPasswordResetEmailRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).SendPasswordResetEmail(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_SendPasswordResetEmail_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).SendPasswordResetEmail(ctx, req.(*SendPasswordResetEmailRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_SendEmailChangeVerification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendEmailChangeVerificationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).SendEmailChangeVerification(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_SendEmailChangeVerification_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).SendEmailChangeVerification(ctx, req.(*SendEmailChangeVerificationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_GenerateRegistrationSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GenerateRegistrationSummaryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).GenerateRegistrationSummary(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_GenerateRegistrationSummary_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).GenerateRegistrationSummary(ctx, req.(*GenerateRegistrationSummaryRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _UserService_ResolveUserByIntegration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ResolveUserByIntegrationRequest)
 	if err := dec(in); err != nil {
@@ -984,10 +776,6 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_GetProfile_Handler,
 		},
 		{
-			MethodName: "ListUsers",
-			Handler:    _UserService_ListUsers_Handler,
-		},
-		{
 			MethodName: "UpdateProfile",
 			Handler:    _UserService_UpdateProfile_Handler,
 		},
@@ -1026,26 +814,6 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteBoosterData",
 			Handler:    _UserService_DeleteBoosterData_Handler,
-		},
-		{
-			MethodName: "DeleteUser",
-			Handler:    _UserService_DeleteUser_Handler,
-		},
-		{
-			MethodName: "SendVerificationEmail",
-			Handler:    _UserService_SendVerificationEmail_Handler,
-		},
-		{
-			MethodName: "SendPasswordResetEmail",
-			Handler:    _UserService_SendPasswordResetEmail_Handler,
-		},
-		{
-			MethodName: "SendEmailChangeVerification",
-			Handler:    _UserService_SendEmailChangeVerification_Handler,
-		},
-		{
-			MethodName: "GenerateRegistrationSummary",
-			Handler:    _UserService_GenerateRegistrationSummary_Handler,
 		},
 		{
 			MethodName: "ResolveUserByIntegration",
