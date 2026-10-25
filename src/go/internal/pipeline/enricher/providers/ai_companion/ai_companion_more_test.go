@@ -162,7 +162,7 @@ func TestAICompanion_Enrich_RepostCacheHit(t *testing.T) {
 	p.SetService(&bootstrap.Service{DB: mockDB})
 
 	activity := &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_RUN}
-	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1", Tier: pbuser.UserTier_USER_TIER_ATHLETE}}
+	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1"}}
 	inputs := map[string]string{"is_repost": "true", "external_id": "ext-7"}
 
 	res, err := p.Enrich(context.Background(), discardLogger(), activity, u, inputs, false)

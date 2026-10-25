@@ -29,7 +29,6 @@ src/go/
 │   │               └── ...
 │   ├── user/                          # User profiles, integrations, OAuth tokens
 │   │   └── main.go
-│   ├── billing/                       # Subscriptions, Stripe, tier enforcement
 │   │   └── main.go
 │   ├── pipeline/                      # Pipeline CRUD, splitting, enrichment, routing
 │   │   └── main.go
@@ -44,7 +43,6 @@ src/go/
 │
 ├── internal/                          # Shared internal implementations
 │   ├── user/                          # service.user business logic + store
-│   ├── billing/                       # service.billing business logic + store
 │   ├── pipeline/                      # Pipeline orchestration, enrichers (45+), routing
 │   ├── activity/                      # Activity CRUD, showcases, exports
 │   ├── registry/                      # Plugin registry logic
@@ -91,7 +89,6 @@ If it compiles, it's wired correctly — no runtime dependency resolution.
 | `service.api.public` | None (thin marshaller) | HTTP (no auth) | None |
 | `service.api.webhook` | None (thin orchestrator) | HTTP (HMAC / mobile JWT) | Transient |
 | `service.user` | User profiles, integrations, OAuth tokens, counters | gRPC | Firestore `users/` |
-| `service.billing` | Subscriptions, trial, tier enforcement | gRPC | Firestore billing subcollections |
 | `service.pipeline` | Pipeline config, enrichment, routing, pending inputs | gRPC + Pub/Sub | Firestore `users/*/pipelines` |
 | `service.activity` | Activity records, showcases, FIT parsing, exports | gRPC + Pub/Sub | Firestore activities + GCS |
 | `service.registry` | Plugin manifests, categories | gRPC | Static config |

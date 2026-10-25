@@ -29,32 +29,14 @@ func NewFirestoreStore(client *firestore.Client) *FirestoreStore {
 	return &FirestoreStore{client: client}
 }
 
-// legacyTierMap maps short tier strings written by the old TypeScript system
-// to their proto enum names expected by protojson.
-var legacyTierMap = map[string]string{
-	"hobbyist": "USER_TIER_HOBBYIST",
-	"athlete":  "USER_TIER_ATHLETE",
-}
-
 // normalizeUserData converts legacy field values (written by TypeScript) into
 // formats compatible with protojson unmarshaling. Handles:
-// - tier enum stored as short strings ("hobbyist" → "USER_TIER_HOBBYIST")
 // - duplicate camelCase/snake_case keys (isAdmin + is_admin → protojson duplicate error)
 func normalizeUserData(data map[string]interface{}) map[string]interface{} {
-	// Normalize tier enum
-	if tierVal, ok := data["tier"]; ok {
-		if tierStr, ok := tierVal.(string); ok {
-			if mapped, ok := legacyTierMap[tierStr]; ok {
-				data["tier"] = mapped
-			}
-		}
-	}
-
 	// Remove camelCase duplicates of snake_case fields. The old TypeScript
 	// backend wrote fields in camelCase; Go services write the same fields in
 	// snake_case (the proto field names) via targeted Firestore updates —
-	// AddFCMToken writes "fcm_tokens", the billing increment writes
-	// "sync_count_this_month", the streak rollup writes "current_streak_days",
+	// AddFCMToken writes "fcm_tokens", the streak rollup writes "current_streak_days",
 	// etc. A document touched by both therefore ends up carrying both spellings
 	// of a field, which protojson rejects with a "duplicate field" error and
 	// fails the whole GetProfile read.
@@ -710,20 +692,13 @@ func (s *FirestoreStore) DeletePluginDefaults(ctx context.Context, userID, plugi
 
 func (s *FirestoreStore) CreateUser(ctx context.Context, userID string) (*pbuser.UserProfile, error) {
 	now := time.Now()
-	// Stored tier is Hobbyist; getEffectiveTier() grants Athlete during trial via trialEndsAt
-	trialEndsAt := now.Add(30 * 24 * time.Hour)
 
 	profile := &pbuser.UserProfile{
 		UserId:                  userID,
 		CreatedAt:               timestamppb.New(now),
-		Tier:                    pbuser.UserTier_USER_TIER_HOBBYIST,
 		IsAdmin:                 false,
-		SyncCountThisMonth:      0,
-		SyncCountResetAt:        timestamppb.New(now),
-		PreventedSyncCount:      0,
 		AccessEnabled:           false, // Waitlisted until admin enables
 		NotificationPreferences: defaultNotificationPreferences(),
-		TrialEndsAt:             timestamppb.New(trialEndsAt),
 		FcmTokens:               []string{},
 	}
 

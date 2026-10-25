@@ -6,9 +6,9 @@ FitGlue has three distinct HTTP gateway services, each with its own auth policy 
 
 | Service | Callers | Auth | gRPC Clients |
 |---------|---------|------|-------------|
-| `service.api.client` | Web app, mobile app | Firebase Auth JWT | user, pipeline, activity, registry, billing |
+| `service.api.client` | Web app, mobile app | Firebase Auth JWT | user, pipeline, activity, registry |
 | `service.api.public` | Marketing site, unauthenticated browser | None (rate-limited) | registry, activity |
-| `service.api.webhook` | Third-party services (Strava, Fitbit, etc.), Stripe | Provider HMAC / Mobile JWT / Stripe sig | user (via RPC), Pub/Sub |
+| `service.api.webhook` | Third-party services (Strava, Fitbit, etc.) | Provider HMAC / Mobile JWT | user (via RPC), Pub/Sub |
 
 ## service.api.client
 
@@ -54,7 +54,7 @@ Unauthenticated endpoints for public-facing consumers.
 
 ## service.api.webhook
 
-Inbound webhook processor for all third-party sources and billing.
+Inbound webhook processor for all third-party sources.
 
 **Auth:** Per-provider HMAC or signature verification (no Firebase JWT). Mobile push endpoints use a separate mobile JWT.
 

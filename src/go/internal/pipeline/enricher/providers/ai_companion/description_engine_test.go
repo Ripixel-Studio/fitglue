@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
-	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/branding"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/muscle_heatmap"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/source_link"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/workout_summary"
@@ -73,20 +72,18 @@ func TestDescriptionEngine_Integration(t *testing.T) {
 	pLink := source_link.NewSourceLinkProvider()
 	pSummary := workout_summary.NewWorkoutSummaryProvider()
 	pHeatmap := muscle_heatmap.NewMuscleHeatmapProvider()
-	pBranding := branding.NewBrandingProvider()
 
 	// 3. Execute Providers
 	ctx := context.Background()
 	resLink, _ := pLink.Enrich(ctx, slog.Default(), activity, nil, nil, false)
 	resSummary, _ := pSummary.Enrich(ctx, slog.Default(), activity, nil, nil, false)
 	resHeatmap, _ := pHeatmap.Enrich(ctx, slog.Default(), activity, nil, nil, false)
-	resBranding, _ := pBranding.Enrich(ctx, slog.Default(), activity, nil, nil, false)
 
 	// 4. Simulate Orchestrator Merge
 	finalDesc := activity.Description
 
-	// Order: Summary, Heatmap, Link, then Branding (always last)
-	results := []*providers.EnrichmentResult{resSummary, resHeatmap, resLink, resBranding}
+	// Order: Summary, Heatmap, Link
+	results := []*providers.EnrichmentResult{resSummary, resHeatmap, resLink}
 
 	for _, res := range results {
 		if res.Description != "" {
@@ -146,9 +143,6 @@ func TestDescriptionEngine_Integration(t *testing.T) {
 
 		// Source link
 		"View on Hevy: https://hevy.com/workout/test-uuid",
-
-		// Branding footer (always present)
-		"Posted via FitGlue 💪",
 	}
 
 	for _, part := range expectedParts {
@@ -165,11 +159,6 @@ func TestDescriptionEngine_Integration(t *testing.T) {
 	heatmapStart := strings.Index(finalDesc, "Muscle Heatmap:")
 	if heatmapStart == -1 {
 		t.Fatal("Muscle Heatmap not found in description")
-	}
-
-	// Verify branding is at the end
-	if !strings.HasSuffix(strings.TrimSpace(finalDesc), "Posted via FitGlue 💪") {
-		t.Error("Expected branding footer to be at the end of description")
 	}
 }
 

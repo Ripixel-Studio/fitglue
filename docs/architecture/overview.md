@@ -19,7 +19,7 @@ FitGlue is a fitness data aggregation and routing platform built on Google Cloud
 │  ┌────────────────────────▼────────────────────────────────────┐    │
 │  │             DOMAIN SERVICES (own their Firestore data)      │    │
 │  │                                                             │    │
-│  │  service.user          service.billing   service.registry   │    │
+│  │  service.user          service.registry                     │    │
 │  │  service.pipeline      service.activity                     │    │
 │  └────────────────────────┬────────────────────────────────────┘    │
 │                           │ Pub/Sub                                 │

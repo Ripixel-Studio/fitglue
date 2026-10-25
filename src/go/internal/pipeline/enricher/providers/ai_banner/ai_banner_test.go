@@ -34,43 +34,6 @@ func TestAIBanner_ProviderType(t *testing.T) {
 	}
 }
 
-func TestAIBanner_Enrich_TierRestriction(t *testing.T) {
-	provider := NewAIBannerProvider()
-	provider.Service = &bootstrap.Service{}
-
-	// Create activity
-	activity := &pbactivity.StandardizedActivity{
-		ExternalId: "test-activity-123",
-		StartTime:  timestamppb.New(time.Now()),
-		Type:       pbactivity.ActivityType_ACTIVITY_TYPE_RUN,
-	}
-
-	// Hobbyist tier user (should be skipped)
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-			Tier:   pbuser.UserTier_USER_TIER_HOBBYIST,
-		},
-	}
-
-	result, err := provider.Enrich(context.Background(), slog.Default(), activity, user, nil, false)
-	if err != nil {
-		t.Fatalf("Enrich failed: %v", err)
-	}
-
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
-
-	// Verify tier restriction
-	if result.Metadata["status"] != "skipped" {
-		t.Errorf("Expected status=skipped, got %s", result.Metadata["status"])
-	}
-	if result.Metadata["reason"] != "tier_restricted" {
-		t.Errorf("Expected reason=tier_restricted, got %s", result.Metadata["reason"])
-	}
-}
-
 func TestAIBanner_Enrich_NoActivityID(t *testing.T) {
 	provider := NewAIBannerProvider()
 	provider.Service = &bootstrap.Service{}
@@ -81,11 +44,9 @@ func TestAIBanner_Enrich_NoActivityID(t *testing.T) {
 		Type:      pbactivity.ActivityType_ACTIVITY_TYPE_RUN,
 	}
 
-	// Athlete tier user
 	user := &user.Record{
 		UserProfile: &pbuser.UserProfile{
 			UserId: "test-user",
-			Tier:   pbuser.UserTier_USER_TIER_ATHLETE,
 		},
 	}
 

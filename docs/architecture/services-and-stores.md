@@ -36,7 +36,6 @@ Stores are **never** imported by API gateway services — they are internal to t
 | `service.user` | `user.Store` | `users/`, `users/*/integrations` |
 | `service.pipeline` | `pipeline.Store`, `pipeline.RunStore`, `pipeline.InputStore` | `users/*/pipelines`, `users/*/pipeline_runs`, `users/*/pending_inputs` |
 | `service.activity` | `activity.Store` | `users/*/activities`, `showcased_activities/` |
-| `service.billing` | `billing.Store` | `users/*/billing` |
 | `service.registry` | (static config only) | — |
 
 ## User Sub-Collections

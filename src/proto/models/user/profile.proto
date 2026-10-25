@@ -8,20 +8,19 @@ import "models/activity/source.proto";
 
 option go_package = "github.com/fitglue/server/src/go/pkg/types/pb/models/user";
 
-// UserProfile represents the core user identity and preferences, 
-// cleanly separated from billing and integrations.
+// UserProfile represents the core user identity and preferences,
+// cleanly separated from integrations.
 message UserProfile {
+  // 4, 6, 7, 8 and 11 were tier, sync_count_this_month, sync_count_reset_at,
+  // prevented_sync_count and trial_ends_at — removed with billing.
+  reserved 4, 6, 7, 8, 11;
+  reserved "tier", "sync_count_this_month", "sync_count_reset_at", "prevented_sync_count", "trial_ends_at";
+
   string user_id = 1;
   google.protobuf.Timestamp created_at = 2;
   repeated string fcm_tokens = 3;
 
-  UserTier tier = 4;
   bool is_admin = 5;
-  
-  // Monthly sync tracking
-  int32 sync_count_this_month = 6;
-  google.protobuf.Timestamp sync_count_reset_at = 7;
-  int32 prevented_sync_count = 8;
   
   // Waitlist gate - false until admin enables access
   bool access_enabled = 9;
@@ -29,7 +28,6 @@ message UserProfile {
   // User's push notification preferences
   NotificationPreferences notification_preferences = 10;
   
-  google.protobuf.Timestamp trial_ends_at = 11;
   string email = 12;
   string display_name = 13;
 
@@ -60,12 +58,6 @@ message NotificationPreferences {
   NotificationTypePreference connection_action = 4;
   NotificationTypePreference showcase_roundup = 5;
   NotificationTypePreference pipeline_cancelled = 6;
-}
-
-enum UserTier {
-  USER_TIER_UNSPECIFIED = 0;
-  USER_TIER_HOBBYIST = 1;
-  USER_TIER_ATHLETE = 2;
 }
 
 message Counter {

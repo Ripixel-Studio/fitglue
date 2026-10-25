@@ -55,7 +55,7 @@ terraform/
 
 All 10 services are defined as Cloud Run v2 services using a `for_each` over two local maps:
 - `frontend_services`: `api-client`, `api-public`, `api-webhook`
-- `backend_services`: `user`, `billing`, `pipeline`, `activity`, `registry`, `destination`
+- `backend_services`: `user`, `pipeline`, `activity`, `registry`, `destination`
 
 Each service gets:
 - A dedicated service account (`cr-{name}-sa`)

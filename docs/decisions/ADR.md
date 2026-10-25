@@ -315,7 +315,6 @@ The migration was approved and fully implemented. The FitGlue server backend now
 | 3 | `service.api.public` | Unauthenticated HTTP gateway |
 | 4 | `service.api.webhook` | Inbound webhook processor |
 | 5 | `service.user` | User profiles, integrations, OAuth tokens |
-| 6 | `service.billing` | Subscriptions, Stripe, tier enforcement |
 | 7 | `service.pipeline` | Pipeline CRUD, enrichment, routing |
 | 8 | `service.activity` | Activities, showcases, exports |
 | 9 | `service.registry` | Plugin manifests, categories, icons |

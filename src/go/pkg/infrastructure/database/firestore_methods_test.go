@@ -66,12 +66,6 @@ func TestFirestoreAdapterMethods(t *testing.T) {
 		wantErr("CountBillingEventsForPeriod", err)
 	})
 
-	t.Run("SyncCount", func(t *testing.T) {
-		wantErr("IncrementSyncCount", a.IncrementSyncCount(ctx, "u1"))
-		wantErr("IncrementPreventedSyncCount", a.IncrementPreventedSyncCount(ctx, "u1"))
-		wantErr("ResetSyncCount", a.ResetSyncCount(ctx, "u1"))
-	})
-
 	t.Run("PendingInputs", func(t *testing.T) {
 		_, err := a.GetPendingInput(ctx, "u1", "p1")
 		wantErr("GetPendingInput", err)

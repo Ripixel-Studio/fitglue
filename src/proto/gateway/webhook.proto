@@ -11,7 +11,7 @@ option go_package = "github.com/fitglue/server/src/go/pkg/types/pb/gateway";
 // served by api-webhook at /api/webhooks/*.
 //
 // No user authentication — instead uses provider-specific verification
-// (Strava hub challenge, Fitbit subscriber verification, Stripe signatures).
+// (Strava hub challenge, Fitbit subscriber verification).
 service WebhookGatewayService {
 
   // ===================== Strava =====================
@@ -36,14 +36,6 @@ service WebhookGatewayService {
   rpc FitbitEvent(WebhookEventRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/fitbit"
-      body: "*"
-    };
-  }
-
-  // ===================== Billing (Stripe) =====================
-  rpc BillingEvent(BillingWebhookRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/billing"
       body: "*"
     };
   }
@@ -74,10 +66,4 @@ message FitbitVerificationResponse {
 // Generic webhook event payload (Strava/Fitbit POST events)
 message WebhookEventRequest {
   bytes payload = 1;
-}
-
-// Stripe billing webhook
-message BillingWebhookRequest {
-  bytes payload = 1;
-  // Stripe-Signature header is read by the handler, not part of the body
 }

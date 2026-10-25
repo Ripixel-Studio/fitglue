@@ -254,57 +254,6 @@ resource "google_secret_manager_secret_version" "wahoo_client_secret_initial" {
 }
 
 # =============================================================================
-# Stripe Billing Secrets
-# =============================================================================
-resource "google_secret_manager_secret" "stripe_secret_key" {
-  secret_id = "stripe-secret-key"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "stripe_secret_key_initial" {
-  secret      = google_secret_manager_secret.stripe_secret_key.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-resource "google_secret_manager_secret" "stripe_webhook_secret" {
-  secret_id = "stripe-webhook-secret"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "stripe_webhook_secret_initial" {
-  secret      = google_secret_manager_secret.stripe_webhook_secret.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-resource "google_secret_manager_secret" "stripe_price_id" {
-  secret_id = "stripe-price-id"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "stripe_price_id_initial" {
-  secret      = google_secret_manager_secret.stripe_price_id.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-# =============================================================================
 # Gemini API key for AI description enricher
 # =============================================================================
 resource "google_secret_manager_secret" "gemini_api_key" {

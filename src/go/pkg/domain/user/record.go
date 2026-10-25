@@ -10,5 +10,4 @@ import (
 type Record struct {
 	*pbuser.UserProfile
 	Integrations *pbuser.UserIntegrations
-	Billing      *pbuser.SubscriptionState
 }

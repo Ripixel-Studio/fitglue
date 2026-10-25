@@ -7,10 +7,8 @@ import (
 	"testing"
 
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
-	"github.com/fitglue/server/src/go/pkg/domain/user"
 	"github.com/fitglue/server/src/go/pkg/testing/mocks"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
-	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 )
 
 // canceledCtx is an already-canceled context so the genai client's
@@ -152,23 +150,5 @@ func TestBuildActivityContext_ScaleAndIntensity(t *testing.T) {
 				t.Errorf("buildActivityContext(%s) = %q, want substring %q", tc.name, got, tc.want)
 			}
 		})
-	}
-}
-
-// nonAthleteUser returns a hobbyist user record for completeness.
-func nonAthleteUser() *user.Record {
-	return &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u2", Tier: pbuser.UserTier_USER_TIER_HOBBYIST}}
-}
-
-func TestAIBanner_Enrich_TierRestrictedRound2(t *testing.T) {
-	p := NewAIBannerProvider()
-	p.Service = &bootstrap.Service{}
-	activity := &pbactivity.StandardizedActivity{ExternalId: "act-1"}
-	res, err := p.Enrich(context.Background(), discardLogger(), activity, nonAthleteUser(), nil, false)
-	if err != nil {
-		t.Fatalf("Enrich error: %v", err)
-	}
-	if res.Metadata["reason"] != "tier_restricted" {
-		t.Errorf("expected tier_restricted, got %v", res.Metadata)
 	}
 }

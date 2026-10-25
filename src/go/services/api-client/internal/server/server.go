@@ -13,7 +13,6 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/infra"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
-	billingpb "github.com/fitglue/server/src/go/pkg/types/pb/services/billing"
 	pipelinepb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
 	registrypb "github.com/fitglue/server/src/go/pkg/types/pb/services/registry"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
@@ -36,18 +35,17 @@ type GCSSigner interface {
 
 // APIServer implements the HTTP router interfacing with FitGlue domain gRPC services
 type APIServer struct {
-	router         *chi.Mux
-	logger         infra.Logger
-	authClient     *auth.Client
-	publisher      Publisher
-	apiKeyStore    ApiKeyStore
-	gcsSigner      GCSSigner // may be nil in test environments
-	statsStore     PlatformStatsStore
-	userService    userpb.UserServiceClient
-	billingService billingpb.BillingServiceClient
-	pipelineSvc    pipelinepb.PipelineServiceClient
-	activitySvc    activitypb.ActivityServiceClient
-	registrySvc    registrypb.RegistryServiceClient
+	router      *chi.Mux
+	logger      infra.Logger
+	authClient  *auth.Client
+	publisher   Publisher
+	apiKeyStore ApiKeyStore
+	gcsSigner   GCSSigner // may be nil in test environments
+	statsStore  PlatformStatsStore
+	userService userpb.UserServiceClient
+	pipelineSvc pipelinepb.PipelineServiceClient
+	activitySvc activitypb.ActivityServiceClient
+	registrySvc registrypb.RegistryServiceClient
 }
 
 // NewAPIServer constructs the application routing and API middleware stack
@@ -59,24 +57,22 @@ func NewAPIServer(
 	gcsSigner GCSSigner,
 	statsStore PlatformStatsStore,
 	userSvc userpb.UserServiceClient,
-	billingSvc billingpb.BillingServiceClient,
 	pipelineSvc pipelinepb.PipelineServiceClient,
 	activitySvc activitypb.ActivityServiceClient,
 	registrySvc registrypb.RegistryServiceClient,
 ) *APIServer {
 	s := &APIServer{
-		router:         chi.NewRouter(),
-		logger:         logger,
-		authClient:     authClient,
-		publisher:      publisher,
-		apiKeyStore:    apiKeyStore,
-		gcsSigner:      gcsSigner,
-		statsStore:     statsStore,
-		userService:    userSvc,
-		billingService: billingSvc,
-		pipelineSvc:    pipelineSvc,
-		activitySvc:    activitySvc,
-		registrySvc:    registrySvc,
+		router:      chi.NewRouter(),
+		logger:      logger,
+		authClient:  authClient,
+		publisher:   publisher,
+		apiKeyStore: apiKeyStore,
+		gcsSigner:   gcsSigner,
+		statsStore:  statsStore,
+		userService: userSvc,
+		pipelineSvc: pipelineSvc,
+		activitySvc: activitySvc,
+		registrySvc: registrySvc,
 	}
 
 	s.setupRoutes()
@@ -130,7 +126,6 @@ func (s *APIServer) setupRoutes() {
 			r.Use(AuthMiddleware(s.authClient))
 
 			s.registerUserRoutes(r)
-			s.registerBillingRoutes(r)
 			s.registerPipelineRoutes(r)
 			s.registerActivityRoutes(r)
 			s.registerOAuthRoutes(r)

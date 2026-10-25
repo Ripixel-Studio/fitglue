@@ -75,7 +75,6 @@ func TestRouteCoverage(t *testing.T) {
 		nil, // gcsSigner (not needed for route structure)
 		nil, // statsStore (not needed for route structure)
 		&mockUserServiceClient{},
-		&mockBillingServiceClient{},
 		&mockPipelineServiceClient{},
 		&mockActivityServiceClient{},
 		&mockRegistryServiceClient{},

@@ -18,7 +18,6 @@ Use this table to jump straight to the right service, code, and logs for any fai
 | **Pipeline processing (split/route)** | `pipeline` | `internal/pipeline/` | `resource.labels.service_name="pipeline"` | `users/{uid}/pipeline_runs/` |
 | **Destination upload** | `destination` | `services/destination/internal/destination/uploaders/` | `resource.labels.service_name="destination"` | `users/{uid}/pipeline_runs/{id}` → `destinations[]` |
 | **Pending input stalls** | `pipeline` | `internal/pipeline/` | `resource.labels.service_name="pipeline"` | `users/{uid}/pending_inputs/` |
-| **Billing / tier issues** | `api-client` → `billing` | `internal/billing/` | `resource.labels.service_name="billing"` | `users/{uid}` → billing fields |
 | **Registry / plugin config** | `api-public` or `api-client` → `registry` | `internal/registry/` | `resource.labels.service_name="registry"` | Static config (no Firestore) |
 
 ---
@@ -189,7 +188,6 @@ Use this table to jump straight to the right service, code, and logs for any fai
 | Polar | `/hooks/polar` | OAuth signature |
 | Wahoo | `/hooks/wahoo` | OAuth signature |
 | Oura | `/hooks/oura` | HMAC |
-| Stripe (billing) | `/hooks/stripe` | Stripe signature |
 | Mobile | `/hooks/mobile` | Mobile JWT |
 
 ### Key Code Paths
@@ -424,7 +422,7 @@ severity>=WARNING
 jsonPayload.destination="<DESTINATION_NAME>"
 ```
 
-**Service name values**: `api-client`, `api-public`, `api-webhook`, `user`, `billing`, `pipeline`, `activity`, `registry`, `destination`
+**Service name values**: `api-client`, `api-public`, `api-webhook`, `user`, `pipeline`, `activity`, `registry`, `destination`
 
 ### Sentry
 
@@ -459,7 +457,7 @@ Every Sentry event includes:
 
 | Path | Purpose | When to Check |
 |------|---------|---------------|
-| `users/{userId}` | User profile, integrations, billing | Connection/auth issues |
+| `users/{userId}` | User profile, integrations | Connection/auth issues |
 | `users/{userId}/pipelines/` | Pipeline configurations | Pipeline CRUD issues |
 | `users/{userId}/pipeline_runs/` | Execution results with booster/destination detail | Any pipeline processing issue |
 | `users/{userId}/pending_inputs/` | Paused pipeline inputs | "Waiting" status issues |

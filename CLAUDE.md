@@ -1,6 +1,6 @@
 # FitGlue Server
 
-Go backend — 10 Cloud Run microservices communicating via gRPC, fronted by 3 HTTP API gateways.
+Go backend — 9 Cloud Run microservices communicating via gRPC, fronted by 3 HTTP API gateways.
 
 ## Stack
 
@@ -13,7 +13,6 @@ Go backend — 10 Cloud Run microservices communicating via gRPC, fronted by 3 H
 | Messaging | Cloud Pub/Sub |
 | File storage | Google Cloud Storage |
 | Auth | Firebase Authentication (JWT) |
-| Billing | Stripe |
 | AI | Gemini (AI enrichers) |
 | FIT files | muktihari/fit |
 | Error tracking | Sentry |
@@ -47,12 +46,12 @@ npm run test:test       # Against test environment
 
 ## Service Architecture
 
-10 independent Cloud Run services. **3 HTTP gateways** (public-facing) + **7 domain services** (private).
+9 independent Cloud Run services. **3 HTTP gateways** (public-facing) + **6 domain services** (private).
 
 ```
 Internet
     │
-    ├── api-client   (HTTP, Firebase JWT)    → user, billing, pipeline, activity, registry
+    ├── api-client   (HTTP, Firebase JWT)    → user, pipeline, activity, registry
     ├── api-public   (HTTP, no auth)          → registry, activity (showcases)
     └── api-webhook  (HTTP, HMAC/OAuth)       → pipeline (via Pub/Sub)
                                                 user (resolve integration)
@@ -65,7 +64,6 @@ Pub/Sub
 
 Domain Services (private):
     ├── user         (gRPC, port 50051) — profiles, integrations, OAuth tokens
-    ├── billing      (gRPC, port 50052) — Stripe subscriptions, tier enforcement
     ├── pipeline     (gRPC, port 50053) — pipeline CRUD + enrichment orchestration
     ├── activity     (gRPC, port 50054) — activity CRUD, showcases, exports
     ├── registry     (gRPC, port 50055) — plugin manifests (sources, enrichers, destinations)
@@ -86,7 +84,6 @@ server/
 │   │   │   ├── api-webhook/        # HTTP gateway (HMAC/OAuth)
 │   │   │   │   └── internal/webhook/sources/  # strava/, fitbit/, hevy/, polar/, oura/, wahoo/, mobile/, parkrun/
 │   │   │   ├── user/               # gRPC domain service
-│   │   │   ├── billing/            # gRPC domain service
 │   │   │   ├── pipeline/           # gRPC domain service + enrichment orchestration
 │   │   │   ├── activity/           # gRPC domain service
 │   │   │   ├── registry/           # gRPC domain service
@@ -95,7 +92,6 @@ server/
 │   │   │   └── notification/       # Pub/Sub service — FCM push dispatch, per-user preference routing
 │   │   ├── internal/               # Shared domain logic (used by multiple services)
 │   │   │   ├── user/               # User domain (profiles, integrations, Firestore store)
-│   │   │   ├── billing/            # Billing domain
 │   │   │   ├── pipeline/           # Pipeline orchestration + enrichers (45+ providers)
 │   │   │   │   └── enricher/providers/   # One directory per enricher
 │   │   │   ├── activity/           # Activity CRUD + showcases
@@ -104,7 +100,7 @@ server/
 │   │   ├── pkg/                    # Shared packages (exported)
 │   │   │   ├── types/pb/           # Generated gRPC stubs — DO NOT EDIT manually
 │   │   │   ├── bootstrap/          # Service init helpers (Firebase, Firestore, Pub/Sub)
-│   │   │   ├── domain/             # Domain models (activity, user, tier, FIT parser/generator)
+│   │   │   ├── domain/             # Domain models (activity, user, FIT parser/generator)
 │   │   │   ├── integrations/       # Generated OpenAPI clients — DO NOT EDIT manually
 │   │   │   ├── infrastructure/     # Email, Pub/Sub adapter, storage, secrets, FCM
 │   │   │   ├── sourceplugins/      # Historical activity sync providers (Fitbit, Hevy, Intervals, Strava)
@@ -209,7 +205,6 @@ users/{userId}/
     pending_inputs/{inputId}  — Paused pipeline prompts
     activities/{activityId}   — Synchronized activities
     api_keys/{keyId}          — API keys
-    billing/subscription      — Stripe subscription data
 
 showcased_activities/{id}     — Public showcase records
 ```

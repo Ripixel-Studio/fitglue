@@ -685,7 +685,6 @@ func (s *Service) ListUsers(ctx context.Context, req *pbsvc.ListUsersRequest) (*
 		if profile == nil {
 			profile = &pbuser.UserProfile{
 				UserId: u.UID,
-				Tier:   pbuser.UserTier_USER_TIER_HOBBYIST,
 			}
 		}
 		profile.Email = u.Email

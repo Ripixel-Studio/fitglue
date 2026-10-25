@@ -105,12 +105,6 @@ const (
 	ClientGatewayService_RepostMissedDestination_FullMethodName            = "/fitglue.gateway.ClientGatewayService/RepostMissedDestination"
 	ClientGatewayService_RepostRetryDestination_FullMethodName             = "/fitglue.gateway.ClientGatewayService/RepostRetryDestination"
 	ClientGatewayService_RepostFullPipeline_FullMethodName                 = "/fitglue.gateway.ClientGatewayService/RepostFullPipeline"
-	ClientGatewayService_GetSubscription_FullMethodName                    = "/fitglue.gateway.ClientGatewayService/GetSubscription"
-	ClientGatewayService_CreateCheckoutSession_FullMethodName              = "/fitglue.gateway.ClientGatewayService/CreateCheckoutSession"
-	ClientGatewayService_CancelSubscription_FullMethodName                 = "/fitglue.gateway.ClientGatewayService/CancelSubscription"
-	ClientGatewayService_GetTierStatus_FullMethodName                      = "/fitglue.gateway.ClientGatewayService/GetTierStatus"
-	ClientGatewayService_StartTrial_FullMethodName                         = "/fitglue.gateway.ClientGatewayService/StartTrial"
-	ClientGatewayService_CreateBillingPortal_FullMethodName                = "/fitglue.gateway.ClientGatewayService/CreateBillingPortal"
 	ClientGatewayService_GetPipelineRunPayload_FullMethodName              = "/fitglue.gateway.ClientGatewayService/GetPipelineRunPayload"
 	ClientGatewayService_ExportPipelineRun_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/ExportPipelineRun"
 	ClientGatewayService_GetPluginRegistry_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/GetPluginRegistry"
@@ -248,13 +242,6 @@ type ClientGatewayServiceClient interface {
 	RepostMissedDestination(ctx context.Context, in *RepostVariantGatewayRequest, opts ...grpc.CallOption) (*RepostGatewayResponse, error)
 	RepostRetryDestination(ctx context.Context, in *RepostVariantGatewayRequest, opts ...grpc.CallOption) (*RepostGatewayResponse, error)
 	RepostFullPipeline(ctx context.Context, in *RepostVariantGatewayRequest, opts ...grpc.CallOption) (*RepostGatewayResponse, error)
-	// ===================== Billing =====================
-	GetSubscription(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.SubscriptionState, error)
-	CreateCheckoutSession(ctx context.Context, in *CreateCheckoutGatewayRequest, opts ...grpc.CallOption) (*CreateCheckoutGatewayResponse, error)
-	CancelSubscription(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.SubscriptionState, error)
-	GetTierStatus(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*GetTierStatusGatewayResponse, error)
-	StartTrial(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.SubscriptionState, error)
-	CreateBillingPortal(ctx context.Context, in *CreateBillingPortalGatewayRequest, opts ...grpc.CallOption) (*CreateBillingPortalGatewayResponse, error)
 	// ===================== Pipeline Run Payloads =====================
 	GetPipelineRunPayload(ctx context.Context, in *GetPipelineRunPayloadGatewayRequest, opts ...grpc.CallOption) (*GetPipelineRunPayloadGatewayResponse, error)
 	// ExportPipelineRun returns a signed URL to a per-run ZIP (enriched + payload
@@ -1088,66 +1075,6 @@ func (c *clientGatewayServiceClient) RepostFullPipeline(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *clientGatewayServiceClient) GetSubscription(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.SubscriptionState, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(user.SubscriptionState)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetSubscription_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) CreateCheckoutSession(ctx context.Context, in *CreateCheckoutGatewayRequest, opts ...grpc.CallOption) (*CreateCheckoutGatewayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateCheckoutGatewayResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_CreateCheckoutSession_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) CancelSubscription(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.SubscriptionState, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(user.SubscriptionState)
-	err := c.cc.Invoke(ctx, ClientGatewayService_CancelSubscription_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) GetTierStatus(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*GetTierStatusGatewayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetTierStatusGatewayResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetTierStatus_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) StartTrial(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*user.SubscriptionState, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(user.SubscriptionState)
-	err := c.cc.Invoke(ctx, ClientGatewayService_StartTrial_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) CreateBillingPortal(ctx context.Context, in *CreateBillingPortalGatewayRequest, opts ...grpc.CallOption) (*CreateBillingPortalGatewayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateBillingPortalGatewayResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_CreateBillingPortal_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *clientGatewayServiceClient) GetPipelineRunPayload(ctx context.Context, in *GetPipelineRunPayloadGatewayRequest, opts ...grpc.CallOption) (*GetPipelineRunPayloadGatewayResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPipelineRunPayloadGatewayResponse)
@@ -1355,13 +1282,6 @@ type ClientGatewayServiceServer interface {
 	RepostMissedDestination(context.Context, *RepostVariantGatewayRequest) (*RepostGatewayResponse, error)
 	RepostRetryDestination(context.Context, *RepostVariantGatewayRequest) (*RepostGatewayResponse, error)
 	RepostFullPipeline(context.Context, *RepostVariantGatewayRequest) (*RepostGatewayResponse, error)
-	// ===================== Billing =====================
-	GetSubscription(context.Context, *EmptyRequest) (*user.SubscriptionState, error)
-	CreateCheckoutSession(context.Context, *CreateCheckoutGatewayRequest) (*CreateCheckoutGatewayResponse, error)
-	CancelSubscription(context.Context, *EmptyRequest) (*user.SubscriptionState, error)
-	GetTierStatus(context.Context, *EmptyRequest) (*GetTierStatusGatewayResponse, error)
-	StartTrial(context.Context, *EmptyRequest) (*user.SubscriptionState, error)
-	CreateBillingPortal(context.Context, *CreateBillingPortalGatewayRequest) (*CreateBillingPortalGatewayResponse, error)
 	// ===================== Pipeline Run Payloads =====================
 	GetPipelineRunPayload(context.Context, *GetPipelineRunPayloadGatewayRequest) (*GetPipelineRunPayloadGatewayResponse, error)
 	// ExportPipelineRun returns a signed URL to a per-run ZIP (enriched + payload
@@ -1627,24 +1547,6 @@ func (UnimplementedClientGatewayServiceServer) RepostRetryDestination(context.Co
 }
 func (UnimplementedClientGatewayServiceServer) RepostFullPipeline(context.Context, *RepostVariantGatewayRequest) (*RepostGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RepostFullPipeline not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) GetSubscription(context.Context, *EmptyRequest) (*user.SubscriptionState, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetSubscription not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) CreateCheckoutSession(context.Context, *CreateCheckoutGatewayRequest) (*CreateCheckoutGatewayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CreateCheckoutSession not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) CancelSubscription(context.Context, *EmptyRequest) (*user.SubscriptionState, error) {
-	return nil, status.Error(codes.Unimplemented, "method CancelSubscription not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) GetTierStatus(context.Context, *EmptyRequest) (*GetTierStatusGatewayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetTierStatus not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) StartTrial(context.Context, *EmptyRequest) (*user.SubscriptionState, error) {
-	return nil, status.Error(codes.Unimplemented, "method StartTrial not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) CreateBillingPortal(context.Context, *CreateBillingPortalGatewayRequest) (*CreateBillingPortalGatewayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CreateBillingPortal not implemented")
 }
 func (UnimplementedClientGatewayServiceServer) GetPipelineRunPayload(context.Context, *GetPipelineRunPayloadGatewayRequest) (*GetPipelineRunPayloadGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPipelineRunPayload not implemented")
@@ -3149,114 +3051,6 @@ func _ClientGatewayService_RepostFullPipeline_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ClientGatewayService_GetSubscription_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetSubscription(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetSubscription_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetSubscription(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_CreateCheckoutSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateCheckoutGatewayRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).CreateCheckoutSession(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_CreateCheckoutSession_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).CreateCheckoutSession(ctx, req.(*CreateCheckoutGatewayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_CancelSubscription_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).CancelSubscription(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_CancelSubscription_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).CancelSubscription(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_GetTierStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetTierStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetTierStatus_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetTierStatus(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_StartTrial_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).StartTrial(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_StartTrial_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).StartTrial(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_CreateBillingPortal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateBillingPortalGatewayRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).CreateBillingPortal(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_CreateBillingPortal_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).CreateBillingPortal(ctx, req.(*CreateBillingPortalGatewayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _ClientGatewayService_GetPipelineRunPayload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPipelineRunPayloadGatewayRequest)
 	if err := dec(in); err != nil {
@@ -3731,30 +3525,6 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RepostFullPipeline",
 			Handler:    _ClientGatewayService_RepostFullPipeline_Handler,
-		},
-		{
-			MethodName: "GetSubscription",
-			Handler:    _ClientGatewayService_GetSubscription_Handler,
-		},
-		{
-			MethodName: "CreateCheckoutSession",
-			Handler:    _ClientGatewayService_CreateCheckoutSession_Handler,
-		},
-		{
-			MethodName: "CancelSubscription",
-			Handler:    _ClientGatewayService_CancelSubscription_Handler,
-		},
-		{
-			MethodName: "GetTierStatus",
-			Handler:    _ClientGatewayService_GetTierStatus_Handler,
-		},
-		{
-			MethodName: "StartTrial",
-			Handler:    _ClientGatewayService_StartTrial_Handler,
-		},
-		{
-			MethodName: "CreateBillingPortal",
-			Handler:    _ClientGatewayService_CreateBillingPortal_Handler,
 		},
 		{
 			MethodName: "GetPipelineRunPayload",

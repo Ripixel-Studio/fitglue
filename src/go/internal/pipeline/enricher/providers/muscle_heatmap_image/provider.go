@@ -13,7 +13,6 @@ import (
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/muscle_heatmap"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
-	"github.com/fitglue/server/src/go/pkg/domain/tier"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 
@@ -21,7 +20,7 @@ import (
 )
 
 // MuscleHeatmapImageProvider generates an anatomical SVG heatmap of muscle activation
-// Athlete tier only - produces a visual asset for Showcase
+// Produces a visual asset for Showcase
 type MuscleHeatmapImageProvider struct {
 	service *bootstrap.Service
 }
@@ -59,12 +58,6 @@ type MuscleScore struct {
 
 func (p *MuscleHeatmapImageProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputConfig map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
 	logger.Debug("muscle_heatmap_image: starting", "activity_name", activity.Name)
-	// Tier check - Athlete only
-	if tier.GetEffectiveTier(user) != tier.TierAthlete {
-		logger.Info("Skipping muscle heatmap image - Athlete tier required")
-		return &providers.EnrichmentResult{Skipped: true, SkipReason: "Athlete tier required"}, nil
-	}
-
 	// Aggregate strength sets
 	var allSets []*pbactivity.StrengthSet
 	for _, s := range activity.Sessions {

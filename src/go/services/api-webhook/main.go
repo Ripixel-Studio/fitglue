@@ -13,7 +13,6 @@ import (
 	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
 	infraps "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
-	billingpb "github.com/fitglue/server/src/go/pkg/types/pb/services/billing"
 	pipelinepb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/server"
@@ -95,18 +94,6 @@ func main() {
 	defer activityConn.Close()
 	activityClient := activitypb.NewActivityServiceClient(activityConn)
 
-	billingServiceURL := os.Getenv("BILLING_SERVICE_URL")
-	if billingServiceURL == "" {
-		billingServiceURL = "localhost:50052"
-	}
-	billingConn, err := infra.GRPCDial(billingServiceURL)
-	if err != nil {
-		logger.Error(ctx, "Failed to connect to Billing Service", "url", billingServiceURL, "error", err)
-		os.Exit(1)
-	}
-	defer billingConn.Close()
-	billingClient := billingpb.NewBillingServiceClient(billingConn)
-
 	// Setup Pub/Sub Client
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
@@ -162,7 +149,6 @@ func main() {
 		logger,
 		authClient,
 		userClient,
-		billingClient,
 		pipelineClient,
 		activityClient,
 		processor,

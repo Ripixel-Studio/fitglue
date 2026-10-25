@@ -254,51 +254,6 @@ func (x *WebhookEventRequest) GetPayload() []byte {
 	return nil
 }
 
-// Stripe billing webhook
-type BillingWebhookRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Payload       []byte                 `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"` // Stripe-Signature header is read by the handler, not part of the body
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BillingWebhookRequest) Reset() {
-	*x = BillingWebhookRequest{}
-	mi := &file_gateway_webhook_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BillingWebhookRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BillingWebhookRequest) ProtoMessage() {}
-
-func (x *BillingWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_webhook_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BillingWebhookRequest.ProtoReflect.Descriptor instead.
-func (*BillingWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_webhook_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *BillingWebhookRequest) GetPayload() []byte {
-	if x != nil {
-		return x.Payload
-	}
-	return nil
-}
-
 var File_gateway_webhook_proto protoreflect.FileDescriptor
 
 const file_gateway_webhook_proto_rawDesc = "" +
@@ -314,15 +269,12 @@ const file_gateway_webhook_proto_rawDesc = "" +
 	"\x06verify\x18\x01 \x01(\tR\x06verify\"\x1c\n" +
 	"\x1aFitbitVerificationResponse\"/\n" +
 	"\x13WebhookEventRequest\x12\x18\n" +
-	"\apayload\x18\x01 \x01(\fR\apayload\"1\n" +
-	"\x15BillingWebhookRequest\x12\x18\n" +
-	"\apayload\x18\x01 \x01(\fR\apayload2\xbe\x04\n" +
+	"\apayload\x18\x01 \x01(\fR\apayload2\xd9\x03\n" +
 	"\x15WebhookGatewayService\x12~\n" +
 	"\x12StravaVerification\x12*.fitglue.gateway.StravaVerificationRequest\x1a+.fitglue.gateway.StravaVerificationResponse\"\x0f\x82\xd3\xe4\x93\x02\t\x12\a/strava\x12_\n" +
 	"\vStravaEvent\x12$.fitglue.gateway.WebhookEventRequest\x1a\x16.google.protobuf.Empty\"\x12\x82\xd3\xe4\x93\x02\f:\x01*\"\a/strava\x12~\n" +
 	"\x12FitbitVerification\x12*.fitglue.gateway.FitbitVerificationRequest\x1a+.fitglue.gateway.FitbitVerificationResponse\"\x0f\x82\xd3\xe4\x93\x02\t\x12\a/fitbit\x12_\n" +
-	"\vFitbitEvent\x12$.fitglue.gateway.WebhookEventRequest\x1a\x16.google.protobuf.Empty\"\x12\x82\xd3\xe4\x93\x02\f:\x01*\"\a/fitbit\x12c\n" +
-	"\fBillingEvent\x12&.fitglue.gateway.BillingWebhookRequest\x1a\x16.google.protobuf.Empty\"\x13\x82\xd3\xe4\x93\x02\r:\x01*\"\b/billingB7Z5github.com/fitglue/server/src/go/pkg/types/pb/gatewayb\x06proto3"
+	"\vFitbitEvent\x12$.fitglue.gateway.WebhookEventRequest\x1a\x16.google.protobuf.Empty\"\x12\x82\xd3\xe4\x93\x02\f:\x01*\"\a/fitbitB7Z5github.com/fitglue/server/src/go/pkg/types/pb/gatewayb\x06proto3"
 
 var (
 	file_gateway_webhook_proto_rawDescOnce sync.Once
@@ -336,29 +288,26 @@ func file_gateway_webhook_proto_rawDescGZIP() []byte {
 	return file_gateway_webhook_proto_rawDescData
 }
 
-var file_gateway_webhook_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_gateway_webhook_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_gateway_webhook_proto_goTypes = []any{
 	(*StravaVerificationRequest)(nil),  // 0: fitglue.gateway.StravaVerificationRequest
 	(*StravaVerificationResponse)(nil), // 1: fitglue.gateway.StravaVerificationResponse
 	(*FitbitVerificationRequest)(nil),  // 2: fitglue.gateway.FitbitVerificationRequest
 	(*FitbitVerificationResponse)(nil), // 3: fitglue.gateway.FitbitVerificationResponse
 	(*WebhookEventRequest)(nil),        // 4: fitglue.gateway.WebhookEventRequest
-	(*BillingWebhookRequest)(nil),      // 5: fitglue.gateway.BillingWebhookRequest
-	(*emptypb.Empty)(nil),              // 6: google.protobuf.Empty
+	(*emptypb.Empty)(nil),              // 5: google.protobuf.Empty
 }
 var file_gateway_webhook_proto_depIdxs = []int32{
 	0, // 0: fitglue.gateway.WebhookGatewayService.StravaVerification:input_type -> fitglue.gateway.StravaVerificationRequest
 	4, // 1: fitglue.gateway.WebhookGatewayService.StravaEvent:input_type -> fitglue.gateway.WebhookEventRequest
 	2, // 2: fitglue.gateway.WebhookGatewayService.FitbitVerification:input_type -> fitglue.gateway.FitbitVerificationRequest
 	4, // 3: fitglue.gateway.WebhookGatewayService.FitbitEvent:input_type -> fitglue.gateway.WebhookEventRequest
-	5, // 4: fitglue.gateway.WebhookGatewayService.BillingEvent:input_type -> fitglue.gateway.BillingWebhookRequest
-	1, // 5: fitglue.gateway.WebhookGatewayService.StravaVerification:output_type -> fitglue.gateway.StravaVerificationResponse
-	6, // 6: fitglue.gateway.WebhookGatewayService.StravaEvent:output_type -> google.protobuf.Empty
-	3, // 7: fitglue.gateway.WebhookGatewayService.FitbitVerification:output_type -> fitglue.gateway.FitbitVerificationResponse
-	6, // 8: fitglue.gateway.WebhookGatewayService.FitbitEvent:output_type -> google.protobuf.Empty
-	6, // 9: fitglue.gateway.WebhookGatewayService.BillingEvent:output_type -> google.protobuf.Empty
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	1, // 4: fitglue.gateway.WebhookGatewayService.StravaVerification:output_type -> fitglue.gateway.StravaVerificationResponse
+	5, // 5: fitglue.gateway.WebhookGatewayService.StravaEvent:output_type -> google.protobuf.Empty
+	3, // 6: fitglue.gateway.WebhookGatewayService.FitbitVerification:output_type -> fitglue.gateway.FitbitVerificationResponse
+	5, // 7: fitglue.gateway.WebhookGatewayService.FitbitEvent:output_type -> google.protobuf.Empty
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -375,7 +324,7 @@ func file_gateway_webhook_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_webhook_proto_rawDesc), len(file_gateway_webhook_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

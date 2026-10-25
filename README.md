@@ -32,7 +32,7 @@ FitGlue uses a domain-service architecture: 11 Go Cloud Run services communicati
 - `service.api.public` — Unauthenticated (registry, showcase)
 
 **Domain services** own their Firestore data and expose gRPC interfaces:
-- `service.user`, `service.billing`, `service.pipeline`, `service.activity`, `service.registry`
+- `service.user`, `service.pipeline`, `service.activity`, `service.registry`
 
 **Worker services** consume Pub/Sub topics:
 - `service.destination` — uploads to Strava, TrainingPeaks, Fitbit, etc.

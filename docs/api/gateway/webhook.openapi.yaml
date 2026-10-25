@@ -9,31 +9,9 @@ info:
          served by api-webhook at /api/webhooks/*.
 
          No user authentication — instead uses provider-specific verification
-         (Strava hub challenge, Fitbit subscriber verification, Stripe signatures).
+         (Strava hub challenge, Fitbit subscriber verification).
     version: 0.0.1
 paths:
-    /billing:
-        post:
-            tags:
-                - WebhookGatewayService
-            description: ===================== Billing (Stripe) =====================
-            operationId: WebhookGatewayService_BillingEvent
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/BillingWebhookRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content: {}
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /fitbit:
         get:
             tags:
@@ -132,13 +110,6 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
-        BillingWebhookRequest:
-            type: object
-            properties:
-                payload:
-                    type: string
-                    format: bytes
-            description: Stripe billing webhook
         FitbitVerificationResponse:
             type: object
             properties: {}

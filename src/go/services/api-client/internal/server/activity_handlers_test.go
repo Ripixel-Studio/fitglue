@@ -15,9 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
-	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
-	billingpb "github.com/fitglue/server/src/go/pkg/types/pb/services/billing"
 )
 
 // =============================================================
@@ -177,51 +175,6 @@ func (m *mockActivityServiceClient) GetShowcaseViewStats(ctx context.Context, in
 }
 func (m *mockActivityServiceClient) ListShowcaseViewStats(ctx context.Context, in *activitypb.ListShowcaseViewStatsRequest, opts ...grpc.CallOption) (*activitypb.ListShowcaseViewStatsResponse, error) {
 	return &activitypb.ListShowcaseViewStatsResponse{}, nil
-}
-
-// =============================================================
-// Mock BillingServiceClient
-// =============================================================
-
-type mockBillingServiceClient struct {
-	getSubscription       func(ctx context.Context, in *billingpb.GetSubscriptionRequest, opts ...grpc.CallOption) (*pbuser.SubscriptionState, error)
-	createCheckoutSession func(ctx context.Context, in *billingpb.CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*billingpb.CreateCheckoutSessionResponse, error)
-	cancelSubscription    func(ctx context.Context, in *billingpb.CancelSubscriptionRequest, opts ...grpc.CallOption) (*pbuser.SubscriptionState, error)
-	getTierStatus         func(ctx context.Context, in *billingpb.GetTierStatusRequest, opts ...grpc.CallOption) (*billingpb.GetTierStatusResponse, error)
-}
-
-func (m *mockBillingServiceClient) GetSubscription(ctx context.Context, in *billingpb.GetSubscriptionRequest, opts ...grpc.CallOption) (*pbuser.SubscriptionState, error) {
-	if m.getSubscription != nil {
-		return m.getSubscription(ctx, in, opts...)
-	}
-	return &pbuser.SubscriptionState{}, nil
-}
-func (m *mockBillingServiceClient) CreateCheckoutSession(ctx context.Context, in *billingpb.CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*billingpb.CreateCheckoutSessionResponse, error) {
-	if m.createCheckoutSession != nil {
-		return m.createCheckoutSession(ctx, in, opts...)
-	}
-	return &billingpb.CreateCheckoutSessionResponse{SessionUrl: "https://checkout.stripe.com"}, nil
-}
-func (m *mockBillingServiceClient) HandleWebhookEvent(ctx context.Context, in *billingpb.HandleWebhookEventRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	return &emptypb.Empty{}, nil
-}
-func (m *mockBillingServiceClient) GetTierStatus(ctx context.Context, in *billingpb.GetTierStatusRequest, opts ...grpc.CallOption) (*billingpb.GetTierStatusResponse, error) {
-	if m.getTierStatus != nil {
-		return m.getTierStatus(ctx, in, opts...)
-	}
-	return &billingpb.GetTierStatusResponse{}, nil
-}
-func (m *mockBillingServiceClient) StartTrial(ctx context.Context, in *billingpb.StartTrialRequest, opts ...grpc.CallOption) (*pbuser.SubscriptionState, error) {
-	return &pbuser.SubscriptionState{}, nil
-}
-func (m *mockBillingServiceClient) CancelSubscription(ctx context.Context, in *billingpb.CancelSubscriptionRequest, opts ...grpc.CallOption) (*pbuser.SubscriptionState, error) {
-	if m.cancelSubscription != nil {
-		return m.cancelSubscription(ctx, in, opts...)
-	}
-	return &pbuser.SubscriptionState{}, nil
-}
-func (m *mockBillingServiceClient) CreateBillingPortalSession(ctx context.Context, in *billingpb.CreateBillingPortalSessionRequest, opts ...grpc.CallOption) (*billingpb.CreateBillingPortalSessionResponse, error) {
-	return &billingpb.CreateBillingPortalSessionResponse{Url: "https://billing.stripe.com/p/session/test"}, nil
 }
 
 // =============================================================
@@ -553,82 +506,5 @@ func TestHandleGenerateShowcaseImages_Success(t *testing.T) {
 	s.handleGenerateShowcaseImages(w, r)
 	if w.Code != http.StatusAccepted {
 		t.Errorf("expected 202, got %d", w.Code)
-	}
-}
-
-// =============================================================
-// Billing Handler Tests
-// =============================================================
-
-func buildBillingServer(billSvc billingpb.BillingServiceClient) *APIServer {
-	return &APIServer{
-		billingService: billSvc,
-	}
-}
-
-func TestHandleGetSubscription_Success(t *testing.T) {
-	s := buildBillingServer(&mockBillingServiceClient{})
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/billing/subscription", nil)
-	r = withToken(r, "user1")
-	w := httptest.NewRecorder()
-	s.handleGetSubscription(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestHandleGetSubscription_NoToken(t *testing.T) {
-	s := buildBillingServer(&mockBillingServiceClient{})
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/billing/subscription", nil)
-	w := httptest.NewRecorder()
-	s.handleGetSubscription(w, r)
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
-	}
-}
-
-func TestHandleCreateCheckoutSession_Success(t *testing.T) {
-	s := buildBillingServer(&mockBillingServiceClient{})
-	body, _ := json.Marshal(map[string]string{"priceId": "price_123"})
-	r := httptest.NewRequest(http.MethodPost, "/api/v2/billing/checkout", bytes.NewReader(body))
-	r = withToken(r, "user1")
-	w := httptest.NewRecorder()
-	s.handleCreateCheckoutSession(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestHandleCreateCheckoutSession_InvalidJSON(t *testing.T) {
-	s := buildBillingServer(&mockBillingServiceClient{})
-	r := httptest.NewRequest(http.MethodPost, "/api/v2/billing/checkout", strings.NewReader("not json"))
-	r = withToken(r, "user1")
-	w := httptest.NewRecorder()
-	s.handleCreateCheckoutSession(w, r)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", w.Code)
-	}
-}
-
-func TestHandleCancelSubscription_Success(t *testing.T) {
-	s := buildBillingServer(&mockBillingServiceClient{})
-	body, _ := json.Marshal(map[string]string{})
-	r := httptest.NewRequest(http.MethodPost, "/api/v2/billing/cancel", bytes.NewReader(body))
-	r = withToken(r, "user1")
-	w := httptest.NewRecorder()
-	s.handleCancelSubscription(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestHandleGetTierStatus_Success(t *testing.T) {
-	s := buildBillingServer(&mockBillingServiceClient{})
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/billing/tier", nil)
-	r = withToken(r, "user1")
-	w := httptest.NewRecorder()
-	s.handleGetTierStatus(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
 	}
 }

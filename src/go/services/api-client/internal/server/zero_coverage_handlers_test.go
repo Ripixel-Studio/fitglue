@@ -295,7 +295,6 @@ func TestNewAPIServer(t *testing.T) {
 		nil, // gcsSigner
 		nil, // statsStore
 		&mockUserServiceClient{},
-		&mockBillingServiceClient{},
 		&mockPipelineServiceClient{},
 		&mockActivityServiceClient{},
 		&mockRegistryServiceClient{},

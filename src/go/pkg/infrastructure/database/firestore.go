@@ -71,8 +71,8 @@ func (a *FirestoreAdapter) UpdateUser(ctx context.Context, id string, data map[s
 
 // --- Billing Events (durable audit log of destination uploads) ---
 
-// RecordBillingEvent writes a billing_events document and increments sync_count_this_month.
-// It replaces the standalone IncrementSyncCount call in destination uploaders.
+// RecordBillingEvent writes a billing_events document. Despite the name this is
+// the upload audit log that feeds showcase stats; it has nothing to do with payment.
 func (a *FirestoreAdapter) RecordBillingEvent(ctx context.Context, userID string, event shared.BillingEvent) error {
 	period := time.Now().Format("2006-01")
 	data := map[string]interface{}{
@@ -85,12 +85,6 @@ func (a *FirestoreAdapter) RecordBillingEvent(ctx context.Context, userID string
 		"created_at":      time.Now(),
 	}
 	_, _, err := a.Client.Collection("users").Doc(userID).Collection("billing_events").Add(ctx, data)
-	if err != nil {
-		return err
-	}
-	_, err = a.Client.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
-		{Path: "sync_count_this_month", Value: firestore.Increment(1)},
-	})
 	return err
 }
 
@@ -127,30 +121,6 @@ func (a *FirestoreAdapter) CountBillingEventsForPeriod(ctx context.Context, user
 		return int32(v), nil
 	}
 	return 0, nil
-}
-
-// --- Sync Count (for tier limits) ---
-
-func (a *FirestoreAdapter) IncrementSyncCount(ctx context.Context, userID string) error {
-	_, err := a.Client.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
-		{Path: "sync_count_this_month", Value: firestore.Increment(1)},
-	})
-	return err
-}
-
-func (a *FirestoreAdapter) IncrementPreventedSyncCount(ctx context.Context, userID string) error {
-	_, err := a.Client.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
-		{Path: "prevented_sync_count", Value: firestore.Increment(1)},
-	})
-	return err
-}
-
-func (a *FirestoreAdapter) ResetSyncCount(ctx context.Context, userID string) error {
-	_, err := a.Client.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
-		{Path: "sync_count_this_month", Value: 0},
-		{Path: "sync_count_reset_at", Value: firestore.ServerTimestamp},
-	})
-	return err
 }
 
 // --- Pending Inputs ---

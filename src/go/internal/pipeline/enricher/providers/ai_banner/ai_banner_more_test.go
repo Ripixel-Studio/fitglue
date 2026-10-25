@@ -39,7 +39,6 @@ func TestTruncatePrompt(t *testing.T) {
 func athleteUser() *user.Record {
 	return &user.Record{UserProfile: &pbuser.UserProfile{
 		UserId: "u1",
-		Tier:   pbuser.UserTier_USER_TIER_ATHLETE,
 	}}
 }
 

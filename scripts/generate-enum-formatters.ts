@@ -126,18 +126,6 @@ const ENUM_CONFIGS: EnumConfig[] = [
     defaultValue: 'Unknown',
   },
   {
-    file: 'models/user/profile.ts',
-    goPkg: 'pbuser',
-    enumName: 'UserTier',
-    prefix: 'USER_TIER_',
-    displayNameOverrides: {
-      'UNSPECIFIED': 'Hobbyist',
-      'HOBBYIST': 'Hobbyist',
-      'ATHLETE': 'Athlete',
-    },
-    defaultValue: 'Hobbyist',
-  },
-  {
     file: 'models/pipeline/execution.ts',
     goPkg: 'pbpipeline',
     enumName: 'ExecutionStatus',
@@ -519,7 +507,6 @@ import { MuscleGroup } from './models/activity/standardized';
 import { ActivityType, ActivitySource } from './models/activity/source';
 import { CloudEventType, CloudEventSource } from './models/events/pipeline';
 import { DestinationType, EnricherProviderType, MuscleHeatmapPreset, MuscleHeatmapStyle, VirtualGPSRoute, WorkoutSummaryFormat } from './models/plugin/provider';
-import { UserTier } from './models/user/profile';
 import { ExecutionStatus, PipelineRunStatus, DestinationStatus } from './models/pipeline/execution';
 import { ConfigFieldType, IntegrationAuthType, PluginType } from './models/plugin/manifest';
 import { PendingInput_Status, ParkrunResultsState } from './models/pipeline/pending_input';
@@ -531,7 +518,7 @@ package formatters
 import (
 \t"strings"
 
-\tpbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"\n\tpbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"\n\tpbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"\n\tpbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"\n\tpbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
+\tpbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"\n\tpbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"\n\tpbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"\n\tpbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 )
 `;
 

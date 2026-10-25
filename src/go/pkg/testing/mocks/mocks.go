@@ -152,23 +152,6 @@ func (m *MockDatabase) CountBillingEventsForPeriod(_ context.Context, _, _ strin
 	return 0, nil
 }
 
-// --- Sync Count (for tier limits) ---
-
-func (m *MockDatabase) IncrementSyncCount(ctx context.Context, userID string) error {
-	// No-op for tests by default
-	return nil
-}
-
-func (m *MockDatabase) IncrementPreventedSyncCount(ctx context.Context, userID string) error {
-	// No-op for tests by default
-	return nil
-}
-
-func (m *MockDatabase) ResetSyncCount(ctx context.Context, userID string) error {
-	// No-op for tests by default
-	return nil
-}
-
 func (m *MockDatabase) ListPendingInputsByEnricher(ctx context.Context, enricherId string, status pbpipeline.PendingInput_Status) ([]*pbpipeline.PendingInput, error) {
 	if m.ListPendingInputsByEnricherFunc != nil {
 		return m.ListPendingInputsByEnricherFunc(ctx, enricherId, status)

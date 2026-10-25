@@ -19,7 +19,6 @@ import (
 	pbnotification "github.com/fitglue/server/src/go/pkg/types/pb/models/notification"
 
 	fit "github.com/fitglue/server/src/go/pkg/domain/file_generators"
-	"github.com/fitglue/server/src/go/pkg/domain/tier"
 
 	"github.com/fitglue/server/src/go/pkg/framework"
 	infrasentry "github.com/fitglue/server/src/go/pkg/infrastructure/sentry"
@@ -103,63 +102,6 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 	userRec, err := o.database.GetUser(ctx, payload.UserId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user config: %w", err)
-	}
-
-	// 1.1. Check Tier Limits
-	if tier.ShouldResetSyncCount(userRec) {
-		// Reset monthly counter
-		if err := o.database.ResetSyncCount(ctx, payload.UserId); err != nil {
-			logger.Warn("Failed to reset sync count", "error", err, "userId", payload.UserId)
-		}
-		userRec.SyncCountThisMonth = 0
-	}
-
-	allowed, reason := tier.CanSync(userRec)
-	if !allowed {
-		logger.Info("Sync blocked by tier limit", "userId", payload.UserId, "reason", reason)
-		// Track prevented sync
-		if err := o.database.IncrementPreventedSyncCount(ctx, payload.UserId); err != nil {
-			logger.Warn("Failed to increment prevented sync count", "error", err, "userId", payload.UserId)
-		}
-
-		// Create a visible TIER_BLOCKED PipelineRun so user sees the blocked activity
-		// and can be prompted to upgrade
-		if payload.StandardizedActivity != nil &&
-			len(payload.StandardizedActivity.Sessions) > 0 &&
-			payload.PipelineId != nil && *payload.PipelineId != "" {
-
-			activity := payload.StandardizedActivity
-			activityId := uuid.NewString()
-
-			blockedRun := &pbpipeline.PipelineRun{
-				Id:               basePipelineExecutionID,
-				PipelineId:       *payload.PipelineId,
-				ActivityId:       activityId,
-				Source:           payload.Source.String(),
-				SourceActivityId: activity.GetExternalId(),
-				Title:            activity.GetName(),
-				Description:      activity.GetDescription(),
-				Type:             activity.GetType(),
-				StartTime:        activity.GetSessions()[0].GetStartTime(),
-				Status:           pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_TIER_BLOCKED,
-				StatusMessage:    &reason,
-				CreatedAt:        timestamppb.Now(),
-				UpdatedAt:        timestamppb.Now(),
-				Destinations:     []*pbpipeline.DestinationOutcome{}, // No destinations for blocked runs
-			}
-
-			if err := o.database.CreatePipelineRun(ctx, payload.UserId, blockedRun); err != nil {
-				logger.Warn("Failed to create tier-blocked pipeline run", "error", err)
-			} else {
-				logger.Info("Created tier-blocked pipeline run", "pipeline_run_id", blockedRun.Id, "activity_id", activityId)
-			}
-		}
-
-		return &ProcessResult{
-			Events:             []*pbevents.EnrichedActivityEvent{},
-			ProviderExecutions: []ProviderExecution{},
-			Status:             pbpipeline.ExecutionStatus_STATUS_SKIPPED,
-		}, nil // Return nil error - this is a controlled halt, not an exception
 	}
 
 	// 1.5. Validate Payload
@@ -894,24 +836,6 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 	// the generic FIT category-based labels on the TimeMarkers (e.g., from Hevy data).
 	reconcileTimeMarkerLabels(currentActivity)
 
-	brandingApplied := false
-	// Run branding provider last (for non-paying users only)
-	if brandingProvider, ok := o.providersByName["branding"]; ok && tier.ShouldShowBranding(userRec) {
-		brandingLogger := logger.With("provider", "branding")
-		brandingRes, err := brandingProvider.Enrich(ctx, brandingLogger, currentActivity, userRec, map[string]string{}, doNotRetry)
-		if err != nil {
-			logger.Warn("Branding provider failed", "error", err)
-		} else if brandingRes != nil && brandingRes.Description != "" {
-			logger.Debug(fmt.Sprintf("Applying description from provider: %v, length: %v", brandingProvider.Name(), len(brandingRes.Description)), "name", brandingProvider.Name(), "description", brandingRes.Description)
-			trimmed := strings.TrimSpace(brandingRes.Description)
-			if trimmed != "" {
-				// Branding goes in the last slot (after all enrichers)
-				descriptionSlots = append(descriptionSlots, trimmed)
-				brandingApplied = true
-			}
-		}
-	}
-
 	// Build final description from slots
 	finalDescription := buildDescriptionFromSlots(descriptionSlots)
 	// Backfill mode (cmd/showcase-reboost): the source description is the
@@ -1034,11 +958,6 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 			logger.Info("Attached implicit location to GPS-tracked activity",
 				"location_name", loc.LocationName, "lat", loc.Latitude, "lng", loc.Longitude)
 		}
-	}
-
-	// Add branding if it was applied
-	if brandingApplied {
-		finalEvent.AppliedEnrichments = append(finalEvent.AppliedEnrichments, "branding")
 	}
 
 	// Inject source config into metadata (with user default fallback)
