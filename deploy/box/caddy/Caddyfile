@@ -81,8 +81,16 @@ http://:8100 {
 		reverse_proxy 127.0.0.1:8106
 	}
 
-	# OAuth callbacks for `fitgluectl connect`:
-	# /fg/oauth/strava/callback -> 8102 /api/v2/oauth/strava/callback
+	# OAuth callbacks for `fitgluectl connect`. internal/oauthflow builds the
+	# redirect_uri as <FITGLUE_PUBLIC_BASE_URL>/api/v2/oauth/<provider>/callback
+	# and the base is https://jarvis.tail3065f7.ts.net/fg (F3.5), so the path the
+	# providers actually hit is /fg/api/v2/oauth/strava/callback -> 8102
+	# /api/v2/oauth/strava/callback. Only the OAuth prefix is exposed, not /api/v2.
+	handle_path /fg/api/v2/oauth/* {
+		rewrite * /api/v2/oauth{uri}
+		reverse_proxy 127.0.0.1:8102
+	}
+	# Short alias, same backend: /fg/oauth/strava/callback.
 	handle_path /fg/oauth/* {
 		rewrite * /api/v2/oauth{uri}
 		reverse_proxy 127.0.0.1:8102

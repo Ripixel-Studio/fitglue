@@ -5,6 +5,29 @@ Hand-written since F1.8 of the single-user conversion; entries below
 
 ## Unreleased
 
+### chore: secrets live in ~/.jarvis/fitglue.env on the box (rethink F3.5)
+
+Every value the box units need is now in `~/.jarvis/fitglue.env` (mode 600):
+the surviving Secret Manager secrets copied once under James's gcloud
+identity, plus the per-box values (`PUBSUB_PUSH_AUDIENCE`,
+`FITGLUE_PUBLIC_BASE_URL`, `WEB_URL`, `SITE_EXPORT_HOOK_URL`, `SENTRY_DSN`)
+and the deployment settings the units also fix. Nothing on the box reads
+Secret Manager; the `fitglue-box` SA has no `secretAccessor`.
+
+- Added `deploy/box/env-check.sh`: diffs the file against
+  `fitglue.env.example`, names only, exit 1 on a missing/empty required key.
+- Added `docs/guides/box-secrets.md` (what lives where, rotation, loss).
+- Caddy: `/fg/api/v2/oauth/*` → api-client, because `internal/oauthflow`
+  builds the redirect_uri as `<FITGLUE_PUBLIC_BASE_URL>/api/v2/oauth/<p>/callback`
+  and the base is `https://jarvis.tail3065f7.ts.net/fg`. `/fg/oauth/*` stays
+  as an alias. Register the long form with the providers.
+- `terraform/secrets.tf` is marked `RETIRED IN F4.2` with the exact list; the
+  file and the `secret_key_ref` blocks stay until F4.1 removes the Cloud Run
+  services, so an apply meanwhile does not roll a revision without secrets.
+- Removed the `api-public` leftovers F1.5b missed in F3.1's files: the
+  `BOX_SERVICES` entry (`make build-box` failed on `main`),
+  `fitglue-api-public.service`, its `fitglue.target` line and port-table row.
+
 ### feat!: delete api-public (rethink F1.5b)
 
 The unauthenticated `/api/public/*` gateway is gone: the public showcase is

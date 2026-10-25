@@ -1,3 +1,33 @@
+# RETIRED IN F4.2 — do not add secrets here.
+#
+# Since rethink F3.5 the services read every one of these values from
+# ~/.jarvis/fitglue.env on the box (docs/guides/box-secrets.md). This file and
+# the secret_key_ref blocks in cloud_run.tf stay until F4.1 destroys the Cloud
+# Run services: removing the refs first would make the next `terraform apply`
+# roll a revision without its secrets while Cloud Run is still the live
+# deployment. F4.2 deletes this file, the refs, and these Secret Manager
+# secrets (names, env key in fitglue.env):
+#   fitglue-api-token            FITGLUE_API_TOKEN
+#   oauth-state-secret           OAUTH_STATE_SECRET
+#   gemini-api-key               GEMINI_API_KEY
+#   strava-client-id             STRAVA_CLIENT_ID
+#   strava-client-secret         STRAVA_CLIENT_SECRET
+#   strava-verify-token          STRAVA_WEBHOOK_VERIFY_TOKEN
+#   fitbit-client-id             FITBIT_CLIENT_ID
+#   fitbit-client-secret         FITBIT_CLIENT_SECRET + FITBIT_OAUTH_CLIENT_SECRET
+#   fitbit-verification-code     FITBIT_SUBSCRIBER_VERIFICATION_TOKEN
+#   trainingpeaks-client-id      TRAININGPEAKS_CLIENT_ID      (still PLACEHOLDER_REPLACE_ME)
+#   trainingpeaks-client-secret  TRAININGPEAKS_CLIENT_SECRET  (still PLACEHOLDER_REPLACE_ME)
+#   github-client-id             GITHUB_CLIENT_ID
+#   github-client-secret         GITHUB_CLIENT_SECRET
+#   github-webhook-secret        GITHUB_WEBHOOK_SECRET
+#   spotify-client-id            SPOTIFY_CLIENT_ID            (still PLACEHOLDER_REPLACE_ME)
+#   spotify-client-secret        SPOTIFY_CLIENT_SECRET        (still PLACEHOLDER_REPLACE_ME)
+#   google-client-id             — no reader left (Google Sheets destination is gone); not copied
+#   google-client-secret         — same
+# Plus the secretAccessor binding below. The fitglue-box SA never gets
+# secretAccessor: the copy was a one-off under James's gcloud identity.
+
 # Add IAM binding to allow Cloud Run (Default Compute SA) to access these secrets
 data "google_project" "project" {
 }
