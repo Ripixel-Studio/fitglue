@@ -26,6 +26,31 @@ Public HTTPS for the box-hosted services, replacing Cloud Run's public ingress.
   — one admin-console click, see `deploy/box/funnel.md`); nothing is public
   until James enables it and runs `tailscale funnel --bg --yes 8100`.
 
+### feat: build and run the services on the box (rethink F3.1)
+
+The seven services can now run as systemd **user** units on the Jarvis box,
+pointed at the same Firestore / GCS / Pub/Sub as Cloud Run. Nothing is cut
+over yet; F3.4 does that.
+
+- `make build-box` builds static `linux/amd64` binaries (CGO off) for every
+  service plus `fitgluectl` and `bootstrap-owner` into `bin/`; `make deploy-box`
+  builds, reloads and restarts the units that are active; `make status-box`.
+- `deploy/box/`: one `fitglue-<svc>.service` per service on fixed loopback
+  ports (api-webhook 8101, api-client 8102, user 8103, pipeline 8104, activity
+  8105, destination 8106, api-public 8107), a `fitglue.target`, `install.sh`,
+  and `fitglue.env.example` listing every key `~/.jarvis/fitglue.env` must hold.
+- `infra.GRPCDial` accepts `http://host:port` targets (plaintext), which is
+  what the units set in `*_SERVICE_URL`.
+- Pub/Sub push endpoints (pipeline `/pubsub/*`, activity `/pubsub/roundup`,
+  destination `/`) verify the subscription's OIDC token in-process when
+  `PUBSUB_PUSH_AUDIENCE` is set (optionally pinned to
+  `PUBSUB_PUSH_SERVICE_ACCOUNT`). On Cloud Run that check was done by IAM and
+  nothing in the code looked at the token; on the box the endpoints are
+  public via Funnel, so the check moves into the services. Unset keeps the
+  old behaviour.
+- `docs/guides/box-deploy.md` documents the layout, ports, env keys, logs and
+  what is still cloud.
+
 ### feat!: single owner, static bearer token (rethink F2.1 + F2.2)
 
 `api-client` no longer knows about Firebase Auth or about more than one user.

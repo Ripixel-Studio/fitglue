@@ -1,0 +1,31 @@
+# FitGlue user on the Jarvis box (rethink F3.1). Installed by deploy/box/install.sh
+# as a symlink into ~/.config/systemd/user/; started via fitglue.target.
+# Non-secret, deployment-fixed settings live here. Secrets and per-box values
+# come from ~/.jarvis/fitglue.env (see fitglue.env.example), which overrides
+# anything set below.
+[Unit]
+Description=FitGlue user service (gRPC)
+After=network-online.target
+Wants=network-online.target
+PartOf=fitglue.target
+
+[Service]
+Type=simple
+ExecStart=%h/work/fitglue-server/bin/user
+WorkingDirectory=%h/work/fitglue-server
+EnvironmentFile=%h/.jarvis/fitglue.env
+Environment=PROJECT_ID=fitglue-server-prod
+Environment=GOOGLE_CLOUD_PROJECT=fitglue-server-prod
+Environment=ENVIRONMENT=prod
+Environment=LOG_LEVEL=info
+Environment=GOOGLE_APPLICATION_CREDENTIALS=%h/.jarvis/fitglue-box-sa.json
+Environment=SERVICE_NAME=user
+Environment=PORT=8103
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fitglue-user
+NoNewPrivileges=true
+PrivateTmp=true

@@ -48,6 +48,11 @@ bin/fitgluectl connect hevy --api-key-stdin             # stores the key, prints
 bin/fitgluectl connect intervals --api-key-stdin --athlete-id i12345
 bin/fitgluectl connections [--json]                     # what is connected, token expiry
 
+# Box deploy (systemd user units on Jarvis; docs/guides/box-deploy.md)
+make build-box          # static linux/amd64 binaries for the 7 services + fitgluectl, bootstrap-owner → bin/
+make deploy-box         # build-box, daemon-reload, restart the fitglue-*.service units that are active
+make status-box         # systemctl --user list-units fitglue.target fitglue-*.service
+
 # Integration tests against deployed envs
 npm run test:dev        # Against dev environment
 npm run test:test       # Against test environment
@@ -280,6 +285,6 @@ docker build --build-arg SERVICE_NAME=api-client -t api-client .
 ## CI/CD
 
 - Pull requests: GitHub Actions (`.github/workflows/ci.yml`) runs `make build`, `make lint`, `make test`. That is the only PR check.
-- Merge to `main`: CircleCI (`.circleci/config.yml`, main-only) builds images and runs `terraform apply` for `prod`. **Retired in F4** — it stays until then because the F1.x deletion PRs rely on apply-on-merge to destroy their cloud resources. The replacement is `make deploy` on the box (F3.1).
+- Merge to `main`: CircleCI (`.circleci/config.yml`, main-only) builds images and runs `terraform apply` for `prod`. **Retired in F4** — it stays until then because the F1.x deletion PRs rely on apply-on-merge to destroy their cloud resources. The replacement is `make deploy-box` on the box (F3.1, `deploy/box/`, `docs/guides/box-deploy.md`).
 - No release job, no changelog generation, no version bumping: `CHANGELOG.md` is written by hand.
 - See `docs/infrastructure/cicd.md`.

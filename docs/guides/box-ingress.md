@@ -40,8 +40,12 @@ internet ──TLS──▶ Tailscale Funnel (jarvis.tail3065f7.ts.net:443)
 | OAuth callback (`fitgluectl connect`) | `https://jarvis.tail3065f7.ts.net/fg/oauth/{provider}/callback` |
 | Liveness from outside | `https://jarvis.tail3065f7.ts.net/fg/webhook/health` |
 
-Pub/Sub push subscriptions keep their OIDC token; the audience can stay as it
-is or move to the new URL — the services check the token, Caddy does not.
+Pub/Sub push subscriptions keep their OIDC token and Caddy does not look at
+it; the services do, in-process, since F3.1 (`PUBSUB_PUSH_AUDIENCE`). The
+audience must therefore be set explicitly on every push subscription to the
+one value in `~/.jarvis/fitglue.env` — Pub/Sub's default (the push URL)
+differs per subscription and would not match. See
+`docs/guides/box-deploy.md`, "Pub/Sub push authentication".
 
 ## Day to day
 

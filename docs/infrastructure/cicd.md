@@ -36,7 +36,7 @@ What replaces it, and when:
 
 | Today (CircleCI) | Replacement | Task |
 |---|---|---|
-| Docker build + push, Cloud Run revision | `make deploy` on the box (static binaries + systemd user units) | F3.1 |
+| Docker build + push, Cloud Run revision | `make deploy-box` on the box (static binaries + systemd user units, `docs/guides/box-deploy.md`) | F3.1 |
 | OIDC → `circleci-deployer` SA | `fitglue-box` service-account key on the box | F3.2 |
 | Secrets via terraform / Secret Manager | `~/.jarvis/fitglue.env` | F3.5 |
 | `terraform apply` on merge | `terraform apply` run by hand from the box | F4 |

@@ -112,10 +112,13 @@ func main() {
 	mux := http.NewServeMux()
 	parkrunChecker := pipeline.NewParkrunChecker(db, svc, logger)
 
-	mux.HandleFunc("/pubsub/raw", handlePubSubPush(logger, splitterSvc.SplitByPipeline))
-	mux.HandleFunc("/pubsub/run", enricher.EnrichActivityHTTP)
-	mux.HandleFunc("/pubsub/enriched", handlePubSubPush(logger, routerSvc.RouteActivity))
-	mux.HandleFunc("/pubsub/parkrun-check", parkrunChecker.HandleCheck)
+	// Push endpoints: on Cloud Run the platform verifies the subscription's
+	// OIDC token; on the box PUBSUB_PUSH_AUDIENCE turns the check on here.
+	pushAuth := infra.PubSubPushAuthFromEnv(logger)
+	mux.HandleFunc("/pubsub/raw", pushAuth.WrapFunc(handlePubSubPush(logger, splitterSvc.SplitByPipeline)))
+	mux.HandleFunc("/pubsub/run", pushAuth.WrapFunc(enricher.EnrichActivityHTTP))
+	mux.HandleFunc("/pubsub/enriched", pushAuth.WrapFunc(handlePubSubPush(logger, routerSvc.RouteActivity)))
+	mux.HandleFunc("/pubsub/parkrun-check", pushAuth.WrapFunc(parkrunChecker.HandleCheck))
 	mux.HandleFunc("/internal/parkrun-recheck", parkrunChecker.HandleRecheck)
 	mux.HandleFunc("/internal/parkrun-pending", parkrunChecker.HandlePending)
 	mux.HandleFunc("/internal/parkrun-html", parkrunChecker.HandleSubmitHTML)

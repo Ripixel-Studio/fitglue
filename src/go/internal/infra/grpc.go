@@ -13,9 +13,12 @@ import (
 )
 
 // GRPCDial creates a gRPC client connection to the given target.
-// If the target is an HTTPS Cloud Run URL, it automatically uses TLS credentials,
-// attaches an OIDC identity token for the target audience (required by Cloud Run IAM),
-// and connects on port 443. For local development (localhost), it uses insecure credentials.
+//
+//   - https://host (Cloud Run): TLS on 443 plus an OIDC identity token for the
+//     target audience, which Cloud Run IAM requires.
+//   - http://host:port (the box, docker-compose): plaintext h2c, no auth. The
+//     services only ever bind 127.0.0.1 there and trust the loopback.
+//   - host:port (local development): plaintext, as before.
 func GRPCDial(target string) (*grpc.ClientConn, error) {
 	if strings.HasPrefix(target, "https://") {
 		// Cloud Run URL: strip scheme, use TLS on port 443
@@ -33,6 +36,8 @@ func GRPCDial(target string) (*grpc.ClientConn, error) {
 			grpc.WithPerRPCCredentials(&oauth.TokenSource{TokenSource: tokenSource}),
 		)
 	}
-	// Local development: use insecure credentials
+	// Plaintext: strip an http:// scheme so grpc gets a bare host:port rather
+	// than an address it would try to resolve literally.
+	target = strings.TrimPrefix(target, "http://")
 	return grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
 }

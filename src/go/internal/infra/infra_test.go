@@ -134,6 +134,20 @@ func TestGRPCDial_Local(t *testing.T) {
 	_ = conn.Close()
 }
 
+func TestGRPCDial_HTTPScheme(t *testing.T) {
+	// http://127.0.0.1:<port> is what the box units set in *_SERVICE_URL. The
+	// scheme must be stripped: grpc.NewClient treats "http://..." as an opaque
+	// address and the connection would never come up.
+	conn, err := GRPCDial("http://127.0.0.1:8103")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got := conn.Target(); got != "127.0.0.1:8103" {
+		t.Errorf("expected target 127.0.0.1:8103, got %q", got)
+	}
+	_ = conn.Close()
+}
+
 func TestInitSentry_NoDSN(t *testing.T) {
 	t.Setenv("SENTRY_DSN", "")
 	t.Setenv("ENVIRONMENT", "test")
