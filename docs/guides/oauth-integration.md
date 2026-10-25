@@ -2,6 +2,13 @@
 
 This document explains how to configure and use OAuth 2.0 authentication for Strava and Fitbit integrations in FitGlue.
 
+> [!IMPORTANT]
+> The web dashboard this guide refers to is retired. Connections now start
+> from the box with `fitgluectl connect <provider>` — see
+> [Connecting sources from the box](connect-sources.md). The callback handling,
+> secrets and token refresh described below are unchanged; the authorise URL is
+> built by `src/go/internal/oauthflow/` for both the CLI and `api-client`.
+
 ## Overview
 
 FitGlue uses OAuth 2.0 to securely connect user accounts from external fitness services. The OAuth flow:

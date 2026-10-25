@@ -164,6 +164,21 @@ func (s *FirestoreStore) DeleteIntegration(ctx context.Context, userID, provider
 	return err
 }
 
+// CreateIngressKey stores a hashed webhook ingress key in ingress_api_keys.
+// FindUserByIntegration resolves API-key providers (Hevy) through this
+// collection, so a Hevy connection is not complete until one exists. The raw
+// key is never stored; callers hash it with apikey.HashIngressKey (or receive
+// the hash from apikey.GenerateRandomIngressKey).
+func (s *FirestoreStore) CreateIngressKey(ctx context.Context, keyHash, userID, label string, scopes []string, createdAt time.Time) error {
+	_, err := s.client.Collection("ingress_api_keys").Doc(keyHash).Set(ctx, map[string]interface{}{
+		"user_id":    userID,
+		"label":      label,
+		"scopes":     scopes,
+		"created_at": createdAt,
+	})
+	return err
+}
+
 func isApiKeyProvider(provider string) bool {
 	switch provider {
 	case "hevy":

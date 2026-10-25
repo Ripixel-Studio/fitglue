@@ -1,18 +1,14 @@
 package server
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/fitglue/server/src/go/internal/oauthflow"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"github.com/go-chi/chi/v5"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -27,14 +23,20 @@ func webURL() string {
 	return strings.TrimRight(url, "/") + "/app"
 }
 
-// apiURL returns the base API URL for OAuth callbacks.
-// API_URL must be set; falling back to the request Host header is unsafe (Host header injection).
+// apiURL returns the base API URL for OAuth callbacks (FITGLUE_PUBLIC_BASE_URL,
+// else API_URL). One of them must be set; falling back to the request Host
+// header is unsafe (Host header injection).
 func apiURL() string {
-	url := os.Getenv("API_URL")
-	if url == "" {
-		panic("API_URL environment variable must be set")
+	base, err := oauthflow.PublicBaseURL()
+	if err != nil {
+		panic(err.Error())
 	}
-	return strings.TrimRight(url, "/")
+	return base
+}
+
+// stateSecret is the HMAC key shared with fitgluectl connect.
+func stateSecret() []byte {
+	return []byte(os.Getenv(oauthflow.StateSecretEnv))
 }
 
 func (s *APIServer) registerOAuthRoutes(r chi.Router) {
@@ -50,47 +52,25 @@ func (s *APIServer) handleOAuthConnect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	provider := chi.URLParam(r, "provider")
-	config := GetOAuthConfig(provider)
+	config := oauthflow.Provider(provider)
 	if config == nil {
 		WriteError(w, statusError(http.StatusBadRequest, "unsupported provider"))
 		return
 	}
 
-	stateData := map[string]string{
-		"uid": token.UID,
-		"ts":  strconv.FormatInt(time.Now().Unix(), 10),
+	state := oauthflow.SignState(stateSecret(), token.UID, time.Now())
+	authURL, err := oauthflow.AuthorizeURL(provider, config, oauthflow.CallbackURL(apiURL(), provider), state)
+	if err != nil {
+		WriteError(w, statusError(http.StatusInternalServerError, "failed to build authorise url"))
+		return
 	}
-	stateJSON, _ := json.Marshal(stateData)
-	h := hmac.New(sha256.New, []byte(os.Getenv("OAUTH_STATE_SECRET")))
-	h.Write(stateJSON)
-	signature := hex.EncodeToString(h.Sum(nil))
 
-	stateArg := base64.URLEncoding.EncodeToString(stateJSON) + "." + signature
-
-	redirectURI := apiURL() + "/api/v2/oauth/" + provider + "/callback"
-
-	authURL, _ := url.Parse(config.AuthURL)
-	q := authURL.Query()
-	q.Set("client_id", config.ClientID)
-	q.Set("redirect_uri", redirectURI)
-	q.Set("response_type", "code")
-	q.Set("state", stateArg)
-	if len(config.Scopes) > 0 {
-		// Strava requires comma-separated scopes; all other providers use space (OAuth 2.0 standard)
-		sep := " "
-		if provider == "strava" {
-			sep = ","
-		}
-		q.Set("scope", strings.Join(config.Scopes, sep))
-	}
-	authURL.RawQuery = q.Encode()
-
-	WriteJSON(w, map[string]string{"url": authURL.String()})
+	WriteJSON(w, map[string]string{"url": authURL})
 }
 
 func (s *APIServer) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	provider := chi.URLParam(r, "provider")
-	config := GetOAuthConfig(provider)
+	config := oauthflow.Provider(provider)
 	if config == nil {
 		http.Redirect(w, r, webURL()+"/connections?error=unsupported_provider", http.StatusFound)
 		return
@@ -110,46 +90,18 @@ func (s *APIServer) handleOAuthCallback(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Verify state
-	parts := strings.Split(stateArg, ".")
-	if len(parts) != 2 {
-		http.Redirect(w, r, webURL()+"/connections?error=invalid_state", http.StatusFound)
-		return
-	}
-	stateJSON, err := base64.URLEncoding.DecodeString(parts[0])
+	// Verify state. VerifyState only ever returns its Err* sentinels, whose
+	// text is the redirect error code this handler has always emitted
+	// (invalid_state, invalid_state_encoding, invalid_state_signature,
+	// invalid_state_payload, state_token_expired, missing_uid).
+	userID, err := oauthflow.VerifyState(stateSecret(), stateArg, time.Now())
 	if err != nil {
-		http.Redirect(w, r, webURL()+"/connections?error=invalid_state_encoding", http.StatusFound)
-		return
-	}
-
-	h := hmac.New(sha256.New, []byte(os.Getenv("OAUTH_STATE_SECRET")))
-	h.Write(stateJSON)
-	expectedSig := hex.EncodeToString(h.Sum(nil))
-	if !hmac.Equal([]byte(parts[1]), []byte(expectedSig)) {
-		http.Redirect(w, r, webURL()+"/connections?error=invalid_state_signature", http.StatusFound)
-		return
-	}
-
-	var stateData map[string]string
-	if err := json.Unmarshal(stateJSON, &stateData); err != nil {
-		http.Redirect(w, r, webURL()+"/connections?error=invalid_state_payload", http.StatusFound)
-		return
-	}
-
-	ts, _ := strconv.ParseInt(stateData["ts"], 10, 64)
-	if time.Now().Unix()-ts > 600 {
-		http.Redirect(w, r, webURL()+"/connections?error=state_token_expired", http.StatusFound)
-		return
-	}
-
-	userID := stateData["uid"]
-	if userID == "" {
-		http.Redirect(w, r, webURL()+"/connections?error=missing_uid", http.StatusFound)
+		http.Redirect(w, r, webURL()+"/connections?error="+err.Error(), http.StatusFound)
 		return
 	}
 
 	// Exchange code for tokens
-	redirectURI := apiURL() + "/api/v2/oauth/" + provider + "/callback"
+	redirectURI := oauthflow.CallbackURL(apiURL(), provider)
 	data := url.Values{}
 	data.Set("client_id", config.ClientID)
 	data.Set("client_secret", config.ClientSecret)
