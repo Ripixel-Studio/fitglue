@@ -4,113 +4,15 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"strings"
 	"testing"
-	"time"
 
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbsvc "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-func TestExportData_Validation(t *testing.T) {
-	svc := newTestSvc(&MockActivityStore{}, &MockBlobStore{})
-	_, err := svc.ExportData(context.Background(), &pbsvc.ExportDataRequest{})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Errorf("expected InvalidArgument, got %v", err)
-	}
-}
-
-func TestExportData_EnqueuesJob(t *testing.T) {
-	var created *ExportJobRecord
-	store := &MockActivityStore{
-		CreateExportJobFunc: func(_ context.Context, _ string, job *ExportJobRecord) error {
-			created = job
-			return nil
-		},
-	}
-	svc := newTestSvc(store, &MockBlobStore{})
-	resp, err := svc.ExportData(context.Background(), &pbsvc.ExportDataRequest{UserId: "u1"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.Job == nil || resp.Job.JobId == "" {
-		t.Fatal("expected a job with an id")
-	}
-	if resp.Job.Status != pbsvc.ExportJobStatus_EXPORT_JOB_STATUS_PENDING {
-		t.Errorf("expected PENDING, got %v", resp.Job.Status)
-	}
-	if created == nil || created.Status != ExportStatusPending {
-		t.Error("expected a PENDING job to be persisted")
-	}
-}
-
-func TestExportData_DeduplicatesActiveJob(t *testing.T) {
-	createCalled := false
-	store := &MockActivityStore{
-		LatestActiveExportJobFunc: func(_ context.Context, _ string) (*ExportJobRecord, error) {
-			return &ExportJobRecord{JobID: "existing", Status: ExportStatusProcessing}, nil
-		},
-		CreateExportJobFunc: func(_ context.Context, _ string, _ *ExportJobRecord) error {
-			createCalled = true
-			return nil
-		},
-	}
-	svc := newTestSvc(store, &MockBlobStore{})
-	resp, err := svc.ExportData(context.Background(), &pbsvc.ExportDataRequest{UserId: "u1"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.Job.JobId != "existing" {
-		t.Errorf("expected existing job id, got %q", resp.Job.JobId)
-	}
-	if createCalled {
-		t.Error("should not create a new job when one is in flight")
-	}
-}
-
-func TestGetExportJob_NotFound(t *testing.T) {
-	svc := newTestSvc(&MockActivityStore{}, &MockBlobStore{})
-	_, err := svc.GetExportJob(context.Background(), &pbsvc.GetExportJobRequest{UserId: "u1", JobId: "missing"})
-	if status.Code(err) != codes.NotFound {
-		t.Errorf("expected NotFound, got %v", err)
-	}
-}
-
-func TestGetExportJob_ReadySignsURL(t *testing.T) {
-	store := &MockActivityStore{
-		GetExportJobFunc: func(_ context.Context, _, _ string) (*ExportJobRecord, error) {
-			return &ExportJobRecord{
-				JobID:      "j1",
-				Status:     ExportStatusReady,
-				ObjectPath: "exports/u1/j1.zip",
-				SizeBytes:  1234,
-				CreatedAt:  time.Now(),
-			}, nil
-		},
-	}
-	signed := ""
-	blob := &MockBlobStore{
-		SignedURLFunc: func(_ context.Context, _, path, _ string, _ int64, _ time.Duration) (string, error) {
-			signed = path
-			return "https://signed/" + path, nil
-		},
-	}
-	svc := newTestSvc(store, blob)
-	job, err := svc.GetExportJob(context.Background(), &pbsvc.GetExportJobRequest{UserId: "u1", JobId: "j1"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if job.DownloadUrl == "" {
-		t.Error("expected a signed download URL for a READY job")
-	}
-	if signed != "exports/u1/j1.zip" {
-		t.Errorf("expected to sign the stored object path, got %q", signed)
-	}
-}
 
 func TestExportPipelineRun_NotFound(t *testing.T) {
 	svc := newTestSvc(&MockActivityStore{}, &MockBlobStore{})
@@ -145,42 +47,6 @@ func TestExportPipelineRun_BuildsAndSigns(t *testing.T) {
 	names := zipEntryNames(t, written)
 	if !names["run.json"] || !names["README.txt"] {
 		t.Errorf("expected run.json and README.txt in per-run zip, got %v", names)
-	}
-}
-
-func TestBuildAccountArchive_ContainsExpectedFiles(t *testing.T) {
-	store := &MockActivityStore{
-		ListPipelineRunsFunc: func(_ context.Context, _ string, _ int32, _ string) ([]*pbpipeline.PipelineRun, string, error) {
-			return []*pbpipeline.PipelineRun{
-				{Id: "run-1", Title: "Run", EnrichedEventUri: "gs://b/enriched/run-1.json"},
-			}, "", nil
-		},
-	}
-	blob := &MockBlobStore{
-		GetFunc: func(_ context.Context, _, uri string) ([]byte, error) {
-			if strings.Contains(uri, "enriched") {
-				return []byte(`{"fit_file_uri":"gs://b/fit/run-1.fit","access_token":"SECRET"}`), nil
-			}
-			if strings.Contains(uri, "fit") {
-				return []byte("FITBINARY"), nil
-			}
-			return nil, errors.New("not found")
-		},
-	}
-	svc := newTestSvc(store, blob)
-	data, err := svc.buildAccountArchive(context.Background(), "u1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	names := zipEntryNames(t, data)
-	for _, want := range []string{"manifest.json", "pipeline_runs.json", "showcased_activities.json", "README.txt", "runs/run-1/run.json", "runs/run-1/enriched.json", "runs/run-1/activity.fit"} {
-		if !names[want] {
-			t.Errorf("expected %q in account archive, got %v", want, names)
-		}
-	}
-	// The enriched payload's access_token must be redacted in the archive.
-	if body := zipEntry(t, data, "runs/run-1/enriched.json"); strings.Contains(string(body), "SECRET") {
-		t.Error("expected access_token to be redacted in enriched.json")
 	}
 }
 

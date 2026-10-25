@@ -35,7 +35,6 @@ type mockActivityServiceClient struct {
 	createShowcase            func(ctx context.Context, in *activitypb.CreateShowcaseRequest, opts ...grpc.CallOption) (*pbactivity.ShowcasedActivity, error)
 	updateShowcase            func(ctx context.Context, in *activitypb.UpdateShowcaseRequest, opts ...grpc.CallOption) (*pbactivity.ShowcasedActivity, error)
 	deleteShowcase            func(ctx context.Context, in *activitypb.DeleteShowcaseRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	exportData                func(ctx context.Context, in *activitypb.ExportDataRequest, opts ...grpc.CallOption) (*activitypb.ExportDataResponse, error)
 	getShowcasePreferences    func(ctx context.Context, in *activitypb.GetShowcasePreferencesRequest, opts ...grpc.CallOption) (*pbactivity.ShowcaseProfile, error)
 	updateShowcasePreferences func(ctx context.Context, in *activitypb.UpdateShowcasePreferencesRequest, opts ...grpc.CallOption) (*pbactivity.ShowcaseProfile, error)
 	generateShowcaseImages    func(ctx context.Context, in *activitypb.GenerateShowcaseImagesRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -100,15 +99,6 @@ func (m *mockActivityServiceClient) DeleteShowcase(ctx context.Context, in *acti
 		return m.deleteShowcase(ctx, in, opts...)
 	}
 	return &emptypb.Empty{}, nil
-}
-func (m *mockActivityServiceClient) ExportData(ctx context.Context, in *activitypb.ExportDataRequest, opts ...grpc.CallOption) (*activitypb.ExportDataResponse, error) {
-	if m.exportData != nil {
-		return m.exportData(ctx, in, opts...)
-	}
-	return &activitypb.ExportDataResponse{}, nil
-}
-func (m *mockActivityServiceClient) GetExportJob(ctx context.Context, in *activitypb.GetExportJobRequest, opts ...grpc.CallOption) (*activitypb.ExportJob, error) {
-	return &activitypb.ExportJob{}, nil
 }
 func (m *mockActivityServiceClient) ExportPipelineRun(ctx context.Context, in *activitypb.ExportPipelineRunRequest, opts ...grpc.CallOption) (*activitypb.ExportPipelineRunResponse, error) {
 	return &activitypb.ExportPipelineRunResponse{}, nil
@@ -529,17 +519,6 @@ func TestHandleDeleteShowcase_Success(t *testing.T) {
 	s.handleDeleteShowcase(w, r)
 	if w.Code != http.StatusNoContent {
 		t.Errorf("expected 204, got %d", w.Code)
-	}
-}
-
-func TestHandleExportData_Success(t *testing.T) {
-	s := buildActivityServer(&mockActivityServiceClient{})
-	r := httptest.NewRequest(http.MethodPost, "/api/v2/users/me/export", nil)
-	r = withToken(r, "user1")
-	w := httptest.NewRecorder()
-	s.handleExportData(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
 	}
 }
 

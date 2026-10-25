@@ -451,28 +451,6 @@ Every Sentry event includes:
 - `pipeline_execution_id` — Links to PipelineRun document
 - `environment` — `dev`, `test`, or `prod`
 
-### GCP Cloud Monitoring Dashboards
-
-**Console**: [GCP Console → Monitoring → Dashboards](https://console.cloud.google.com/monitoring/dashboards)
-
-| Dashboard | What It Shows |
-|-----------|---------------|
-| **FitGlue Operations Overview** | Total invocations, error rate, latency (p50/p95), Firestore reads/writes |
-| **FitGlue Provider API Latency** | Uploader execution times by destination provider |
-| **FitGlue Handler Performance** | Per-handler invocations and latency |
-| **FitGlue Enricher Performance** | Booster execution counts, latency, success/failure rates |
-| **FitGlue Business Growth** | Activity trends, source distribution, destination success rates |
-
-### Alert Policies
-
-| Alert | Condition | Notification |
-|-------|-----------|--------------|
-| High Error Rate | Any service > 5% errors in 5 min | Email |
-| Critical Function Failure | `pipeline` or `destination` > 5 errors in 1 min | Email |
-| High Latency | Any service p95 > 30 seconds | Email |
-
-Configured in `terraform/monitoring.tf`. Update email in `google_monitoring_notification_channel.email`.
-
 ### Firestore Console
 
 **Console**: [GCP Console → Firestore](https://console.cloud.google.com/firestore)
@@ -495,7 +473,6 @@ Configured in `terraform/monitoring.tf`. Update email in `google_monitoring_noti
 - [Architecture Overview](../architecture/overview.md) — System topology and data flow
 - [Go Services](../architecture/go-services.md) — Service directory map
 - [Error Codes Reference](../reference/errors.md) — All error codes and retryability
-- [Monitoring & Analytics](../infrastructure/monitoring.md) — Dashboard setup and BigQuery
 - [Plugin System](../architecture/plugin-system.md) — Source, enricher, destination architecture
 - [Testing Guide](../development/testing.md) — How to write and run tests
 - [Enricher Testing](./enricher-testing.md) — Testing enrichment providers

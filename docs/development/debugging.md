@@ -91,5 +91,4 @@ npx ts-node scripts/debug-fitbit.ts 832bc50d-4814-4fce-89ff-f94ef4bba9b1 2026-01
 
 - [Troubleshooting Guide](../guides/troubleshooting.md) — Per-domain debugging playbooks
 - [Error Codes Reference](../reference/errors.md) — All error codes and retryability
-- [Monitoring & Analytics](../infrastructure/monitoring.md) — Dashboards and alerts
 - [Local Development](local-development.md) — Running the full stack locally

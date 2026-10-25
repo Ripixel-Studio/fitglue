@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fitglue/server/src/go/internal/infra"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbsvc "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
@@ -19,122 +18,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-// failingPublisher returns an error from PublishJSON to exercise enqueue-error paths.
-type failingPublisher struct{ cloudEventsPublisher }
-
-func (p *failingPublisher) PublishJSON(_ context.Context, _ string, _ []byte) error {
-	return errors.New("publish failed")
-}
-
-func TestExportData_PublishError(t *testing.T) {
-	var failed bool
-	store := &MockActivityStore{
-		UpdateExportJobFunc: func(_ context.Context, _, _ string, fields map[string]interface{}) error {
-			if s, _ := fields["status"].(string); s == ExportStatusFailed {
-				failed = true
-			}
-			return nil
-		},
-	}
-	svc := NewService(store, &MockBlobStore{}, &failingPublisher{}, "test-bucket", "test-showcase-bucket", infra.NewLogger())
-	_, err := svc.ExportData(context.Background(), &pbsvc.ExportDataRequest{UserId: "u1"})
-	if status.Code(err) != codes.Internal {
-		t.Errorf("expected Internal on publish failure, got %v", err)
-	}
-	if !failed {
-		t.Error("expected job marked FAILED after publish failure")
-	}
-}
-
-// ---------------- HandleExportTrigger / runExportJob ----------------
-
-func TestHandleExportTrigger_EnvelopeAndBadRequest(t *testing.T) {
-	svc := newTestSvc(&MockActivityStore{}, &MockBlobStore{})
-
-	// Missing fields → bad request.
-	bad, _ := json.Marshal(exportTriggerMessage{})
-	req := httptest.NewRequest(http.MethodPost, "/pubsub/data-export", strings.NewReader(string(bad)))
-	rec := httptest.NewRecorder()
-	svc.HandleExportTrigger(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 for empty message, got %d", rec.Code)
-	}
-
-	// Pub/Sub push envelope wrapping the trigger payload.
-	inner, _ := json.Marshal(exportTriggerMessage{UserID: "u1", JobID: "j1"})
-	envelope, _ := json.Marshal(struct {
-		Message struct {
-			Data []byte `json:"data"`
-		} `json:"message"`
-	}{Message: struct {
-		Data []byte `json:"data"`
-	}{Data: inner}})
-	req2 := httptest.NewRequest(http.MethodPost, "/pubsub/data-export", strings.NewReader(string(envelope)))
-	rec2 := httptest.NewRecorder()
-	svc.HandleExportTrigger(rec2, req2)
-	if rec2.Code != http.StatusOK {
-		t.Errorf("expected 200 for valid envelope, got %d", rec2.Code)
-	}
-}
-
-func TestHandleExportTrigger_Worker(t *testing.T) {
-	var statuses []string
-	store := &MockActivityStore{
-		UpdateExportJobFunc: func(_ context.Context, _, _ string, fields map[string]interface{}) error {
-			if s, ok := fields["status"].(string); ok {
-				statuses = append(statuses, s)
-			}
-			return nil
-		},
-	}
-	blob := &MockBlobStore{}
-	svc := newTestSvc(store, blob)
-
-	msg, _ := json.Marshal(exportTriggerMessage{UserID: "u1", JobID: "j1"})
-	req := httptest.NewRequest(http.MethodPost, "/pubsub/data-export", strings.NewReader(string(msg)))
-	rec := httptest.NewRecorder()
-	svc.HandleExportTrigger(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
-	}
-	// Should transition through PROCESSING and READY.
-	joined := strings.Join(statuses, ",")
-	if !strings.Contains(joined, ExportStatusProcessing) || !strings.Contains(joined, ExportStatusReady) {
-		t.Errorf("expected PROCESSING and READY transitions, got %v", statuses)
-	}
-}
-
-func TestHandleExportTrigger_BuildFails(t *testing.T) {
-	var failed bool
-	store := &MockActivityStore{
-		ListPipelineRunsFunc: func(_ context.Context, _ string, _ int32, _ string) ([]*pbpipeline.PipelineRun, string, error) {
-			return nil, "", errors.New("list error")
-		},
-		UpdateExportJobFunc: func(_ context.Context, _, _ string, fields map[string]interface{}) error {
-			if s, _ := fields["status"].(string); s == ExportStatusFailed {
-				failed = true
-			}
-			return nil
-		},
-	}
-	svc := newTestSvc(store, &MockBlobStore{})
-
-	msg, _ := json.Marshal(exportTriggerMessage{UserID: "u1", JobID: "j1"})
-	req := httptest.NewRequest(http.MethodPost, "/pubsub/data-export", strings.NewReader(string(msg)))
-	rec := httptest.NewRecorder()
-	svc.HandleExportTrigger(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200 (job carries error), got %d", rec.Code)
-	}
-	if !failed {
-		t.Error("expected job to be marked FAILED when archive build fails")
-	}
-}
-
-// ---------------- HandleRoundupTrigger / generateRoundup ----------------
 
 func TestHandleRoundupTrigger_BadPeriodType(t *testing.T) {
 	svc := newTestSvc(&MockActivityStore{}, &MockBlobStore{})
@@ -224,21 +107,6 @@ func TestGenerateRoundup_SettingsDisabled(t *testing.T) {
 	}
 	if roundup != nil {
 		t.Errorf("expected nil roundup when weekly disabled, got %+v", roundup)
-	}
-}
-
-// ---------------- Export error branches ----------------
-
-func TestGetExportJob_StoreError(t *testing.T) {
-	store := &MockActivityStore{
-		GetExportJobFunc: func(_ context.Context, _, _ string) (*ExportJobRecord, error) {
-			return nil, errors.New("db error")
-		},
-	}
-	svc := newTestSvc(store, &MockBlobStore{})
-	_, err := svc.GetExportJob(context.Background(), &pbsvc.GetExportJobRequest{UserId: "u1", JobId: "j1"})
-	if status.Code(err) != codes.Internal {
-		t.Errorf("expected Internal, got %v", err)
 	}
 }
 

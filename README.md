@@ -131,7 +131,6 @@ fitglue-server/
 ### Troubleshooting
 - [Troubleshooting Guide](docs/guides/troubleshooting.md) — **Start here** when debugging any issue
 - [Error Codes Reference](docs/reference/errors.md) — All error codes and retryability
-- [Monitoring & Analytics](docs/infrastructure/monitoring.md) — Dashboards and alerts
 
 ### Infrastructure
 - [CI/CD Guide](docs/infrastructure/cicd.md) — Pipeline and Cloud Run deployments

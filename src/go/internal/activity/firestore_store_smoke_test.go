@@ -36,12 +36,6 @@ func TestFirestoreStore_Smoke(t *testing.T) {
 	entry := &pbactivity.ShowcaseProfileEntry{ShowcaseId: "s1"}
 	roundup := &pbactivity.ShowcaseRoundup{Slug: "slug", PeriodKey: "month-01-2024"}
 
-	// Export jobs
-	_ = s.CreateExportJob(ctx, "u1", &ExportJobRecord{JobID: "j1"})
-	_, _ = s.GetExportJob(ctx, "u1", "j1")
-	_ = s.UpdateExportJob(ctx, "u1", "j1", map[string]interface{}{"status": "done"})
-	_, _ = s.LatestActiveExportJob(ctx, "u1")
-
 	// Views
 	_ = s.RecordShowcaseView(ctx, "activity:s1", "visitor-hash")
 	_, _ = s.GetShowcaseViewStats(ctx, "activity:s1")

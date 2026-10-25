@@ -709,20 +709,6 @@ func TestHandleRecomputeRoundup(t *testing.T) {
 	})
 }
 
-func TestHandleGetExportJob(t *testing.T) {
-	s := serverWithDeps(&APIServer{activitySvc: &mockActivityServiceClient{}})
-	w := httptest.NewRecorder()
-	s.handleGetExportJob(w, httptest.NewRequest(http.MethodGet, "/", nil))
-	if w.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", w.Code)
-	}
-	w = httptest.NewRecorder()
-	s.handleGetExportJob(w, withToken(httptest.NewRequest(http.MethodGet, "/", nil), "u1"))
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
-
 func TestHandleExportPipelineRun(t *testing.T) {
 	s := serverWithDeps(&APIServer{activitySvc: &mockActivityServiceClient{}})
 	w := httptest.NewRecorder()
@@ -1461,7 +1447,6 @@ func TestActivityHandlers_MoreServiceErrors(t *testing.T) {
 		{"profilePicURL", s.handleGetShowcaseProfilePictureUploadUrl, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))},
 		{"photoURL", s.handleGetActivityPhotoUploadUrl, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))},
 		{"roundupSettings", s.handleUpdateRoundupSettings, httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{"settings":{}}`))},
-		{"exportData", s.handleExportData, httptest.NewRequest(http.MethodPost, "/", nil)},
 		{"generateImages", s.handleGenerateShowcaseImages, httptest.NewRequest(http.MethodPost, "/", nil)},
 		{"createShowcase", s.handleCreateShowcase, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))},
 		{"updateShowcase", s.handleUpdateShowcase, httptest.NewRequest(http.MethodPut, "/", strings.NewReader(`{}`))},
@@ -1529,9 +1514,6 @@ func (e *errActivityClient) UpdateRoundupSettings(_ context.Context, _ *activity
 	return nil, status.Error(codes.Internal, "boom")
 }
 func (e *errActivityClient) RecomputeRoundup(_ context.Context, _ *activitypb.RecomputeRoundupRequest, _ ...grpc.CallOption) (*pbactivity.ShowcaseRoundup, error) {
-	return nil, status.Error(codes.Internal, "boom")
-}
-func (e *errActivityClient) ExportData(_ context.Context, _ *activitypb.ExportDataRequest, _ ...grpc.CallOption) (*activitypb.ExportDataResponse, error) {
 	return nil, status.Error(codes.Internal, "boom")
 }
 func (e *errActivityClient) GenerateShowcaseImages(_ context.Context, _ *activitypb.GenerateShowcaseImagesRequest, _ ...grpc.CallOption) (*emptypb.Empty, error) {

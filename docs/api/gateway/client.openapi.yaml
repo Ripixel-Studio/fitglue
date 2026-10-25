@@ -1055,52 +1055,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /users/me/export:
-        post:
-            tags:
-                - ClientGatewayService
-            description: |-
-                ===================== Data Export =====================
-                 Enqueue an asynchronous whole-account export; returns the job. Poll
-                 GetExportJob until status is READY (download_url set) or FAILED.
-            operationId: ClientGatewayService_ExportData
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ExportJobGatewayResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /users/me/export/{jobId}:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_GetExportJob
-            parameters:
-                - name: jobId
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ExportJobGatewayResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /users/me/fcm-token:
         post:
             tags:
@@ -2943,24 +2897,6 @@ components:
                     type: string
                 source:
                     type: string
-        ExportJobGatewayResponse:
-            type: object
-            properties:
-                jobId:
-                    type: string
-                status:
-                    type: string
-                downloadUrl:
-                    type: string
-                sizeBytes:
-                    type: string
-                expiresAt:
-                    type: string
-                error:
-                    type: string
-                createdAt:
-                    type: string
-            description: 'status is one of: PENDING | PROCESSING | READY | FAILED'
         ExportPipelineRunGatewayResponse:
             type: object
             properties:

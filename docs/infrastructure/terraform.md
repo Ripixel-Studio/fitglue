@@ -217,8 +217,6 @@ See [CI/CD Guide](cicd.md) for details.
 | `iam.tf` | Service accounts and bindings |
 | `auth.tf` | OAuth configurations |
 | `apis.tf` | API enablement |
-| `monitoring.tf` | Dashboards, alerts, log-based metrics |
-| `analytics.tf` | BigQuery dataset and views |
 | `firebase.tf` | Firebase configuration |
 | `backend.tf` | Terraform backend configuration |
 
