@@ -137,6 +137,18 @@ resource "google_cloud_run_v2_service" "backend" {
           value = google_storage_bucket.showcase_assets_bucket.name
         }
       }
+      # Site export on change (docs/guides/site-export.md): the profile whose
+      # site files are rewritten under site/<slug>/ in the showcase-assets
+      # bucket after every showcase entry / roundup write. The bucket defaults
+      # to SHOWCASE_ASSETS_BUCKET; SITE_EXPORT_DISABLED=1 turns it off;
+      # SITE_EXPORT_HOOK_URL is set on the box only, never here.
+      dynamic "env" {
+        for_each = each.key == "activity" ? [1] : []
+        content {
+          name  = "SITE_EXPORT_SLUG"
+          value = "james"
+        }
+      }
 
       # ── Destination service env vars ──
       dynamic "env" {

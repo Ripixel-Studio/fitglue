@@ -35,6 +35,8 @@ type MockActivityStore struct {
 	CountDistinctActivitiesForPeriodFunc func(ctx context.Context, userID, period string) (int32, error)
 	CountDistinctActivitiesSinceFunc     func(ctx context.Context, userID string, since time.Time) (int32, error)
 
+	SetRoundupFunc func(ctx context.Context, roundup *pbactivity.ShowcaseRoundup) error
+
 	ListShowcaseProfileEntriesFunc func(ctx context.Context, userID string) ([]*pbactivity.ShowcaseProfileEntry, error)
 	SetShowcaseProfileEntryFunc    func(ctx context.Context, userID string, entry *pbactivity.ShowcaseProfileEntry) error
 	DeleteShowcaseProfileEntryFunc func(ctx context.Context, userID, showcaseID string) error
@@ -238,6 +240,9 @@ func (m *MockActivityStore) GetRoundup(ctx context.Context, slug, periodKey stri
 }
 
 func (m *MockActivityStore) SetRoundup(ctx context.Context, roundup *pbactivity.ShowcaseRoundup) error {
+	if m.SetRoundupFunc != nil {
+		return m.SetRoundupFunc(ctx, roundup)
+	}
 	return nil
 }
 

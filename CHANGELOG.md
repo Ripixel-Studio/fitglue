@@ -74,6 +74,18 @@ Hand-written since F1.8 of the single-user conversion; entries below
   `api-client`'s `FirestoreApiKeyStore` delegates to it.
 - `fitgluectl connect trainingpeaks` refuses with an explanation: no authorise
   configuration has ever existed for TrainingPeaks (only token refresh).
+### Added (rethink S1.2 — export showcase changes to the site bucket on write)
+
+- The activity service rewrites the site export after the writes that change
+  it: `activity/<id>.json` after `AddShowcaseEntry` (both showcase uploader
+  paths end there) and `RemoveShowcaseEntry`, `roundup/<key>.json` after a
+  roundup is generated, then `index.json`, coalesced to one rewrite per 10 s
+  burst. Background, best-effort: a failed export is a Warn line, never a
+  failed upload or roundup. `SITE_EXPORT_SLUG` (default `james`),
+  `SITE_EXPORT_BUCKET` (default the showcase-assets bucket),
+  `SITE_EXPORT_DISABLED=1`, and `SITE_EXPORT_HOOK_URL` (POSTed after each index
+  refresh; set on the box only). `fitgluectl export-site --all` remains the
+  repair path. See `docs/guides/site-export.md`.
 
 ### Removed (rethink F1.8 — CI and Sentry)
 

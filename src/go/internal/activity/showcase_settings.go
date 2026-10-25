@@ -391,6 +391,10 @@ func (s *Service) AddShowcaseEntry(ctx context.Context, req *pbsvc.AddShowcaseEn
 	// regardless of retries or prior data corrections (no delta drift).
 	s.recomputeAndSaveProfileStats(ctx, req.UserId)
 
+	// The entry and the profile totals are durable: the site export can read
+	// them back now. Non-blocking; the hook owns its own timeout and logging.
+	s.siteActivityChanged(ctx, req.ShowcaseId)
+
 	return &emptypb.Empty{}, nil
 }
 
@@ -426,6 +430,10 @@ func (s *Service) RemoveShowcaseEntry(ctx context.Context, req *pbsvc.RemoveShow
 
 	// Recompute profile stats from all remaining entries.
 	s.recomputeAndSaveProfileStats(ctx, req.UserId)
+
+	// Gone from the profile: the site index must stop listing it. The hook's
+	// activity export reports "not exportable" and refreshes the index.
+	s.siteActivityChanged(ctx, req.ShowcaseId)
 
 	return &emptypb.Empty{}, nil
 }

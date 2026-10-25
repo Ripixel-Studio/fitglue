@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -294,27 +296,53 @@ func (f *fakeSource) Roundup(_ context.Context, slug, key string) (*pbactivity.S
 	return nil, nil
 }
 
-// memWriter records writes in memory.
+// memWriter records writes in memory. It is safe for concurrent use: the
+// hook (hook_test.go) writes from several goroutines.
 type memWriter struct {
+	mu    sync.Mutex
 	files map[string][]byte
 	order []string
+	// failing, when set, makes Write fail for names with that prefix.
+	failing string
 }
 
 func newMemWriter() *memWriter { return &memWriter{files: map[string][]byte{}} }
 
 func (w *memWriter) Write(_ context.Context, name string, data []byte) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.failing != "" && strings.HasPrefix(name, w.failing) {
+		return fmt.Errorf("write %s: injected failure", name)
+	}
 	w.files[name] = append([]byte(nil), data...)
 	w.order = append(w.order, name)
 	return nil
 }
 
 func (w *memWriter) Delete(_ context.Context, name string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	delete(w.files, name)
 	w.order = append(w.order, "-"+name)
 	return nil
 }
 
+// writes counts how many times a name was written.
+func (w *memWriter) writes(name string) int {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	n := 0
+	for _, o := range w.order {
+		if o == name {
+			n++
+		}
+	}
+	return n
+}
+
 func (w *memWriter) List(_ context.Context, prefix string) ([]string, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	var names []string
 	for n := range w.files {
 		if len(n) >= len(prefix) && n[:len(prefix)] == prefix {
