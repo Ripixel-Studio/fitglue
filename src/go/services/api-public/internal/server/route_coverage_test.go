@@ -61,12 +61,10 @@ func TestRouteCoverage(t *testing.T) {
 
 	t.Logf("Found %d PublicGatewayService routes in OpenAPI spec", len(expectedRoutes))
 
-	// NewAPIServer only needs activity + registry service clients
+	// NewAPIServer only needs the activity service client
 	srv := NewAPIServer(
 		infra.NewLogger(),
 		nil, // activitySvc — only need router structure, not handler logic
-		nil, // registrySvc
-		"",  // viewSalt — unused for route structure
 	)
 
 	registeredRoutes := make(map[string]bool)

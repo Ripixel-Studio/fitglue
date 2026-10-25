@@ -1,6 +1,6 @@
 # FitGlue Server
 
-Go backend — 8 Cloud Run microservices communicating via gRPC, fronted by 3 HTTP API gateways.
+Go backend — 7 Cloud Run microservices communicating via gRPC, fronted by 3 HTTP API gateways.
 
 ## Stack
 
@@ -25,11 +25,11 @@ Go backend — 8 Cloud Run microservices communicating via gRPC, fronted by 3 HT
 ```bash
 make setup              # Go mod download + npm install (run once)
 make generate           # Regenerate protos (Go stubs + TS types + OpenAPI specs)
-make build              # Compile all 10 services + CLI tools
+make build              # Compile all 7 services + CLI tools
 make test               # Unit tests (go test -short ./...)
 make lint               # gofmt check + go vet (excludes generated integrations/)
 make preflight          # Full CI mirror: proto lint → generate → build → lint → test → coverage
-make local              # docker-compose up --build (all 10 services)
+make local              # docker-compose up --build (all 7 services)
 make local-down         # docker-compose down
 make integration        # Jest integration tests against local stack
 make test-coverage      # Enforce per-package coverage thresholds
@@ -51,8 +51,8 @@ npm run test:test       # Against test environment
 ```
 Internet
     │
-    ├── api-client   (HTTP, Firebase JWT)    → user, pipeline, activity, registry
-    ├── api-public   (HTTP, no auth)          → registry, activity (showcases)
+    ├── api-client   (HTTP, Firebase JWT)    → user, pipeline, activity
+    ├── api-public   (HTTP, no auth)          → activity (showcases)
     └── api-webhook  (HTTP, HMAC/OAuth)       → pipeline (via Pub/Sub)
                                                 user (resolve integration)
 Pub/Sub
@@ -65,7 +65,6 @@ Domain Services (private):
     ├── user         (gRPC, port 50051) — profiles, integrations, OAuth tokens
     ├── pipeline     (gRPC, port 50053) — pipeline CRUD + enrichment orchestration
     ├── activity     (gRPC, port 50054) — activity CRUD, showcases, exports
-    ├── registry     (gRPC, port 50055) — plugin manifests (sources, enrichers, destinations)
     └── destination  (Pub/Sub)          — uploads to Strava, TrainingPeaks, Intervals, Hevy, Fitbit, etc.
 ```
 
@@ -84,7 +83,6 @@ server/
 │   │   │   ├── user/               # gRPC domain service
 │   │   │   ├── pipeline/           # gRPC domain service + enrichment orchestration
 │   │   │   ├── activity/           # gRPC domain service
-│   │   │   ├── registry/           # gRPC domain service
 │   │   │   └── destination/        # Pub/Sub domain service
 │   │   │       └── internal/destination/uploaders/  # strava/, trainingpeaks/, intervals/, hevy/, fitbit/, googlesheets/, github/, showcase/
 │   │   ├── internal/               # Shared domain logic (used by multiple services)
@@ -92,7 +90,6 @@ server/
 │   │   │   ├── pipeline/           # Pipeline orchestration + enrichers (45+ providers)
 │   │   │   │   └── enricher/providers/   # One directory per enricher
 │   │   │   ├── activity/           # Activity CRUD + showcases
-│   │   │   ├── registry/           # Plugin registry
 │   │   │   └── infra/              # Logger, Firestore client, gRPC helpers
 │   │   ├── pkg/                    # Shared packages (exported)
 │   │   │   ├── types/pb/           # Generated gRPC stubs — DO NOT EDIT manually
@@ -118,7 +115,7 @@ server/
 ├── scripts/                        # Code gen, migrations, secret config, scaffolding
 ├── docs/                           # Architecture docs, guides, ADRs, API specs
 │   └── api/gateway/                # Generated OpenAPI specs (output) — commit these
-├── docker-compose.yaml             # Local dev stack (all 10 services)
+├── docker-compose.yaml             # Local dev stack (all 7 services)
 ├── Dockerfile                      # Multi-stage build (ARG SERVICE_NAME)
 ├── Makefile                        # All build/test/deploy automation
 └── jest.config.js                  # Integration test config
@@ -254,9 +251,8 @@ make plugin-enricher name=my-enricher
 
 Then:
 1. Implement the `EnricherProvider` interface
-2. Add manifest to `internal/registry/`
-3. Register via `init()` in the provider package (auto-imported by the enricher runner)
-4. Write tests in `*_test.go`
+2. Register via `init()` in the provider package (auto-imported by the enricher runner)
+3. Write tests in `*_test.go`
 
 ## Dockerfile
 

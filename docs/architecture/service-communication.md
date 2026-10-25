@@ -16,7 +16,6 @@ All inter-service communication in FitGlue uses **gRPC** with protobuf-defined c
 | `service.user` | 8080+ (Cloud Run auto) | gRPC |
 | `service.pipeline` | 8080+ | gRPC + Pub/Sub consumer |
 | `service.activity` | 8080+ | gRPC + Pub/Sub consumer |
-| `service.registry` | 8080+ | gRPC |
 | `service.destination` | — | Pub/Sub consumer only |
 | `service.api.*` | 8080 | HTTP (external) |
 
@@ -32,7 +31,7 @@ userConn, _ := grpc.Dial(os.Getenv("USER_SERVICE_ADDR"),
 )
 userClient := pbsvc.NewUserServiceClient(userConn)
 
-api := server.NewClientAPI(userClient, pipelineClient, activityClient, registryClient)
+api := server.NewClientAPI(userClient, pipelineClient, activityClient)
 ```
 
 The generated `pb.UserServiceClient` is type-safe — the compiler enforces that every call passes the correct request type and handles the correct response type.
@@ -71,8 +70,7 @@ src/proto/
 └── services/                 # Service definitions (RPC contracts)
     ├── user.proto             # UserService
     ├── pipeline.proto         # PipelineService
-    ├── activity.proto         # ActivityService
-    └── registry.proto         # RegistryService
+    └── activity.proto         # ActivityService
 ```
 
 ## Regenerating Stubs
@@ -95,10 +93,8 @@ This runs:
 Web/Mobile → service.api.client → service.user      (GetProfile, UpdateProfile, etc.)
                                 → service.pipeline   (ListPipelines, CreatePipeline, etc.)
                                 → service.activity   (ListActivities, GetShowcase, etc.)
-                                → service.registry   (GetRegistry)
 
-Public     → service.api.public → service.registry  (public registry listing)
-                                → service.activity   (GetPublicShowcase)
+Public     → service.api.public → service.activity   (GetPublicShowcase)
 
 Webhooks   → service.api.webhook → service.user     (GetIntegration via RPC)
                                  → Pub/Sub           (publishes topic-raw-activity)

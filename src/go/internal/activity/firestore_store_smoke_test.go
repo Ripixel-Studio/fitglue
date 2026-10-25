@@ -36,10 +36,6 @@ func TestFirestoreStore_Smoke(t *testing.T) {
 	entry := &pbactivity.ShowcaseProfileEntry{ShowcaseId: "s1"}
 	roundup := &pbactivity.ShowcaseRoundup{Slug: "slug", PeriodKey: "month-01-2024"}
 
-	// Views
-	_ = s.RecordShowcaseView(ctx, "activity:s1", "visitor-hash")
-	_, _ = s.GetShowcaseViewStats(ctx, "activity:s1")
-
 	// Activities
 	_, _ = s.GetActivity(ctx, "u1", "a1")
 	_, _, _ = s.ListActivities(ctx, "u1", 10, "")

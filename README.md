@@ -29,10 +29,10 @@ FitGlue uses a domain-service architecture: 11 Go Cloud Run services communicati
 
 **API gateways** sit in front for HTTP clients:
 - `service.api.client` — Web app / mobile (Firebase JWT)
-- `service.api.public` — Unauthenticated (registry, showcase)
+- `service.api.public` — Unauthenticated (showcase)
 
 **Domain services** own their Firestore data and expose gRPC interfaces:
-- `service.user`, `service.pipeline`, `service.activity`, `service.registry`
+- `service.user`, `service.pipeline`, `service.activity`
 
 **Worker services** consume Pub/Sub topics:
 - `service.destination` — uploads to Strava, TrainingPeaks, Fitbit, etc.
@@ -101,7 +101,7 @@ fitglue-server/
 │   ├── development/           # Dev guides
 │   ├── guides/                # How-to guides
 │   ├── infrastructure/        # CI/CD, Terraform
-│   └── reference/             # Errors, registry
+│   └── reference/             # Errors
 ├── scripts/                   # Dev and CI scripts
 └── Makefile                   # Build, test, generate, deploy commands
 ```

@@ -62,16 +62,6 @@ services:
     environment:
       - PORT=8080
 
-  registry:
-    build:
-      context: .
-      args:
-        SERVICE_NAME: registry
-    ports:
-      - "50055:8080"
-    environment:
-      - PORT=8080
-
   destination:
     build:
       context: .

@@ -34,8 +34,6 @@ src/go/
 │   │   └── main.go
 │   ├── activity/                      # Activities, showcases, exports
 │   │   └── main.go
-│   ├── registry/                      # Plugin manifests, categories, icons
-│   │   └── main.go
 │   └── destination/                   # All destination uploaders
 │       └── main.go
 │
@@ -43,7 +41,6 @@ src/go/
 │   ├── user/                          # service.user business logic + store
 │   ├── pipeline/                      # Pipeline orchestration, enrichers (45+), routing
 │   ├── activity/                      # Activity CRUD, showcases, exports
-│   ├── registry/                      # Plugin registry logic
 │   └── infra/                         # Shared infrastructure (logger, Firestore client)
 │
 └── pkg/                               # Shared packages used across services
@@ -89,7 +86,6 @@ If it compiles, it's wired correctly — no runtime dependency resolution.
 | `service.user` | User profiles, integrations, OAuth tokens, counters | gRPC | Firestore `users/` |
 | `service.pipeline` | Pipeline config, enrichment, routing, pending inputs | gRPC + Pub/Sub | Firestore `users/*/pipelines` |
 | `service.activity` | Activity records, showcases, FIT parsing, exports | gRPC + Pub/Sub | Firestore activities + GCS |
-| `service.registry` | Plugin manifests, categories | gRPC | Static config |
 | `service.destination` | Route and upload to destinations | Pub/Sub | Transient |
 
 ## Source Provider Pattern

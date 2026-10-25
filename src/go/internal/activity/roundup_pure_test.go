@@ -148,21 +148,3 @@ func TestParsePeriodType(t *testing.T) {
 		}
 	}
 }
-
-func TestToInt64(t *testing.T) {
-	cases := []struct {
-		in   interface{}
-		want int64
-	}{
-		{int64(5), 5},
-		{int(7), 7},
-		{float64(9.9), 9},
-		{"nope", 0},
-		{nil, 0},
-	}
-	for _, c := range cases {
-		if got := toInt64(c.in); got != c.want {
-			t.Errorf("toInt64(%v) = %d, want %d", c.in, got, c.want)
-		}
-	}
-}

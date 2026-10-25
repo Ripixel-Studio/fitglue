@@ -14,9 +14,6 @@ Enrichers transform and enhance standardized activities before they are sent to 
 
 ## Available Enrichers
 
-> [!NOTE]
-> Enricher configuration is defined in `registry.ts` and served via `GET /api/registry`. See [Registry Reference](../reference/registry.md) for details.
-
 | Provider | Purpose | Trigger Condition | Output |
 |----------|---------|-------------------|--------|
 | **Workout Summary** | Exercise breakdown | `StrengthSets` present | Description text |

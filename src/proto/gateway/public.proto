@@ -3,10 +3,6 @@ syntax = "proto3";
 package fitglue.gateway;
 
 import "google/api/annotations.proto";
-import "google/protobuf/empty.proto";
-
-// Shared model types
-import "models/plugin/manifest.proto";
 
 import "models/activity/uploaded.proto";
 import "models/activity/roundup.proto";
@@ -16,36 +12,8 @@ option go_package = "github.com/fitglue/server/src/go/pkg/types/pb/gateway";
 // PublicGatewayService describes the unauthenticated REST API surface
 // served by api-public at /api/public/*.
 //
-// No authentication required. Used by marketing pages, Skier builds,
-// and public showcase profile pages.
+// No authentication required. Used by public showcase profile pages.
 service PublicGatewayService {
-
-  // ===================== Registry =====================
-  rpc GetPluginRegistry(PublicEmptyRequest) returns (fitglue.models.plugin.PluginRegistryResponse) {
-    option (google.api.http) = {
-      get: "/registry"
-    };
-  }
-  rpc ListPlugins(ListPluginsPublicRequest) returns (ListPluginsPublicResponse) {
-    option (google.api.http) = {
-      get: "/registry/plugins"
-    };
-  }
-  rpc GetPlugin(GetPluginPublicRequest) returns (fitglue.models.plugin.PluginManifest) {
-    option (google.api.http) = {
-      get: "/registry/plugins/{id}"
-    };
-  }
-  rpc ListCategories(PublicEmptyRequest) returns (ListCategoriesPublicResponse) {
-    option (google.api.http) = {
-      get: "/registry/categories"
-    };
-  }
-  rpc ListSources(PublicEmptyRequest) returns (ListSourcesPublicResponse) {
-    option (google.api.http) = {
-      get: "/registry/sources"
-    };
-  }
 
   // ===================== Public Showcase =====================
   rpc GetPublicShowcase(GetPublicShowcaseRequest) returns (fitglue.models.activity.ShowcasedActivity) {
@@ -69,25 +37,6 @@ service PublicGatewayService {
       get: "/showcase/{slug}/roundups/recent"
     };
   }
-
-  // ===================== Showcase View Beacons =====================
-  // Fire-and-forget view beacons fired by the public showcase SPA on page load.
-  // Always respond 204; counts are never returned here.
-  rpc RecordShowcaseActivityView(RecordShowcaseActivityViewRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/showcase/{id}/view"
-    };
-  }
-  rpc RecordShowcaseProfileView(RecordShowcaseProfileViewRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/showcase/profile/{slug}/view"
-    };
-  }
-  rpc RecordShowcaseRoundupView(RecordShowcaseRoundupViewRequest) returns (google.protobuf.Empty) {
-    option (google.api.http) = {
-      post: "/showcase/{slug}/roundup/{period_key}/view"
-    };
-  }
 }
 
 // =====================================================================
@@ -95,23 +44,6 @@ service PublicGatewayService {
 // =====================================================================
 
 message PublicEmptyRequest {}
-
-// Registry
-message ListPluginsPublicRequest {
-  string category = 1; // optional query param
-}
-message ListPluginsPublicResponse {
-  repeated fitglue.models.plugin.PluginManifest plugins = 1;
-}
-message GetPluginPublicRequest {
-  string id = 1;
-}
-message ListCategoriesPublicResponse {
-  repeated string categories = 1;
-}
-message ListSourcesPublicResponse {
-  repeated fitglue.models.plugin.PluginManifest sources = 1;
-}
 
 // Showcase
 message GetPublicShowcaseRequest {
@@ -140,16 +72,4 @@ message GetRecentPublicRoundupsGatewayResponse {
   repeated fitglue.models.activity.ShowcaseRoundup roundups = 1;
   int32 total_pages = 2;
   int32 current_page = 3;
-}
-
-// Showcase view beacons (visitor identity is derived server-side from IP/UA)
-message RecordShowcaseActivityViewRequest {
-  string id = 1;
-}
-message RecordShowcaseProfileViewRequest {
-  string slug = 1;
-}
-message RecordShowcaseRoundupViewRequest {
-  string slug = 1;
-  string period_key = 2;
 }

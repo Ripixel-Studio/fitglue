@@ -18,11 +18,9 @@ import (
 	"github.com/fitglue/server/src/go/internal/infra"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
-	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
 	pipelinepb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
-	registrypb "github.com/fitglue/server/src/go/pkg/types/pb/services/registry"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 )
 
@@ -792,47 +790,6 @@ func TestHandleBackfillConnectionActivities(t *testing.T) {
 }
 
 // =============================================================
-// registry.go — handleGetPluginRegistry
-// =============================================================
-
-func TestHandleGetPluginRegistry(t *testing.T) {
-	s := serverWithDeps(&APIServer{registrySvc: &mockRegistryServiceClient{}})
-	t.Run("non-marketing success", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		s.handleGetPluginRegistry(w, httptest.NewRequest(http.MethodGet, "/", nil))
-		if w.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d", w.Code)
-		}
-	})
-	t.Run("marketing mode, no stats store", func(t *testing.T) {
-		// statsStore nil -> takes the non-marketing branch even though marketingMode=true.
-		w := httptest.NewRecorder()
-		s.handleGetPluginRegistry(w, httptest.NewRequest(http.MethodGet, "/?marketingMode=true", nil))
-		if w.Code != http.StatusOK {
-			t.Errorf("expected 200, got %d", w.Code)
-		}
-	})
-	t.Run("service error", func(t *testing.T) {
-		s2 := serverWithDeps(&APIServer{registrySvc: &errRegistryClient{}})
-		w := httptest.NewRecorder()
-		s2.handleGetPluginRegistry(w, httptest.NewRequest(http.MethodGet, "/", nil))
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("expected 500, got %d", w.Code)
-		}
-	})
-}
-
-func TestHandleListCategories_Error(t *testing.T) {
-	reg := &errRegistryClient{}
-	s := serverWithDeps(&APIServer{registrySvc: reg})
-	w := httptest.NewRecorder()
-	s.handleListCategories(w, httptest.NewRequest(http.MethodGet, "/", nil))
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("expected 500, got %d", w.Code)
-	}
-}
-
-// =============================================================
 // mobile_handlers.go — handleMobileSync validation branches
 // =============================================================
 
@@ -1402,16 +1359,3 @@ func (e *errActivityClient) UpdateShowcase(_ context.Context, _ *activitypb.Upda
 type errReader struct{}
 
 func (errReader) Read(_ []byte) (int, error) { return 0, io.ErrClosedPipe }
-
-// errRegistryClient overrides GetPluginRegistry/ListCategories to return errors.
-type errRegistryClient struct {
-	mockRegistryServiceClient
-}
-
-func (e *errRegistryClient) GetPluginRegistry(_ context.Context, _ *registrypb.GetPluginRegistryRequest, _ ...grpc.CallOption) (*pbplugin.PluginRegistryResponse, error) {
-	return nil, status.Error(codes.Internal, "boom")
-}
-
-func (e *errRegistryClient) ListCategories(_ context.Context, _ *registrypb.ListCategoriesRequest, _ ...grpc.CallOption) (*registrypb.ListCategoriesResponse, error) {
-	return nil, status.Error(codes.Internal, "boom")
-}

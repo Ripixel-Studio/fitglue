@@ -8,112 +8,9 @@ info:
         PublicGatewayService describes the unauthenticated REST API surface
          served by api-public at /api/public/*.
 
-         No authentication required. Used by marketing pages, Skier builds,
-         and public showcase profile pages.
+         No authentication required. Used by public showcase profile pages.
     version: 0.0.1
 paths:
-    /registry:
-        get:
-            tags:
-                - PublicGatewayService
-            description: ===================== Registry =====================
-            operationId: PublicGatewayService_GetPluginRegistry
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/PluginRegistryResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /registry/categories:
-        get:
-            tags:
-                - PublicGatewayService
-            operationId: PublicGatewayService_ListCategories
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListCategoriesPublicResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /registry/plugins:
-        get:
-            tags:
-                - PublicGatewayService
-            operationId: PublicGatewayService_ListPlugins
-            parameters:
-                - name: category
-                  in: query
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListPluginsPublicResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /registry/plugins/{id}:
-        get:
-            tags:
-                - PublicGatewayService
-            operationId: PublicGatewayService_GetPlugin
-            parameters:
-                - name: id
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/PluginManifest'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /registry/sources:
-        get:
-            tags:
-                - PublicGatewayService
-            operationId: PublicGatewayService_ListSources
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListSourcesPublicResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /showcase/profile/{slug}:
         get:
             tags:
@@ -137,27 +34,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/GetPublicShowcaseProfileResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /showcase/profile/{slug}/view:
-        post:
-            tags:
-                - PublicGatewayService
-            operationId: PublicGatewayService_RecordShowcaseProfileView
-            parameters:
-                - name: slug
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content: {}
                 default:
                     description: Default error response
                     content:
@@ -189,31 +65,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /showcase/{id}/view:
-        post:
-            tags:
-                - PublicGatewayService
-            description: |-
-                ===================== Showcase View Beacons =====================
-                 Fire-and-forget view beacons fired by the public showcase SPA on page load.
-                 Always respond 204; counts are never returned here.
-            operationId: PublicGatewayService_RecordShowcaseActivityView
-            parameters:
-                - name: id
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content: {}
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /showcase/{slug}/roundup/{periodKey}:
         get:
             tags:
@@ -237,32 +88,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ShowcaseRoundup'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /showcase/{slug}/roundup/{periodKey}/view:
-        post:
-            tags:
-                - PublicGatewayService
-            operationId: PublicGatewayService_RecordShowcaseRoundupView
-            parameters:
-                - name: slug
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-                - name: periodKey
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content: {}
                 default:
                     description: Default error response
                     content:
@@ -417,85 +242,6 @@ components:
                     format: int32
                 comparisonText:
                     type: string
-        ConfigFieldDependency:
-            type: object
-            properties:
-                fieldKey:
-                    type: string
-                values:
-                    type: array
-                    items:
-                        type: string
-        ConfigFieldOption:
-            type: object
-            properties:
-                value:
-                    type: string
-                label:
-                    type: string
-        ConfigFieldSchema:
-            type: object
-            properties:
-                key:
-                    type: string
-                label:
-                    type: string
-                description:
-                    type: string
-                fieldType:
-                    enum:
-                        - CONFIG_FIELD_TYPE_UNSPECIFIED
-                        - CONFIG_FIELD_TYPE_STRING
-                        - CONFIG_FIELD_TYPE_NUMBER
-                        - CONFIG_FIELD_TYPE_BOOLEAN
-                        - CONFIG_FIELD_TYPE_SELECT
-                        - CONFIG_FIELD_TYPE_MULTI_SELECT
-                        - CONFIG_FIELD_TYPE_KEY_VALUE_MAP
-                        - CONFIG_FIELD_TYPE_DYNAMIC_SELECT
-                        - CONFIG_FIELD_TYPE_LOCATION_SEARCH
-                    type: string
-                    format: enum
-                required:
-                    type: boolean
-                defaultValue:
-                    type: string
-                options:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ConfigFieldOption'
-                validation:
-                    $ref: '#/components/schemas/ConfigFieldValidation'
-                dependsOn:
-                    $ref: '#/components/schemas/ConfigFieldDependency'
-                keyOptions:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ConfigFieldOption'
-                valueOptions:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ConfigFieldOption'
-                dynamicSource:
-                    type: string
-                valueDynamicSource:
-                    type: string
-        ConfigFieldValidation:
-            type: object
-            properties:
-                minLength:
-                    type: integer
-                    format: int32
-                maxLength:
-                    type: integer
-                    format: int32
-                pattern:
-                    type: string
-                minValue:
-                    type: number
-                    format: double
-                maxValue:
-                    type: number
-                    format: double
         DistanceMilestoneSummary:
             type: object
             properties:
@@ -731,65 +477,6 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/HybridRaceSegment'
-        IntegrationAction:
-            type: object
-            properties:
-                id:
-                    type: string
-                label:
-                    type: string
-                description:
-                    type: string
-                icon:
-                    type: string
-        IntegrationManifest:
-            type: object
-            properties:
-                id:
-                    type: string
-                name:
-                    type: string
-                description:
-                    type: string
-                icon:
-                    type: string
-                authType:
-                    enum:
-                        - INTEGRATION_AUTH_TYPE_UNSPECIFIED
-                        - INTEGRATION_AUTH_TYPE_OAUTH
-                        - INTEGRATION_AUTH_TYPE_API_KEY
-                        - INTEGRATION_AUTH_TYPE_APP_SYNC
-                        - INTEGRATION_AUTH_TYPE_PUBLIC_ID
-                    type: string
-                    format: enum
-                enabled:
-                    type: boolean
-                docsUrl:
-                    type: string
-                setupTitle:
-                    type: string
-                setupInstructions:
-                    type: string
-                apiKeyLabel:
-                    type: string
-                apiKeyHelpUrl:
-                    type: string
-                marketingDescription:
-                    type: string
-                features:
-                    type: array
-                    items:
-                        type: string
-                iconType:
-                    type: string
-                iconPath:
-                    type: string
-                isTemporarilyUnavailable:
-                    type: boolean
-                actions:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/IntegrationAction'
         IntervalSegment:
             type: object
             properties:
@@ -852,27 +539,6 @@ components:
                     format: date-time
                 label:
                     type: string
-        ListCategoriesPublicResponse:
-            type: object
-            properties:
-                categories:
-                    type: array
-                    items:
-                        type: string
-        ListPluginsPublicResponse:
-            type: object
-            properties:
-                plugins:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PluginManifest'
-        ListSourcesPublicResponse:
-            type: object
-            properties:
-                sources:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PluginManifest'
         LocationSummary:
             type: object
             properties:
@@ -968,116 +634,6 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/PersonalRecord'
-        PluginManifest:
-            type: object
-            properties:
-                id:
-                    type: string
-                type:
-                    enum:
-                        - PLUGIN_TYPE_UNSPECIFIED
-                        - PLUGIN_TYPE_SOURCE
-                        - PLUGIN_TYPE_ENRICHER
-                        - PLUGIN_TYPE_DESTINATION
-                    type: string
-                    format: enum
-                name:
-                    type: string
-                description:
-                    type: string
-                icon:
-                    type: string
-                configSchema:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ConfigFieldSchema'
-                requiredIntegrations:
-                    type: array
-                    items:
-                        type: string
-                enabled:
-                    type: boolean
-                enricherProviderType:
-                    type: integer
-                    format: int32
-                destinationType:
-                    type: integer
-                    format: int32
-                marketingDescription:
-                    type: string
-                features:
-                    type: array
-                    items:
-                        type: string
-                transformations:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Transformation'
-                useCases:
-                    type: array
-                    items:
-                        type: string
-                externalUrlTemplate:
-                    type: string
-                requiredTier:
-                    type: string
-                category:
-                    type: string
-                sortOrder:
-                    type: integer
-                    format: int32
-                isPremium:
-                    type: boolean
-                popularityScore:
-                    type: integer
-                    format: int32
-                iconType:
-                    type: string
-                iconPath:
-                    type: string
-                isTemporarilyUnavailable:
-                    type: boolean
-                allowMultipleInstances:
-                    type: boolean
-                stage:
-                    enum:
-                        - PIPELINE_STAGE_UNSPECIFIED
-                        - PIPELINE_STAGE_GATE
-                        - PIPELINE_STAGE_ENRICHMENT
-                        - PIPELINE_STAGE_METRICS
-                        - PIPELINE_STAGE_CONTEXT_AI
-                        - PIPELINE_STAGE_INPUT
-                        - PIPELINE_STAGE_VIZ
-                    type: string
-                    description: |-
-                        PipelineStage groups boosters in the pipeline editor UI.
-                         Only meaningful for type == PLUGIN_TYPE_ENRICHER.
-                    format: enum
-                supportsNonBlocking:
-                    type: boolean
-                    description: |-
-                        supportsNonBlocking indicates this enricher can run in non-blocking mode:
-                         the pipeline continues to destinations while the enricher waits for user
-                         input, then destinations are updated (not duplicated) when input is resolved.
-        PluginRegistryResponse:
-            type: object
-            properties:
-                sources:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PluginManifest'
-                enrichers:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PluginManifest'
-                destinations:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PluginManifest'
-                integrations:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/IntegrationManifest'
         PowerSummary:
             type: object
             properties:
@@ -2423,21 +1979,6 @@ components:
                 bucket:
                     type: string
                 hint:
-                    type: string
-        Transformation:
-            type: object
-            properties:
-                field:
-                    type: string
-                label:
-                    type: string
-                before:
-                    type: string
-                after:
-                    type: string
-                visualType:
-                    type: string
-                afterHtml:
                     type: string
         WeatherSummary:
             type: object

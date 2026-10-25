@@ -2,9 +2,6 @@
 
 FitGlue uses a **type-safe, self-registering plugin architecture** for extensible data processing. All plugins are implemented in Go.
 
-> [!IMPORTANT]
-> The **Plugin Registry** (`service.registry`) is the single source of truth for all plugin manifests. Configuration is served dynamically via `GET /api/registry` (through `service.api.client` or `service.api.public`).
-
 ## Plugin Types
 
 | Type | Language | Purpose | Examples |
@@ -176,29 +173,8 @@ Plugins define their configuration using `ConfigFieldSchema`:
 | `KEY_VALUE_MAP` | Key-value pairs | Type mappings |
 | `ACTIVITY_TYPE_SELECT` | Activity type picker | Filter by type |
 
-## Discovery API
-
-```
-GET /api/registry?marketingMode=false
-```
-
-**Parameters:**
-- `marketingMode=true`: Include marketing descriptions for web pages
-- `marketingMode=false`: Minimal data for app UI
-
-**Returns:**
-```json
-{
-  "sources": [...],
-  "enrichers": [...],
-  "destinations": [...],
-  "integrations": [...]
-}
-```
-
 ## Related Documentation
 
-- [Registry Reference](../reference/registry.md) - API and manifest structure
 - [Architecture Overview](overview.md) - System components
 - [API Layers](api-layers.md) - Webhook processing and SourceProvider interface
 - [Go Services](go-services.md) - Service directory structure

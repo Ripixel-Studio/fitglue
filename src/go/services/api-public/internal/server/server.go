@@ -9,7 +9,6 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/infra"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
-	registrypb "github.com/fitglue/server/src/go/pkg/types/pb/services/registry"
 )
 
 // APIServer implements the HTTP router interfacing with FitGlue domain gRPC services
@@ -17,25 +16,17 @@ type APIServer struct {
 	router      *chi.Mux
 	logger      infra.Logger
 	activitySvc activitypb.ActivityServiceClient
-	registrySvc registrypb.RegistryServiceClient
-	// viewSalt is the secret used to derive the daily-rotating visitor hash for
-	// showcase view de-duplication. Empty disables visitor de-dup (views still count).
-	viewSalt string
 }
 
 // NewAPIServer constructs the application routing and API middleware stack
 func NewAPIServer(
 	logger infra.Logger,
 	activitySvc activitypb.ActivityServiceClient,
-	registrySvc registrypb.RegistryServiceClient,
-	viewSalt string,
 ) *APIServer {
 	s := &APIServer{
 		router:      chi.NewRouter(),
 		logger:      logger,
 		activitySvc: activitySvc,
-		registrySvc: registrySvc,
-		viewSalt:    viewSalt,
 	}
 
 	s.setupRoutes()
@@ -64,7 +55,6 @@ func (s *APIServer) setupRoutes() {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		s.registerRegistryRoutes(r)
 		s.registerShowcaseRoutes(r)
 	})
 }
@@ -85,91 +75,11 @@ func publicCORS(next http.Handler) http.Handler {
 	})
 }
 
-func (s *APIServer) registerRegistryRoutes(r chi.Router) {
-	r.Get("/registry", s.handleGetPluginRegistry)
-	r.Get("/registry/plugins", s.handleListPlugins)
-	r.Get("/registry/plugins/{id}", s.handleGetPlugin)
-	r.Get("/registry/categories", s.handleListCategories)
-	r.Get("/registry/sources", s.handleListSources)
-
-	// Wait, is endpoints mapping to API Public list Destinations requested?
-	// Let's implement handles.
-}
-
-func (s *APIServer) handleGetPluginRegistry(w http.ResponseWriter, r *http.Request) {
-	req := &registrypb.GetPluginRegistryRequest{}
-
-	res, err := s.registrySvc.GetPluginRegistry(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	WriteJSON(w, res)
-}
-
 func (s *APIServer) registerShowcaseRoutes(r chi.Router) {
 	r.Get("/showcase/{id}", s.handleGetPublicShowcase)
 	r.Get("/showcase/profile/{slug}", s.handleGetPublicShowcaseProfile)
 	r.Get("/showcase/{slug}/roundup/{periodKey}", s.handleGetPublicRoundup)
 	r.Get("/showcase/{slug}/roundups/recent", s.handleGetRecentPublicRoundups)
-
-	// View beacons (fire-and-forget; always respond 204)
-	r.Post("/showcase/{id}/view", s.handleRecordShowcaseActivityView)
-	r.Post("/showcase/profile/{slug}/view", s.handleRecordShowcaseProfileView)
-	r.Post("/showcase/{slug}/roundup/{periodKey}/view", s.handleRecordShowcaseRoundupView)
-}
-
-func (s *APIServer) handleListPlugins(w http.ResponseWriter, r *http.Request) {
-	req := &registrypb.ListPluginsRequest{
-		Category: r.URL.Query().Get("category"),
-	}
-
-	res, err := s.registrySvc.ListPlugins(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	WriteJSON(w, res)
-}
-
-func (s *APIServer) handleGetPlugin(w http.ResponseWriter, r *http.Request) {
-	req := &registrypb.GetPluginRequest{
-		PluginId: chi.URLParam(r, "id"),
-	}
-
-	res, err := s.registrySvc.GetPlugin(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	WriteJSON(w, res)
-}
-
-func (s *APIServer) handleListCategories(w http.ResponseWriter, r *http.Request) {
-	req := &registrypb.ListCategoriesRequest{}
-
-	res, err := s.registrySvc.ListCategories(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	WriteJSON(w, res)
-}
-
-func (s *APIServer) handleListSources(w http.ResponseWriter, r *http.Request) {
-	req := &registrypb.ListSourcesRequest{}
-
-	res, err := s.registrySvc.ListSources(r.Context(), req)
-	if err != nil {
-		WriteError(w, err)
-		return
-	}
-
-	WriteJSON(w, res)
 }
 
 func (s *APIServer) handleGetPublicShowcase(w http.ResponseWriter, r *http.Request) {

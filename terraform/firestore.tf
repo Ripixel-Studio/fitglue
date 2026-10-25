@@ -73,17 +73,6 @@ resource "google_firestore_field" "showcased_activities_expires_at" {
   ttl_config {}
 }
 
-# Showcase view de-duplication markers self-expire (~48h). The daily-salted
-# visitor hash already rotates daily; TTL just reclaims the storage.
-resource "google_firestore_field" "showcase_view_dedup_expires_at" {
-  project    = var.project_id
-  database   = google_firestore_database.database.name
-  collection = "showcase_view_dedup"
-  field      = "expires_at"
-
-  ttl_config {}
-}
-
 resource "google_firestore_index" "pending_inputs_user_status_created" {
   project    = var.project_id
   database   = google_firestore_database.database.name
@@ -350,30 +339,6 @@ resource "google_firestore_index" "pipeline_runs_pipeline_created" {
 
   fields {
     field_path = "pipeline_id"
-    order      = "ASCENDING"
-  }
-
-  fields {
-    field_path = "created_at"
-    order      = "DESCENDING"
-  }
-}
-
-# -------------------------------------------------------------------
-# Pipeline Runs - Collection Group Index
-# Used by api-client's platform stats to count pipeline_runs across all users
-# -------------------------------------------------------------------
-
-# Collection group index for status + created_at
-# Used by GetPlatformStats: CollectionGroup("pipeline_runs").Where("status","==",..).OrderBy("created_at",Desc)
-resource "google_firestore_index" "pipeline_runs_cg_status_created" {
-  project     = var.project_id
-  database    = google_firestore_database.database.name
-  collection  = "pipeline_runs"
-  query_scope = "COLLECTION_GROUP"
-
-  fields {
-    field_path = "status"
     order      = "ASCENDING"
   }
 

@@ -10,7 +10,6 @@ import (
 	context "context"
 	activity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
-	plugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	user "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
@@ -93,10 +92,6 @@ const (
 	ClientGatewayService_UpdateRoundupSettings_FullMethodName              = "/fitglue.gateway.ClientGatewayService/UpdateRoundupSettings"
 	ClientGatewayService_RecomputeRoundup_FullMethodName                   = "/fitglue.gateway.ClientGatewayService/RecomputeRoundup"
 	ClientGatewayService_GetActivityPhotoUploadUrl_FullMethodName          = "/fitglue.gateway.ClientGatewayService/GetActivityPhotoUploadUrl"
-	ClientGatewayService_GetShowcaseViewStats_FullMethodName               = "/fitglue.gateway.ClientGatewayService/GetShowcaseViewStats"
-	ClientGatewayService_GetShowcaseProfileViewStats_FullMethodName        = "/fitglue.gateway.ClientGatewayService/GetShowcaseProfileViewStats"
-	ClientGatewayService_GetShowcaseRoundupViewStats_FullMethodName        = "/fitglue.gateway.ClientGatewayService/GetShowcaseRoundupViewStats"
-	ClientGatewayService_ListShowcaseViewStats_FullMethodName              = "/fitglue.gateway.ClientGatewayService/ListShowcaseViewStats"
 	ClientGatewayService_ParseFitFile_FullMethodName                       = "/fitglue.gateway.ClientGatewayService/ParseFitFile"
 	ClientGatewayService_GetExerciseLibrary_FullMethodName                 = "/fitglue.gateway.ClientGatewayService/GetExerciseLibrary"
 	ClientGatewayService_RepostMissedDestination_FullMethodName            = "/fitglue.gateway.ClientGatewayService/RepostMissedDestination"
@@ -104,12 +99,6 @@ const (
 	ClientGatewayService_RepostFullPipeline_FullMethodName                 = "/fitglue.gateway.ClientGatewayService/RepostFullPipeline"
 	ClientGatewayService_GetPipelineRunPayload_FullMethodName              = "/fitglue.gateway.ClientGatewayService/GetPipelineRunPayload"
 	ClientGatewayService_ExportPipelineRun_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/ExportPipelineRun"
-	ClientGatewayService_GetPluginRegistry_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/GetPluginRegistry"
-	ClientGatewayService_GetPluginRegistryPlugins_FullMethodName           = "/fitglue.gateway.ClientGatewayService/GetPluginRegistryPlugins"
-	ClientGatewayService_GetPlugin_FullMethodName                          = "/fitglue.gateway.ClientGatewayService/GetPlugin"
-	ClientGatewayService_GetPluginIcon_FullMethodName                      = "/fitglue.gateway.ClientGatewayService/GetPluginIcon"
-	ClientGatewayService_ListCategories_FullMethodName                     = "/fitglue.gateway.ClientGatewayService/ListCategories"
-	ClientGatewayService_ListSources_FullMethodName                        = "/fitglue.gateway.ClientGatewayService/ListSources"
 )
 
 // ClientGatewayServiceClient is the client API for ClientGatewayService service.
@@ -221,11 +210,6 @@ type ClientGatewayServiceClient interface {
 	UpdateRoundupSettings(ctx context.Context, in *UpdateRoundupSettingsGatewayRequest, opts ...grpc.CallOption) (*activity.ShowcaseProfile, error)
 	RecomputeRoundup(ctx context.Context, in *RecomputeRoundupGatewayRequest, opts ...grpc.CallOption) (*activity.ShowcaseRoundup, error)
 	GetActivityPhotoUploadUrl(ctx context.Context, in *GetActivityPhotoUploadUrlGatewayRequest, opts ...grpc.CallOption) (*GetActivityPhotoUploadUrlGatewayResponse, error)
-	// ===================== Showcase View Metrics (owner-facing) =====================
-	GetShowcaseViewStats(ctx context.Context, in *ShowcaseIdRequest, opts ...grpc.CallOption) (*activity.ShowcaseViewStats, error)
-	GetShowcaseProfileViewStats(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*activity.ShowcaseViewStats, error)
-	GetShowcaseRoundupViewStats(ctx context.Context, in *GetShowcaseRoundupViewStatsGatewayRequest, opts ...grpc.CallOption) (*activity.ShowcaseViewStats, error)
-	ListShowcaseViewStats(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListShowcaseViewStatsGatewayResponse, error)
 	// ===================== FIT File Parse =====================
 	ParseFitFile(ctx context.Context, in *ParseFitFileGatewayRequest, opts ...grpc.CallOption) (*activity.StandardizedActivity, error)
 	// ===================== Exercise Library =====================
@@ -240,13 +224,6 @@ type ClientGatewayServiceClient interface {
 	// JSON and the raw FIT file, where still retained). Replaces the single-JSON
 	// payload download used by the activity detail page's Export button.
 	ExportPipelineRun(ctx context.Context, in *ExportPipelineRunGatewayRequest, opts ...grpc.CallOption) (*ExportPipelineRunGatewayResponse, error)
-	// ===================== Registry (Unauthenticated, but on api-client) =====================
-	GetPluginRegistry(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*plugin.PluginRegistryResponse, error)
-	GetPluginRegistryPlugins(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*plugin.PluginRegistryResponse, error)
-	GetPlugin(ctx context.Context, in *PluginIdPathRequest, opts ...grpc.CallOption) (*plugin.PluginManifest, error)
-	GetPluginIcon(ctx context.Context, in *PluginIdPathRequest, opts ...grpc.CallOption) (*GetPluginIconGatewayResponse, error)
-	ListCategories(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListCategoriesGatewayResponse, error)
-	ListSources(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListSourcesGatewayResponse, error)
 }
 
 type clientGatewayServiceClient struct {
@@ -947,46 +924,6 @@ func (c *clientGatewayServiceClient) GetActivityPhotoUploadUrl(ctx context.Conte
 	return out, nil
 }
 
-func (c *clientGatewayServiceClient) GetShowcaseViewStats(ctx context.Context, in *ShowcaseIdRequest, opts ...grpc.CallOption) (*activity.ShowcaseViewStats, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(activity.ShowcaseViewStats)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetShowcaseViewStats_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) GetShowcaseProfileViewStats(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*activity.ShowcaseViewStats, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(activity.ShowcaseViewStats)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetShowcaseProfileViewStats_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) GetShowcaseRoundupViewStats(ctx context.Context, in *GetShowcaseRoundupViewStatsGatewayRequest, opts ...grpc.CallOption) (*activity.ShowcaseViewStats, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(activity.ShowcaseViewStats)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetShowcaseRoundupViewStats_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) ListShowcaseViewStats(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListShowcaseViewStatsGatewayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListShowcaseViewStatsGatewayResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_ListShowcaseViewStats_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *clientGatewayServiceClient) ParseFitFile(ctx context.Context, in *ParseFitFileGatewayRequest, opts ...grpc.CallOption) (*activity.StandardizedActivity, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(activity.StandardizedActivity)
@@ -1051,66 +988,6 @@ func (c *clientGatewayServiceClient) ExportPipelineRun(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ExportPipelineRunGatewayResponse)
 	err := c.cc.Invoke(ctx, ClientGatewayService_ExportPipelineRun_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) GetPluginRegistry(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*plugin.PluginRegistryResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(plugin.PluginRegistryResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetPluginRegistry_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) GetPluginRegistryPlugins(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*plugin.PluginRegistryResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(plugin.PluginRegistryResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetPluginRegistryPlugins_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) GetPlugin(ctx context.Context, in *PluginIdPathRequest, opts ...grpc.CallOption) (*plugin.PluginManifest, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(plugin.PluginManifest)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetPlugin_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) GetPluginIcon(ctx context.Context, in *PluginIdPathRequest, opts ...grpc.CallOption) (*GetPluginIconGatewayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetPluginIconGatewayResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_GetPluginIcon_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) ListCategories(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListCategoriesGatewayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListCategoriesGatewayResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_ListCategories_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *clientGatewayServiceClient) ListSources(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListSourcesGatewayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListSourcesGatewayResponse)
-	err := c.cc.Invoke(ctx, ClientGatewayService_ListSources_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1226,11 +1103,6 @@ type ClientGatewayServiceServer interface {
 	UpdateRoundupSettings(context.Context, *UpdateRoundupSettingsGatewayRequest) (*activity.ShowcaseProfile, error)
 	RecomputeRoundup(context.Context, *RecomputeRoundupGatewayRequest) (*activity.ShowcaseRoundup, error)
 	GetActivityPhotoUploadUrl(context.Context, *GetActivityPhotoUploadUrlGatewayRequest) (*GetActivityPhotoUploadUrlGatewayResponse, error)
-	// ===================== Showcase View Metrics (owner-facing) =====================
-	GetShowcaseViewStats(context.Context, *ShowcaseIdRequest) (*activity.ShowcaseViewStats, error)
-	GetShowcaseProfileViewStats(context.Context, *EmptyRequest) (*activity.ShowcaseViewStats, error)
-	GetShowcaseRoundupViewStats(context.Context, *GetShowcaseRoundupViewStatsGatewayRequest) (*activity.ShowcaseViewStats, error)
-	ListShowcaseViewStats(context.Context, *EmptyRequest) (*ListShowcaseViewStatsGatewayResponse, error)
 	// ===================== FIT File Parse =====================
 	ParseFitFile(context.Context, *ParseFitFileGatewayRequest) (*activity.StandardizedActivity, error)
 	// ===================== Exercise Library =====================
@@ -1245,13 +1117,6 @@ type ClientGatewayServiceServer interface {
 	// JSON and the raw FIT file, where still retained). Replaces the single-JSON
 	// payload download used by the activity detail page's Export button.
 	ExportPipelineRun(context.Context, *ExportPipelineRunGatewayRequest) (*ExportPipelineRunGatewayResponse, error)
-	// ===================== Registry (Unauthenticated, but on api-client) =====================
-	GetPluginRegistry(context.Context, *EmptyRequest) (*plugin.PluginRegistryResponse, error)
-	GetPluginRegistryPlugins(context.Context, *EmptyRequest) (*plugin.PluginRegistryResponse, error)
-	GetPlugin(context.Context, *PluginIdPathRequest) (*plugin.PluginManifest, error)
-	GetPluginIcon(context.Context, *PluginIdPathRequest) (*GetPluginIconGatewayResponse, error)
-	ListCategories(context.Context, *EmptyRequest) (*ListCategoriesGatewayResponse, error)
-	ListSources(context.Context, *EmptyRequest) (*ListSourcesGatewayResponse, error)
 	mustEmbedUnimplementedClientGatewayServiceServer()
 }
 
@@ -1469,18 +1334,6 @@ func (UnimplementedClientGatewayServiceServer) RecomputeRoundup(context.Context,
 func (UnimplementedClientGatewayServiceServer) GetActivityPhotoUploadUrl(context.Context, *GetActivityPhotoUploadUrlGatewayRequest) (*GetActivityPhotoUploadUrlGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetActivityPhotoUploadUrl not implemented")
 }
-func (UnimplementedClientGatewayServiceServer) GetShowcaseViewStats(context.Context, *ShowcaseIdRequest) (*activity.ShowcaseViewStats, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetShowcaseViewStats not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) GetShowcaseProfileViewStats(context.Context, *EmptyRequest) (*activity.ShowcaseViewStats, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetShowcaseProfileViewStats not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) GetShowcaseRoundupViewStats(context.Context, *GetShowcaseRoundupViewStatsGatewayRequest) (*activity.ShowcaseViewStats, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetShowcaseRoundupViewStats not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) ListShowcaseViewStats(context.Context, *EmptyRequest) (*ListShowcaseViewStatsGatewayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListShowcaseViewStats not implemented")
-}
 func (UnimplementedClientGatewayServiceServer) ParseFitFile(context.Context, *ParseFitFileGatewayRequest) (*activity.StandardizedActivity, error) {
 	return nil, status.Error(codes.Unimplemented, "method ParseFitFile not implemented")
 }
@@ -1501,24 +1354,6 @@ func (UnimplementedClientGatewayServiceServer) GetPipelineRunPayload(context.Con
 }
 func (UnimplementedClientGatewayServiceServer) ExportPipelineRun(context.Context, *ExportPipelineRunGatewayRequest) (*ExportPipelineRunGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExportPipelineRun not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) GetPluginRegistry(context.Context, *EmptyRequest) (*plugin.PluginRegistryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetPluginRegistry not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) GetPluginRegistryPlugins(context.Context, *EmptyRequest) (*plugin.PluginRegistryResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetPluginRegistryPlugins not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) GetPlugin(context.Context, *PluginIdPathRequest) (*plugin.PluginManifest, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetPlugin not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) GetPluginIcon(context.Context, *PluginIdPathRequest) (*GetPluginIconGatewayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetPluginIcon not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) ListCategories(context.Context, *EmptyRequest) (*ListCategoriesGatewayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListCategories not implemented")
-}
-func (UnimplementedClientGatewayServiceServer) ListSources(context.Context, *EmptyRequest) (*ListSourcesGatewayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListSources not implemented")
 }
 func (UnimplementedClientGatewayServiceServer) mustEmbedUnimplementedClientGatewayServiceServer() {}
 func (UnimplementedClientGatewayServiceServer) testEmbeddedByValue()                              {}
@@ -2783,78 +2618,6 @@ func _ClientGatewayService_GetActivityPhotoUploadUrl_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ClientGatewayService_GetShowcaseViewStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ShowcaseIdRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetShowcaseViewStats(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetShowcaseViewStats_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetShowcaseViewStats(ctx, req.(*ShowcaseIdRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_GetShowcaseProfileViewStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetShowcaseProfileViewStats(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetShowcaseProfileViewStats_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetShowcaseProfileViewStats(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_GetShowcaseRoundupViewStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetShowcaseRoundupViewStatsGatewayRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetShowcaseRoundupViewStats(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetShowcaseRoundupViewStats_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetShowcaseRoundupViewStats(ctx, req.(*GetShowcaseRoundupViewStatsGatewayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_ListShowcaseViewStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).ListShowcaseViewStats(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_ListShowcaseViewStats_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).ListShowcaseViewStats(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _ClientGatewayService_ParseFitFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ParseFitFileGatewayRequest)
 	if err := dec(in); err != nil {
@@ -2977,114 +2740,6 @@ func _ClientGatewayService_ExportPipelineRun_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClientGatewayServiceServer).ExportPipelineRun(ctx, req.(*ExportPipelineRunGatewayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_GetPluginRegistry_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetPluginRegistry(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetPluginRegistry_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetPluginRegistry(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_GetPluginRegistryPlugins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetPluginRegistryPlugins(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetPluginRegistryPlugins_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetPluginRegistryPlugins(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_GetPlugin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PluginIdPathRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetPlugin(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetPlugin_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetPlugin(ctx, req.(*PluginIdPathRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_GetPluginIcon_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PluginIdPathRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).GetPluginIcon(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_GetPluginIcon_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).GetPluginIcon(ctx, req.(*PluginIdPathRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_ListCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).ListCategories(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_ListCategories_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).ListCategories(ctx, req.(*EmptyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ClientGatewayService_ListSources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ClientGatewayServiceServer).ListSources(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ClientGatewayService_ListSources_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ClientGatewayServiceServer).ListSources(ctx, req.(*EmptyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3373,22 +3028,6 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ClientGatewayService_GetActivityPhotoUploadUrl_Handler,
 		},
 		{
-			MethodName: "GetShowcaseViewStats",
-			Handler:    _ClientGatewayService_GetShowcaseViewStats_Handler,
-		},
-		{
-			MethodName: "GetShowcaseProfileViewStats",
-			Handler:    _ClientGatewayService_GetShowcaseProfileViewStats_Handler,
-		},
-		{
-			MethodName: "GetShowcaseRoundupViewStats",
-			Handler:    _ClientGatewayService_GetShowcaseRoundupViewStats_Handler,
-		},
-		{
-			MethodName: "ListShowcaseViewStats",
-			Handler:    _ClientGatewayService_ListShowcaseViewStats_Handler,
-		},
-		{
 			MethodName: "ParseFitFile",
 			Handler:    _ClientGatewayService_ParseFitFile_Handler,
 		},
@@ -3415,30 +3054,6 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ExportPipelineRun",
 			Handler:    _ClientGatewayService_ExportPipelineRun_Handler,
-		},
-		{
-			MethodName: "GetPluginRegistry",
-			Handler:    _ClientGatewayService_GetPluginRegistry_Handler,
-		},
-		{
-			MethodName: "GetPluginRegistryPlugins",
-			Handler:    _ClientGatewayService_GetPluginRegistryPlugins_Handler,
-		},
-		{
-			MethodName: "GetPlugin",
-			Handler:    _ClientGatewayService_GetPlugin_Handler,
-		},
-		{
-			MethodName: "GetPluginIcon",
-			Handler:    _ClientGatewayService_GetPluginIcon_Handler,
-		},
-		{
-			MethodName: "ListCategories",
-			Handler:    _ClientGatewayService_ListCategories_Handler,
-		},
-		{
-			MethodName: "ListSources",
-			Handler:    _ClientGatewayService_ListSources_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

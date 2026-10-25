@@ -8,11 +8,9 @@ package gateway
 
 import (
 	activity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
-	plugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -61,227 +59,6 @@ func (*PublicEmptyRequest) Descriptor() ([]byte, []int) {
 	return file_gateway_public_proto_rawDescGZIP(), []int{0}
 }
 
-// Registry
-type ListPluginsPublicRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Category      string                 `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"` // optional query param
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListPluginsPublicRequest) Reset() {
-	*x = ListPluginsPublicRequest{}
-	mi := &file_gateway_public_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListPluginsPublicRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListPluginsPublicRequest) ProtoMessage() {}
-
-func (x *ListPluginsPublicRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListPluginsPublicRequest.ProtoReflect.Descriptor instead.
-func (*ListPluginsPublicRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ListPluginsPublicRequest) GetCategory() string {
-	if x != nil {
-		return x.Category
-	}
-	return ""
-}
-
-type ListPluginsPublicResponse struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Plugins       []*plugin.PluginManifest `protobuf:"bytes,1,rep,name=plugins,proto3" json:"plugins,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListPluginsPublicResponse) Reset() {
-	*x = ListPluginsPublicResponse{}
-	mi := &file_gateway_public_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListPluginsPublicResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListPluginsPublicResponse) ProtoMessage() {}
-
-func (x *ListPluginsPublicResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListPluginsPublicResponse.ProtoReflect.Descriptor instead.
-func (*ListPluginsPublicResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *ListPluginsPublicResponse) GetPlugins() []*plugin.PluginManifest {
-	if x != nil {
-		return x.Plugins
-	}
-	return nil
-}
-
-type GetPluginPublicRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetPluginPublicRequest) Reset() {
-	*x = GetPluginPublicRequest{}
-	mi := &file_gateway_public_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetPluginPublicRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetPluginPublicRequest) ProtoMessage() {}
-
-func (x *GetPluginPublicRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetPluginPublicRequest.ProtoReflect.Descriptor instead.
-func (*GetPluginPublicRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *GetPluginPublicRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type ListCategoriesPublicResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Categories    []string               `protobuf:"bytes,1,rep,name=categories,proto3" json:"categories,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListCategoriesPublicResponse) Reset() {
-	*x = ListCategoriesPublicResponse{}
-	mi := &file_gateway_public_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListCategoriesPublicResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListCategoriesPublicResponse) ProtoMessage() {}
-
-func (x *ListCategoriesPublicResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListCategoriesPublicResponse.ProtoReflect.Descriptor instead.
-func (*ListCategoriesPublicResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ListCategoriesPublicResponse) GetCategories() []string {
-	if x != nil {
-		return x.Categories
-	}
-	return nil
-}
-
-type ListSourcesPublicResponse struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Sources       []*plugin.PluginManifest `protobuf:"bytes,1,rep,name=sources,proto3" json:"sources,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListSourcesPublicResponse) Reset() {
-	*x = ListSourcesPublicResponse{}
-	mi := &file_gateway_public_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListSourcesPublicResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListSourcesPublicResponse) ProtoMessage() {}
-
-func (x *ListSourcesPublicResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListSourcesPublicResponse.ProtoReflect.Descriptor instead.
-func (*ListSourcesPublicResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *ListSourcesPublicResponse) GetSources() []*plugin.PluginManifest {
-	if x != nil {
-		return x.Sources
-	}
-	return nil
-}
-
 // Showcase
 type GetPublicShowcaseRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -292,7 +69,7 @@ type GetPublicShowcaseRequest struct {
 
 func (x *GetPublicShowcaseRequest) Reset() {
 	*x = GetPublicShowcaseRequest{}
-	mi := &file_gateway_public_proto_msgTypes[6]
+	mi := &file_gateway_public_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -304,7 +81,7 @@ func (x *GetPublicShowcaseRequest) String() string {
 func (*GetPublicShowcaseRequest) ProtoMessage() {}
 
 func (x *GetPublicShowcaseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[6]
+	mi := &file_gateway_public_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -317,7 +94,7 @@ func (x *GetPublicShowcaseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPublicShowcaseRequest.ProtoReflect.Descriptor instead.
 func (*GetPublicShowcaseRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{6}
+	return file_gateway_public_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetPublicShowcaseRequest) GetId() string {
@@ -337,7 +114,7 @@ type GetPublicShowcaseProfileRequest struct {
 
 func (x *GetPublicShowcaseProfileRequest) Reset() {
 	*x = GetPublicShowcaseProfileRequest{}
-	mi := &file_gateway_public_proto_msgTypes[7]
+	mi := &file_gateway_public_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -349,7 +126,7 @@ func (x *GetPublicShowcaseProfileRequest) String() string {
 func (*GetPublicShowcaseProfileRequest) ProtoMessage() {}
 
 func (x *GetPublicShowcaseProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[7]
+	mi := &file_gateway_public_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -362,7 +139,7 @@ func (x *GetPublicShowcaseProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPublicShowcaseProfileRequest.ProtoReflect.Descriptor instead.
 func (*GetPublicShowcaseProfileRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{7}
+	return file_gateway_public_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetPublicShowcaseProfileRequest) GetSlug() string {
@@ -391,7 +168,7 @@ type GetPublicShowcaseProfileResponse struct {
 
 func (x *GetPublicShowcaseProfileResponse) Reset() {
 	*x = GetPublicShowcaseProfileResponse{}
-	mi := &file_gateway_public_proto_msgTypes[8]
+	mi := &file_gateway_public_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -403,7 +180,7 @@ func (x *GetPublicShowcaseProfileResponse) String() string {
 func (*GetPublicShowcaseProfileResponse) ProtoMessage() {}
 
 func (x *GetPublicShowcaseProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[8]
+	mi := &file_gateway_public_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -416,7 +193,7 @@ func (x *GetPublicShowcaseProfileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPublicShowcaseProfileResponse.ProtoReflect.Descriptor instead.
 func (*GetPublicShowcaseProfileResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{8}
+	return file_gateway_public_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetPublicShowcaseProfileResponse) GetProfile() *activity.ShowcaseProfile {
@@ -457,7 +234,7 @@ type GetPublicRoundupGatewayRequest struct {
 
 func (x *GetPublicRoundupGatewayRequest) Reset() {
 	*x = GetPublicRoundupGatewayRequest{}
-	mi := &file_gateway_public_proto_msgTypes[9]
+	mi := &file_gateway_public_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -469,7 +246,7 @@ func (x *GetPublicRoundupGatewayRequest) String() string {
 func (*GetPublicRoundupGatewayRequest) ProtoMessage() {}
 
 func (x *GetPublicRoundupGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[9]
+	mi := &file_gateway_public_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -482,7 +259,7 @@ func (x *GetPublicRoundupGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPublicRoundupGatewayRequest.ProtoReflect.Descriptor instead.
 func (*GetPublicRoundupGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{9}
+	return file_gateway_public_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetPublicRoundupGatewayRequest) GetSlug() string {
@@ -509,7 +286,7 @@ type GetRecentPublicRoundupsGatewayRequest struct {
 
 func (x *GetRecentPublicRoundupsGatewayRequest) Reset() {
 	*x = GetRecentPublicRoundupsGatewayRequest{}
-	mi := &file_gateway_public_proto_msgTypes[10]
+	mi := &file_gateway_public_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -521,7 +298,7 @@ func (x *GetRecentPublicRoundupsGatewayRequest) String() string {
 func (*GetRecentPublicRoundupsGatewayRequest) ProtoMessage() {}
 
 func (x *GetRecentPublicRoundupsGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[10]
+	mi := &file_gateway_public_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -534,7 +311,7 @@ func (x *GetRecentPublicRoundupsGatewayRequest) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use GetRecentPublicRoundupsGatewayRequest.ProtoReflect.Descriptor instead.
 func (*GetRecentPublicRoundupsGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{10}
+	return file_gateway_public_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetRecentPublicRoundupsGatewayRequest) GetSlug() string {
@@ -562,7 +339,7 @@ type GetRecentPublicRoundupsGatewayResponse struct {
 
 func (x *GetRecentPublicRoundupsGatewayResponse) Reset() {
 	*x = GetRecentPublicRoundupsGatewayResponse{}
-	mi := &file_gateway_public_proto_msgTypes[11]
+	mi := &file_gateway_public_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -574,7 +351,7 @@ func (x *GetRecentPublicRoundupsGatewayResponse) String() string {
 func (*GetRecentPublicRoundupsGatewayResponse) ProtoMessage() {}
 
 func (x *GetRecentPublicRoundupsGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[11]
+	mi := &file_gateway_public_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -587,7 +364,7 @@ func (x *GetRecentPublicRoundupsGatewayResponse) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use GetRecentPublicRoundupsGatewayResponse.ProtoReflect.Descriptor instead.
 func (*GetRecentPublicRoundupsGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{11}
+	return file_gateway_public_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetRecentPublicRoundupsGatewayResponse) GetRoundups() []*activity.ShowcaseRoundup {
@@ -611,165 +388,12 @@ func (x *GetRecentPublicRoundupsGatewayResponse) GetCurrentPage() int32 {
 	return 0
 }
 
-// Showcase view beacons (visitor identity is derived server-side from IP/UA)
-type RecordShowcaseActivityViewRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RecordShowcaseActivityViewRequest) Reset() {
-	*x = RecordShowcaseActivityViewRequest{}
-	mi := &file_gateway_public_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RecordShowcaseActivityViewRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RecordShowcaseActivityViewRequest) ProtoMessage() {}
-
-func (x *RecordShowcaseActivityViewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RecordShowcaseActivityViewRequest.ProtoReflect.Descriptor instead.
-func (*RecordShowcaseActivityViewRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *RecordShowcaseActivityViewRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type RecordShowcaseProfileViewRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RecordShowcaseProfileViewRequest) Reset() {
-	*x = RecordShowcaseProfileViewRequest{}
-	mi := &file_gateway_public_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RecordShowcaseProfileViewRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RecordShowcaseProfileViewRequest) ProtoMessage() {}
-
-func (x *RecordShowcaseProfileViewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RecordShowcaseProfileViewRequest.ProtoReflect.Descriptor instead.
-func (*RecordShowcaseProfileViewRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *RecordShowcaseProfileViewRequest) GetSlug() string {
-	if x != nil {
-		return x.Slug
-	}
-	return ""
-}
-
-type RecordShowcaseRoundupViewRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
-	PeriodKey     string                 `protobuf:"bytes,2,opt,name=period_key,json=periodKey,proto3" json:"period_key,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RecordShowcaseRoundupViewRequest) Reset() {
-	*x = RecordShowcaseRoundupViewRequest{}
-	mi := &file_gateway_public_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RecordShowcaseRoundupViewRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RecordShowcaseRoundupViewRequest) ProtoMessage() {}
-
-func (x *RecordShowcaseRoundupViewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_public_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RecordShowcaseRoundupViewRequest.ProtoReflect.Descriptor instead.
-func (*RecordShowcaseRoundupViewRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_public_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *RecordShowcaseRoundupViewRequest) GetSlug() string {
-	if x != nil {
-		return x.Slug
-	}
-	return ""
-}
-
-func (x *RecordShowcaseRoundupViewRequest) GetPeriodKey() string {
-	if x != nil {
-		return x.PeriodKey
-	}
-	return ""
-}
-
 var File_gateway_public_proto protoreflect.FileDescriptor
 
 const file_gateway_public_proto_rawDesc = "" +
 	"\n" +
-	"\x14gateway/public.proto\x12\x0ffitglue.gateway\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cmodels/plugin/manifest.proto\x1a\x1emodels/activity/uploaded.proto\x1a\x1dmodels/activity/roundup.proto\"\x14\n" +
-	"\x12PublicEmptyRequest\"6\n" +
-	"\x18ListPluginsPublicRequest\x12\x1a\n" +
-	"\bcategory\x18\x01 \x01(\tR\bcategory\"\\\n" +
-	"\x19ListPluginsPublicResponse\x12?\n" +
-	"\aplugins\x18\x01 \x03(\v2%.fitglue.models.plugin.PluginManifestR\aplugins\"(\n" +
-	"\x16GetPluginPublicRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\">\n" +
-	"\x1cListCategoriesPublicResponse\x12\x1e\n" +
-	"\n" +
-	"categories\x18\x01 \x03(\tR\n" +
-	"categories\"\\\n" +
-	"\x19ListSourcesPublicResponse\x12?\n" +
-	"\asources\x18\x01 \x03(\v2%.fitglue.models.plugin.PluginManifestR\asources\"*\n" +
+	"\x14gateway/public.proto\x12\x0ffitglue.gateway\x1a\x1cgoogle/api/annotations.proto\x1a\x1emodels/activity/uploaded.proto\x1a\x1dmodels/activity/roundup.proto\"\x14\n" +
+	"\x12PublicEmptyRequest\"*\n" +
 	"\x18GetPublicShowcaseRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"I\n" +
 	"\x1fGetPublicShowcaseProfileRequest\x12\x12\n" +
@@ -792,28 +416,12 @@ const file_gateway_public_proto_rawDesc = "" +
 	"\broundups\x18\x01 \x03(\v2(.fitglue.models.activity.ShowcaseRoundupR\broundups\x12\x1f\n" +
 	"\vtotal_pages\x18\x02 \x01(\x05R\n" +
 	"totalPages\x12!\n" +
-	"\fcurrent_page\x18\x03 \x01(\x05R\vcurrentPage\"3\n" +
-	"!RecordShowcaseActivityViewRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"6\n" +
-	" RecordShowcaseProfileViewRequest\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\"U\n" +
-	" RecordShowcaseRoundupViewRequest\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x1d\n" +
-	"\n" +
-	"period_key\x18\x02 \x01(\tR\tperiodKey2\xc4\r\n" +
-	"\x14PublicGatewayService\x12z\n" +
-	"\x11GetPluginRegistry\x12#.fitglue.gateway.PublicEmptyRequest\x1a-.fitglue.models.plugin.PluginRegistryResponse\"\x11\x82\xd3\xe4\x93\x02\v\x12\t/registry\x12\x7f\n" +
-	"\vListPlugins\x12).fitglue.gateway.ListPluginsPublicRequest\x1a*.fitglue.gateway.ListPluginsPublicResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/registry/plugins\x12{\n" +
-	"\tGetPlugin\x12'.fitglue.gateway.GetPluginPublicRequest\x1a%.fitglue.models.plugin.PluginManifest\"\x1e\x82\xd3\xe4\x93\x02\x18\x12\x16/registry/plugins/{id}\x12\x82\x01\n" +
-	"\x0eListCategories\x12#.fitglue.gateway.PublicEmptyRequest\x1a-.fitglue.gateway.ListCategoriesPublicResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/registry/categories\x12y\n" +
-	"\vListSources\x12#.fitglue.gateway.PublicEmptyRequest\x1a*.fitglue.gateway.ListSourcesPublicResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/registry/sources\x12\x82\x01\n" +
+	"\fcurrent_page\x18\x03 \x01(\x05R\vcurrentPage2\x95\x05\n" +
+	"\x14PublicGatewayService\x12\x82\x01\n" +
 	"\x11GetPublicShowcase\x12).fitglue.gateway.GetPublicShowcaseRequest\x1a*.fitglue.models.activity.ShowcasedActivity\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/showcase/{id}\x12\xa1\x01\n" +
 	"\x18GetPublicShowcaseProfile\x120.fitglue.gateway.GetPublicShowcaseProfileRequest\x1a1.fitglue.gateway.GetPublicShowcaseProfileResponse\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/showcase/profile/{slug}\x12\x9c\x01\n" +
 	"\x10GetPublicRoundup\x12/.fitglue.gateway.GetPublicRoundupGatewayRequest\x1a(.fitglue.models.activity.ShowcaseRoundup\"-\x82\xd3\xe4\x93\x02'\x12%/showcase/{slug}/roundup/{period_key}\x12\xb4\x01\n" +
-	"\x17GetRecentPublicRoundups\x126.fitglue.gateway.GetRecentPublicRoundupsGatewayRequest\x1a7.fitglue.gateway.GetRecentPublicRoundupsGatewayResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /showcase/{slug}/roundups/recent\x12\x85\x01\n" +
-	"\x1aRecordShowcaseActivityView\x122.fitglue.gateway.RecordShowcaseActivityViewRequest\x1a\x16.google.protobuf.Empty\"\x1b\x82\xd3\xe4\x93\x02\x15\"\x13/showcase/{id}/view\x12\x8d\x01\n" +
-	"\x19RecordShowcaseProfileView\x121.fitglue.gateway.RecordShowcaseProfileViewRequest\x1a\x16.google.protobuf.Empty\"%\x82\xd3\xe4\x93\x02\x1f\"\x1d/showcase/profile/{slug}/view\x12\x9a\x01\n" +
-	"\x19RecordShowcaseRoundupView\x121.fitglue.gateway.RecordShowcaseRoundupViewRequest\x1a\x16.google.protobuf.Empty\"2\x82\xd3\xe4\x93\x02,\"*/showcase/{slug}/roundup/{period_key}/viewB7Z5github.com/fitglue/server/src/go/pkg/types/pb/gatewayb\x06proto3"
+	"\x17GetRecentPublicRoundups\x126.fitglue.gateway.GetRecentPublicRoundupsGatewayRequest\x1a7.fitglue.gateway.GetRecentPublicRoundupsGatewayResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /showcase/{slug}/roundups/recentB7Z5github.com/fitglue/server/src/go/pkg/types/pb/gatewayb\x06proto3"
 
 var (
 	file_gateway_public_proto_rawDescOnce sync.Once
@@ -827,65 +435,36 @@ func file_gateway_public_proto_rawDescGZIP() []byte {
 	return file_gateway_public_proto_rawDescData
 }
 
-var file_gateway_public_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_gateway_public_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_gateway_public_proto_goTypes = []any{
 	(*PublicEmptyRequest)(nil),                     // 0: fitglue.gateway.PublicEmptyRequest
-	(*ListPluginsPublicRequest)(nil),               // 1: fitglue.gateway.ListPluginsPublicRequest
-	(*ListPluginsPublicResponse)(nil),              // 2: fitglue.gateway.ListPluginsPublicResponse
-	(*GetPluginPublicRequest)(nil),                 // 3: fitglue.gateway.GetPluginPublicRequest
-	(*ListCategoriesPublicResponse)(nil),           // 4: fitglue.gateway.ListCategoriesPublicResponse
-	(*ListSourcesPublicResponse)(nil),              // 5: fitglue.gateway.ListSourcesPublicResponse
-	(*GetPublicShowcaseRequest)(nil),               // 6: fitglue.gateway.GetPublicShowcaseRequest
-	(*GetPublicShowcaseProfileRequest)(nil),        // 7: fitglue.gateway.GetPublicShowcaseProfileRequest
-	(*GetPublicShowcaseProfileResponse)(nil),       // 8: fitglue.gateway.GetPublicShowcaseProfileResponse
-	(*GetPublicRoundupGatewayRequest)(nil),         // 9: fitglue.gateway.GetPublicRoundupGatewayRequest
-	(*GetRecentPublicRoundupsGatewayRequest)(nil),  // 10: fitglue.gateway.GetRecentPublicRoundupsGatewayRequest
-	(*GetRecentPublicRoundupsGatewayResponse)(nil), // 11: fitglue.gateway.GetRecentPublicRoundupsGatewayResponse
-	(*RecordShowcaseActivityViewRequest)(nil),      // 12: fitglue.gateway.RecordShowcaseActivityViewRequest
-	(*RecordShowcaseProfileViewRequest)(nil),       // 13: fitglue.gateway.RecordShowcaseProfileViewRequest
-	(*RecordShowcaseRoundupViewRequest)(nil),       // 14: fitglue.gateway.RecordShowcaseRoundupViewRequest
-	(*plugin.PluginManifest)(nil),                  // 15: fitglue.models.plugin.PluginManifest
-	(*activity.ShowcaseProfile)(nil),               // 16: fitglue.models.activity.ShowcaseProfile
-	(*activity.ShowcasedActivity)(nil),             // 17: fitglue.models.activity.ShowcasedActivity
-	(*activity.ShowcaseRoundup)(nil),               // 18: fitglue.models.activity.ShowcaseRoundup
-	(*plugin.PluginRegistryResponse)(nil),          // 19: fitglue.models.plugin.PluginRegistryResponse
-	(*emptypb.Empty)(nil),                          // 20: google.protobuf.Empty
+	(*GetPublicShowcaseRequest)(nil),               // 1: fitglue.gateway.GetPublicShowcaseRequest
+	(*GetPublicShowcaseProfileRequest)(nil),        // 2: fitglue.gateway.GetPublicShowcaseProfileRequest
+	(*GetPublicShowcaseProfileResponse)(nil),       // 3: fitglue.gateway.GetPublicShowcaseProfileResponse
+	(*GetPublicRoundupGatewayRequest)(nil),         // 4: fitglue.gateway.GetPublicRoundupGatewayRequest
+	(*GetRecentPublicRoundupsGatewayRequest)(nil),  // 5: fitglue.gateway.GetRecentPublicRoundupsGatewayRequest
+	(*GetRecentPublicRoundupsGatewayResponse)(nil), // 6: fitglue.gateway.GetRecentPublicRoundupsGatewayResponse
+	(*activity.ShowcaseProfile)(nil),               // 7: fitglue.models.activity.ShowcaseProfile
+	(*activity.ShowcasedActivity)(nil),             // 8: fitglue.models.activity.ShowcasedActivity
+	(*activity.ShowcaseRoundup)(nil),               // 9: fitglue.models.activity.ShowcaseRoundup
 }
 var file_gateway_public_proto_depIdxs = []int32{
-	15, // 0: fitglue.gateway.ListPluginsPublicResponse.plugins:type_name -> fitglue.models.plugin.PluginManifest
-	15, // 1: fitglue.gateway.ListSourcesPublicResponse.sources:type_name -> fitglue.models.plugin.PluginManifest
-	16, // 2: fitglue.gateway.GetPublicShowcaseProfileResponse.profile:type_name -> fitglue.models.activity.ShowcaseProfile
-	17, // 3: fitglue.gateway.GetPublicShowcaseProfileResponse.showcases:type_name -> fitglue.models.activity.ShowcasedActivity
-	18, // 4: fitglue.gateway.GetRecentPublicRoundupsGatewayResponse.roundups:type_name -> fitglue.models.activity.ShowcaseRoundup
-	0,  // 5: fitglue.gateway.PublicGatewayService.GetPluginRegistry:input_type -> fitglue.gateway.PublicEmptyRequest
-	1,  // 6: fitglue.gateway.PublicGatewayService.ListPlugins:input_type -> fitglue.gateway.ListPluginsPublicRequest
-	3,  // 7: fitglue.gateway.PublicGatewayService.GetPlugin:input_type -> fitglue.gateway.GetPluginPublicRequest
-	0,  // 8: fitglue.gateway.PublicGatewayService.ListCategories:input_type -> fitglue.gateway.PublicEmptyRequest
-	0,  // 9: fitglue.gateway.PublicGatewayService.ListSources:input_type -> fitglue.gateway.PublicEmptyRequest
-	6,  // 10: fitglue.gateway.PublicGatewayService.GetPublicShowcase:input_type -> fitglue.gateway.GetPublicShowcaseRequest
-	7,  // 11: fitglue.gateway.PublicGatewayService.GetPublicShowcaseProfile:input_type -> fitglue.gateway.GetPublicShowcaseProfileRequest
-	9,  // 12: fitglue.gateway.PublicGatewayService.GetPublicRoundup:input_type -> fitglue.gateway.GetPublicRoundupGatewayRequest
-	10, // 13: fitglue.gateway.PublicGatewayService.GetRecentPublicRoundups:input_type -> fitglue.gateway.GetRecentPublicRoundupsGatewayRequest
-	12, // 14: fitglue.gateway.PublicGatewayService.RecordShowcaseActivityView:input_type -> fitglue.gateway.RecordShowcaseActivityViewRequest
-	13, // 15: fitglue.gateway.PublicGatewayService.RecordShowcaseProfileView:input_type -> fitglue.gateway.RecordShowcaseProfileViewRequest
-	14, // 16: fitglue.gateway.PublicGatewayService.RecordShowcaseRoundupView:input_type -> fitglue.gateway.RecordShowcaseRoundupViewRequest
-	19, // 17: fitglue.gateway.PublicGatewayService.GetPluginRegistry:output_type -> fitglue.models.plugin.PluginRegistryResponse
-	2,  // 18: fitglue.gateway.PublicGatewayService.ListPlugins:output_type -> fitglue.gateway.ListPluginsPublicResponse
-	15, // 19: fitglue.gateway.PublicGatewayService.GetPlugin:output_type -> fitglue.models.plugin.PluginManifest
-	4,  // 20: fitglue.gateway.PublicGatewayService.ListCategories:output_type -> fitglue.gateway.ListCategoriesPublicResponse
-	5,  // 21: fitglue.gateway.PublicGatewayService.ListSources:output_type -> fitglue.gateway.ListSourcesPublicResponse
-	17, // 22: fitglue.gateway.PublicGatewayService.GetPublicShowcase:output_type -> fitglue.models.activity.ShowcasedActivity
-	8,  // 23: fitglue.gateway.PublicGatewayService.GetPublicShowcaseProfile:output_type -> fitglue.gateway.GetPublicShowcaseProfileResponse
-	18, // 24: fitglue.gateway.PublicGatewayService.GetPublicRoundup:output_type -> fitglue.models.activity.ShowcaseRoundup
-	11, // 25: fitglue.gateway.PublicGatewayService.GetRecentPublicRoundups:output_type -> fitglue.gateway.GetRecentPublicRoundupsGatewayResponse
-	20, // 26: fitglue.gateway.PublicGatewayService.RecordShowcaseActivityView:output_type -> google.protobuf.Empty
-	20, // 27: fitglue.gateway.PublicGatewayService.RecordShowcaseProfileView:output_type -> google.protobuf.Empty
-	20, // 28: fitglue.gateway.PublicGatewayService.RecordShowcaseRoundupView:output_type -> google.protobuf.Empty
-	17, // [17:29] is the sub-list for method output_type
-	5,  // [5:17] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	7, // 0: fitglue.gateway.GetPublicShowcaseProfileResponse.profile:type_name -> fitglue.models.activity.ShowcaseProfile
+	8, // 1: fitglue.gateway.GetPublicShowcaseProfileResponse.showcases:type_name -> fitglue.models.activity.ShowcasedActivity
+	9, // 2: fitglue.gateway.GetRecentPublicRoundupsGatewayResponse.roundups:type_name -> fitglue.models.activity.ShowcaseRoundup
+	1, // 3: fitglue.gateway.PublicGatewayService.GetPublicShowcase:input_type -> fitglue.gateway.GetPublicShowcaseRequest
+	2, // 4: fitglue.gateway.PublicGatewayService.GetPublicShowcaseProfile:input_type -> fitglue.gateway.GetPublicShowcaseProfileRequest
+	4, // 5: fitglue.gateway.PublicGatewayService.GetPublicRoundup:input_type -> fitglue.gateway.GetPublicRoundupGatewayRequest
+	5, // 6: fitglue.gateway.PublicGatewayService.GetRecentPublicRoundups:input_type -> fitglue.gateway.GetRecentPublicRoundupsGatewayRequest
+	8, // 7: fitglue.gateway.PublicGatewayService.GetPublicShowcase:output_type -> fitglue.models.activity.ShowcasedActivity
+	3, // 8: fitglue.gateway.PublicGatewayService.GetPublicShowcaseProfile:output_type -> fitglue.gateway.GetPublicShowcaseProfileResponse
+	9, // 9: fitglue.gateway.PublicGatewayService.GetPublicRoundup:output_type -> fitglue.models.activity.ShowcaseRoundup
+	6, // 10: fitglue.gateway.PublicGatewayService.GetRecentPublicRoundups:output_type -> fitglue.gateway.GetRecentPublicRoundupsGatewayResponse
+	7, // [7:11] is the sub-list for method output_type
+	3, // [3:7] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_gateway_public_proto_init() }
@@ -899,7 +478,7 @@ func file_gateway_public_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_public_proto_rawDesc), len(file_gateway_public_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

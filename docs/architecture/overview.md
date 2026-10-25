@@ -19,7 +19,7 @@ FitGlue is a fitness data aggregation and routing platform built on Google Cloud
 │  ┌────────────────────────▼────────────────────────────────────┐    │
 │  │             DOMAIN SERVICES (own their Firestore data)      │    │
 │  │                                                             │    │
-│  │  service.user          service.registry                     │    │
+│  │  service.user                                               │    │
 │  │  service.pipeline      service.activity                     │    │
 │  └────────────────────────┬────────────────────────────────────┘    │
 │                           │ Pub/Sub                                 │
@@ -120,9 +120,8 @@ showcased_activities/{id}                 # Public showcase records
 | **Source** | Go | Ingests data from external services | `services/api-webhook/internal/webhook/sources/` |
 | **Enricher** | Go | Transforms activities in pipeline | `internal/pipeline/` |
 | **Destination** | Go | Uploads processed activities | `services/destination/internal/` |
-| **Registry** | Go | Plugin manifests, categories, icons | `services/registry/` |
 
-All plugins self-register via `init()`. The registry serves configuration via `service.registry` → `GET /api/registry`.
+All plugins self-register via `init()`.
 
 ## Observability
 
