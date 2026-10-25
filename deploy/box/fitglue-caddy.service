@@ -1,0 +1,23 @@
+# FitGlue public ingress: Caddy on 127.0.0.1:8100 behind Tailscale Funnel (F3.3).
+# Install: install -D -m 0644 deploy/box/fitglue-caddy.service ~/.config/systemd/user/fitglue-caddy.service
+#          systemctl --user daemon-reload && systemctl --user enable --now fitglue-caddy
+[Unit]
+Description=FitGlue ingress (Caddy 127.0.0.1:8100, behind Tailscale Funnel)
+Documentation=file:%h/work/fitglue-server/deploy/box/funnel.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p %h/.jarvis/logs
+ExecStart=%h/.local/bin/caddy run --config %h/work/fitglue-server/deploy/box/caddy/Caddyfile
+ExecReload=%h/.local/bin/caddy reload --config %h/work/fitglue-server/deploy/box/caddy/Caddyfile --address unix/%t/fitglue-caddy-admin.sock
+Restart=always
+RestartSec=2
+TimeoutStopSec=15
+# Caddy needs no state with auto_https off; keep the sandbox tight anyway.
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target

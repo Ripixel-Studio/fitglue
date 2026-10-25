@@ -1,0 +1,96 @@
+# FitGlue public ingress on the box (rethink F3.3).
+#
+# Tailscale Funnel terminates TLS for https://jarvis.tail3065f7.ts.net:443 and
+# forwards plain HTTP to this listener. Only /fg/* is routed; everything else is
+# an empty 404. The home screen (8790), dashboard (8787) and voicebox (8788) are
+# never reachable through here — Funnel maps 443 to this port and nothing else.
+#
+# Backends are F3.1's systemd user units on fixed loopback ports:
+#   8101 api-webhook   8102 api-client   8104 pipeline
+#   8105 activity      8106 destination
+#
+# Validate:  caddy validate --config deploy/box/caddy/Caddyfile
+# Run:       systemctl --user start fitglue-caddy   (deploy/box/fitglue-caddy.service)
+{
+	# No ACME: Tailscale owns the certificate. No HTTP->HTTPS redirects either.
+	auto_https off
+	# Admin API on a per-user unix socket so `caddy reload` works without a TCP port.
+	admin unix/{$XDG_RUNTIME_DIR}/fitglue-caddy-admin.sock
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 30s
+			write 60s
+			idle 2m
+		}
+		# tailscaled proxies to us from loopback and sets X-Forwarded-For/Proto;
+		# trust those so the services and the access log see the real client.
+		trusted_proxies static 127.0.0.0/8 ::1/128
+	}
+}
+
+# Port-only address: match any Host (Funnel forwards the public hostname);
+# `bind` keeps the socket on loopback so nothing on the tailnet/LAN reaches it.
+http://:8100 {
+	bind 127.0.0.1
+
+	log {
+		output file {$HOME}/.jarvis/logs/caddy-access.log {
+			roll_size 20MiB
+			roll_keep 5
+			roll_keep_for 720h
+		}
+		# Belt and braces: Caddy already redacts these by default; keep it explicit.
+		format filter {
+			wrap json
+			request>headers>Authorization replace REDACTED
+			request>headers>Cookie replace REDACTED
+			request>headers>Proxy-Authorization replace REDACTED
+		}
+	}
+
+	request_body {
+		max_size 10MB
+	}
+
+	# Strava / Fitbit / Hevy webhooks. api-webhook mounts its routes under
+	# /api/webhooks, so /fg/webhook/strava -> 8101 /api/webhooks/strava.
+	handle_path /fg/webhook/* {
+		rewrite * /api/webhooks{uri}
+		reverse_proxy 127.0.0.1:8101
+	}
+
+	# Pub/Sub push subscriptions. Each service keeps its own OIDC token check.
+	# /fg/pubsub/pipeline/raw -> 8104 /pubsub/raw  (also run, enriched, parkrun-check)
+	handle_path /fg/pubsub/pipeline/* {
+		rewrite * /pubsub{uri}
+		reverse_proxy 127.0.0.1:8104
+	}
+	# /fg/pubsub/activity/roundup -> 8105 /pubsub/roundup
+	handle_path /fg/pubsub/activity/* {
+		rewrite * /pubsub{uri}
+		reverse_proxy 127.0.0.1:8105
+	}
+	# destination's push handler is mounted at "/": /fg/pubsub/destination/ -> 8106 /
+	# (the exact path without a trailing slash is accepted too)
+	handle_path /fg/pubsub/destination/* {
+		reverse_proxy 127.0.0.1:8106
+	}
+	handle /fg/pubsub/destination {
+		rewrite * /
+		reverse_proxy 127.0.0.1:8106
+	}
+
+	# OAuth callbacks for `fitgluectl connect`:
+	# /fg/oauth/strava/callback -> 8102 /api/v2/oauth/strava/callback
+	handle_path /fg/oauth/* {
+		rewrite * /api/v2/oauth{uri}
+		reverse_proxy 127.0.0.1:8102
+	}
+
+	# Anything else: empty 404. No directory listings, no default page, no headers
+	# that name what is behind here.
+	handle {
+		respond 404
+	}
+}

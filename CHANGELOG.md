@@ -5,6 +5,27 @@ Hand-written since F1.8 of the single-user conversion; entries below
 
 ## Unreleased
 
+### feat: Caddy + Tailscale Funnel ingress for the box (rethink F3.3)
+
+Public HTTPS for the box-hosted services, replacing Cloud Run's public ingress.
+
+- `deploy/box/caddy/Caddyfile`: Caddy on `127.0.0.1:8100` (loopback only, no
+  TLS — Tailscale Funnel terminates `https://jarvis.tail3065f7.ts.net:443` and
+  forwards to it). Routes `/fg/webhook/*` → api-webhook `/api/webhooks/*`,
+  `/fg/pubsub/{pipeline,activity}/*` → `/pubsub/*` on 8104/8105,
+  `/fg/pubsub/destination/` → 8106 `/`, `/fg/oauth/*` → api-client
+  `/api/v2/oauth/*`; everything else is an empty `404`. 10 MB body cap,
+  timeouts, JSON access log at `~/.jarvis/logs/caddy-access.log` with
+  `Authorization`/`Cookie` redacted.
+- `deploy/box/fitglue-caddy.service`: systemd user unit, `Restart=always`,
+  reload via a unix-socket admin endpoint. `deploy/box/caddy/install-caddy.sh`
+  installs the pinned, checksum-verified static binary to `~/.local/bin`.
+- `deploy/box/funnel.md` + `docs/guides/box-ingress.md`: Funnel on/off
+  commands, the public URLs F3.4 re-points inputs at, security posture.
+- Funnel is not yet allowed on the tailnet (needs the `funnel` node attribute
+  — one admin-console click, see `deploy/box/funnel.md`); nothing is public
+  until James enables it and runs `tailscale funnel --bg --yes 8100`.
+
 ### feat!: single owner, static bearer token (rethink F2.1 + F2.2)
 
 `api-client` no longer knows about Firebase Auth or about more than one user.
