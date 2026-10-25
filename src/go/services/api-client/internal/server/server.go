@@ -14,7 +14,6 @@ import (
 	"github.com/fitglue/server/src/go/internal/infra"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
 	pipelinepb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
-	registrypb "github.com/fitglue/server/src/go/pkg/types/pb/services/registry"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 )
 
@@ -41,11 +40,9 @@ type APIServer struct {
 	publisher   Publisher
 	apiKeyStore ApiKeyStore
 	gcsSigner   GCSSigner // may be nil in test environments
-	statsStore  PlatformStatsStore
 	userService userpb.UserServiceClient
 	pipelineSvc pipelinepb.PipelineServiceClient
 	activitySvc activitypb.ActivityServiceClient
-	registrySvc registrypb.RegistryServiceClient
 }
 
 // NewAPIServer constructs the application routing and API middleware stack
@@ -55,11 +52,9 @@ func NewAPIServer(
 	publisher Publisher,
 	apiKeyStore ApiKeyStore,
 	gcsSigner GCSSigner,
-	statsStore PlatformStatsStore,
 	userSvc userpb.UserServiceClient,
 	pipelineSvc pipelinepb.PipelineServiceClient,
 	activitySvc activitypb.ActivityServiceClient,
-	registrySvc registrypb.RegistryServiceClient,
 ) *APIServer {
 	s := &APIServer{
 		router:      chi.NewRouter(),
@@ -68,11 +63,9 @@ func NewAPIServer(
 		publisher:   publisher,
 		apiKeyStore: apiKeyStore,
 		gcsSigner:   gcsSigner,
-		statsStore:  statsStore,
 		userService: userSvc,
 		pipelineSvc: pipelineSvc,
 		activitySvc: activitySvc,
-		registrySvc: registrySvc,
 	}
 
 	s.setupRoutes()
@@ -114,12 +107,6 @@ func (s *APIServer) setupRoutes() {
 
 		// Integration request (unauthenticated - contact form)
 		r.Post("/integrations/request", s.handleIntegrationRequest)
-
-		// Plugin registry (unauthenticated - used by Skier build and marketing pages)
-		r.Get("/registry", s.handleGetPluginRegistry)
-
-		// Registry browse routes (unauthenticated - used by web app plugin browser)
-		s.registerRegistryRoutes(r)
 
 		// Register domain routes here
 		r.Group(func(r chi.Router) {

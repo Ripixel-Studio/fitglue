@@ -74,52 +74,6 @@ func TestHandleGetExerciseLibrary_NoHevyIntegration(t *testing.T) {
 	}
 }
 
-// --- showcase view stats handlers ---
-
-func showcaseServer() *APIServer {
-	return serverWithDeps(&APIServer{activitySvc: &mockActivityServiceClient{}})
-}
-
-func TestShowcaseViewHandlers_NoToken(t *testing.T) {
-	s := showcaseServer()
-	handlers := map[string]http.HandlerFunc{
-		"activity": s.handleGetShowcaseViewStats,
-		"profile":  s.handleGetShowcaseProfileViewStats,
-		"roundup":  s.handleGetShowcaseRoundupViewStats,
-		"list":     s.handleListShowcaseViewStats,
-	}
-	for name, h := range handlers {
-		t.Run(name, func(t *testing.T) {
-			r := httptest.NewRequest(http.MethodGet, "/x", nil)
-			w := httptest.NewRecorder()
-			h(w, r)
-			if w.Code != http.StatusUnauthorized {
-				t.Errorf("%s: expected 401, got %d", name, w.Code)
-			}
-		})
-	}
-}
-
-func TestShowcaseViewHandlers_Success(t *testing.T) {
-	s := showcaseServer()
-	handlers := map[string]http.HandlerFunc{
-		"activity": s.handleGetShowcaseViewStats,
-		"profile":  s.handleGetShowcaseProfileViewStats,
-		"roundup":  s.handleGetShowcaseRoundupViewStats,
-		"list":     s.handleListShowcaseViewStats,
-	}
-	for name, h := range handlers {
-		t.Run(name, func(t *testing.T) {
-			r := withToken(httptest.NewRequest(http.MethodGet, "/x", nil), "user-1")
-			w := httptest.NewRecorder()
-			h(w, r)
-			if w.Code != http.StatusOK {
-				t.Errorf("%s: expected 200, got %d", name, w.Code)
-			}
-		})
-	}
-}
-
 // --- public handlers: integration request ---
 
 func TestHandleIntegrationRequest(t *testing.T) {
@@ -248,9 +202,6 @@ func TestNewFirestoreStores(t *testing.T) {
 	if got := NewFirestoreApiKeyStore(nil); got == nil {
 		t.Error("expected non-nil ApiKeyStore")
 	}
-	if got := NewFirestorePlatformStatsStore(nil, infra.NewLogger()); got == nil {
-		t.Error("expected non-nil PlatformStatsStore")
-	}
 }
 
 // TestNewAPIServer wires the full server with mocks and issues a request through
@@ -262,11 +213,9 @@ func TestNewAPIServer(t *testing.T) {
 		&mockPublisher{},
 		&mockApiKeyStore{},
 		nil, // gcsSigner
-		nil, // statsStore
 		&mockUserServiceClient{},
 		&mockPipelineServiceClient{},
 		&mockActivityServiceClient{},
-		&mockRegistryServiceClient{},
 	)
 	if s == nil {
 		t.Fatal("expected non-nil server")

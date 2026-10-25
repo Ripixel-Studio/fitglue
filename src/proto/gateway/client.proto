@@ -10,7 +10,6 @@ import "google/api/annotations.proto";
 // Shared model types
 import "models/user/profile.proto";
 import "models/user/integration.proto";
-import "models/plugin/manifest.proto";
 import "models/pipeline/config.proto";
 import "models/pipeline/execution.proto";
 
@@ -442,28 +441,6 @@ service ClientGatewayService {
     };
   }
 
-  // ===================== Showcase View Metrics (owner-facing) =====================
-  rpc GetShowcaseViewStats(ShowcaseIdRequest) returns (fitglue.models.activity.ShowcaseViewStats) {
-    option (google.api.http) = {
-      get: "/users/me/showcases/{id}/views"
-    };
-  }
-  rpc GetShowcaseProfileViewStats(EmptyRequest) returns (fitglue.models.activity.ShowcaseViewStats) {
-    option (google.api.http) = {
-      get: "/users/me/showcase-management/profile/views"
-    };
-  }
-  rpc GetShowcaseRoundupViewStats(GetShowcaseRoundupViewStatsGatewayRequest) returns (fitglue.models.activity.ShowcaseViewStats) {
-    option (google.api.http) = {
-      get: "/users/me/showcase-management/roundup/{period_key}/views"
-    };
-  }
-  rpc ListShowcaseViewStats(EmptyRequest) returns (ListShowcaseViewStatsGatewayResponse) {
-    option (google.api.http) = {
-      get: "/users/me/showcase-management/views"
-    };
-  }
-
   // ===================== FIT File Parse =====================
   rpc ParseFitFile(ParseFitFileGatewayRequest) returns (fitglue.models.activity.StandardizedActivity) {
     option (google.api.http) = {
@@ -513,38 +490,6 @@ service ClientGatewayService {
       get: "/users/me/pipeline-runs/{run_id}/export"
     };
   }
-
-  // ===================== Registry (Unauthenticated, but on api-client) =====================
-  rpc GetPluginRegistry(EmptyRequest) returns (fitglue.models.plugin.PluginRegistryResponse) {
-    option (google.api.http) = {
-      get: "/registry"
-    };
-  }
-  rpc GetPluginRegistryPlugins(EmptyRequest) returns (fitglue.models.plugin.PluginRegistryResponse) {
-    option (google.api.http) = {
-      get: "/registry/plugins"
-    };
-  }
-  rpc GetPlugin(PluginIdPathRequest) returns (fitglue.models.plugin.PluginManifest) {
-    option (google.api.http) = {
-      get: "/registry/plugins/{id}"
-    };
-  }
-  rpc GetPluginIcon(PluginIdPathRequest) returns (GetPluginIconGatewayResponse) {
-    option (google.api.http) = {
-      get: "/registry/plugins/{id}/icon"
-    };
-  }
-  rpc ListCategories(EmptyRequest) returns (ListCategoriesGatewayResponse) {
-    option (google.api.http) = {
-      get: "/registry/categories"
-    };
-  }
-  rpc ListSources(EmptyRequest) returns (ListSourcesGatewayResponse) {
-    option (google.api.http) = {
-      get: "/registry/sources"
-    };
-  }
 }
 
 // =====================================================================
@@ -559,7 +504,6 @@ message PipelineIdRequest { string id = 1; }
 message ActivityIdRequest { string id = 1; }
 message ShowcaseIdRequest { string id = 1; }
 message PluginIdRequest { string plugin_id = 1; }
-message PluginIdPathRequest { string id = 1; }
 message BoosterIdRequest { string booster_id = 1; }
 message RecordTypeRequest { string record_type = 1; }
 message CounterNameRequest { string name = 1; }
@@ -809,16 +753,6 @@ message UpdateRoundupSettingsGatewayRequest {
 message RecomputeRoundupGatewayRequest {
   string period_key = 1;
 }
-message ListShowcaseViewStatsGatewayResponse {
-  fitglue.models.activity.ShowcaseViewStats profile = 1;
-  repeated fitglue.models.activity.ShowcaseViewStats showcases = 2;
-  int64 total_views = 3;
-  int64 total_visitors = 4;
-  repeated fitglue.models.activity.ShowcaseViewStats roundups = 5;
-}
-message GetShowcaseRoundupViewStatsGatewayRequest {
-  string period_key = 1;
-}
 message UpdateShowcaseSlugGatewayResponse {
   string slug = 1;
 }
@@ -901,16 +835,4 @@ message GetPipelineRunPayloadGatewayResponse {
   int64 size_bytes = 2;
   string content_type = 3;             // "application/json"
   google.protobuf.Timestamp expires_at = 4;
-}
-
-// Registry
-message GetPluginIconGatewayResponse {
-  bytes icon_data = 1;
-  string content_type = 2;
-}
-message ListCategoriesGatewayResponse {
-  repeated string categories = 1;
-}
-message ListSourcesGatewayResponse {
-  repeated fitglue.models.plugin.PluginManifest sources = 1;
 }

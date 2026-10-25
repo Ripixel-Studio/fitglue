@@ -9,7 +9,6 @@ package gateway
 import (
 	activity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
-	plugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	user "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -336,50 +335,6 @@ func (x *PluginIdRequest) GetPluginId() string {
 	return ""
 }
 
-type PluginIdPathRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PluginIdPathRequest) Reset() {
-	*x = PluginIdPathRequest{}
-	mi := &file_gateway_client_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PluginIdPathRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PluginIdPathRequest) ProtoMessage() {}
-
-func (x *PluginIdPathRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PluginIdPathRequest.ProtoReflect.Descriptor instead.
-func (*PluginIdPathRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *PluginIdPathRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
 type BoosterIdRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BoosterId     string                 `protobuf:"bytes,1,opt,name=booster_id,json=boosterId,proto3" json:"booster_id,omitempty"`
@@ -389,7 +344,7 @@ type BoosterIdRequest struct {
 
 func (x *BoosterIdRequest) Reset() {
 	*x = BoosterIdRequest{}
-	mi := &file_gateway_client_proto_msgTypes[7]
+	mi := &file_gateway_client_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -401,7 +356,7 @@ func (x *BoosterIdRequest) String() string {
 func (*BoosterIdRequest) ProtoMessage() {}
 
 func (x *BoosterIdRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[7]
+	mi := &file_gateway_client_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,7 +369,7 @@ func (x *BoosterIdRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BoosterIdRequest.ProtoReflect.Descriptor instead.
 func (*BoosterIdRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{7}
+	return file_gateway_client_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *BoosterIdRequest) GetBoosterId() string {
@@ -433,7 +388,7 @@ type RecordTypeRequest struct {
 
 func (x *RecordTypeRequest) Reset() {
 	*x = RecordTypeRequest{}
-	mi := &file_gateway_client_proto_msgTypes[8]
+	mi := &file_gateway_client_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -445,7 +400,7 @@ func (x *RecordTypeRequest) String() string {
 func (*RecordTypeRequest) ProtoMessage() {}
 
 func (x *RecordTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[8]
+	mi := &file_gateway_client_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -458,7 +413,7 @@ func (x *RecordTypeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordTypeRequest.ProtoReflect.Descriptor instead.
 func (*RecordTypeRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{8}
+	return file_gateway_client_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RecordTypeRequest) GetRecordType() string {
@@ -477,7 +432,7 @@ type CounterNameRequest struct {
 
 func (x *CounterNameRequest) Reset() {
 	*x = CounterNameRequest{}
-	mi := &file_gateway_client_proto_msgTypes[9]
+	mi := &file_gateway_client_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -489,7 +444,7 @@ func (x *CounterNameRequest) String() string {
 func (*CounterNameRequest) ProtoMessage() {}
 
 func (x *CounterNameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[9]
+	mi := &file_gateway_client_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -502,7 +457,7 @@ func (x *CounterNameRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CounterNameRequest.ProtoReflect.Descriptor instead.
 func (*CounterNameRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{9}
+	return file_gateway_client_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CounterNameRequest) GetName() string {
@@ -521,7 +476,7 @@ type ShowcaseEntryRequest struct {
 
 func (x *ShowcaseEntryRequest) Reset() {
 	*x = ShowcaseEntryRequest{}
-	mi := &file_gateway_client_proto_msgTypes[10]
+	mi := &file_gateway_client_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -533,7 +488,7 @@ func (x *ShowcaseEntryRequest) String() string {
 func (*ShowcaseEntryRequest) ProtoMessage() {}
 
 func (x *ShowcaseEntryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[10]
+	mi := &file_gateway_client_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -546,7 +501,7 @@ func (x *ShowcaseEntryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShowcaseEntryRequest.ProtoReflect.Descriptor instead.
 func (*ShowcaseEntryRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{10}
+	return file_gateway_client_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ShowcaseEntryRequest) GetShowcaseId() string {
@@ -566,7 +521,7 @@ type UpdateProfileGatewayRequest struct {
 
 func (x *UpdateProfileGatewayRequest) Reset() {
 	*x = UpdateProfileGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[11]
+	mi := &file_gateway_client_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -578,7 +533,7 @@ func (x *UpdateProfileGatewayRequest) String() string {
 func (*UpdateProfileGatewayRequest) ProtoMessage() {}
 
 func (x *UpdateProfileGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[11]
+	mi := &file_gateway_client_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -591,7 +546,7 @@ func (x *UpdateProfileGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProfileGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProfileGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{11}
+	return file_gateway_client_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateProfileGatewayRequest) GetProfile() *user.UserProfile {
@@ -611,7 +566,7 @@ type GetIntegrationGatewayResponse struct {
 
 func (x *GetIntegrationGatewayResponse) Reset() {
 	*x = GetIntegrationGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[12]
+	mi := &file_gateway_client_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -623,7 +578,7 @@ func (x *GetIntegrationGatewayResponse) String() string {
 func (*GetIntegrationGatewayResponse) ProtoMessage() {}
 
 func (x *GetIntegrationGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[12]
+	mi := &file_gateway_client_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -636,7 +591,7 @@ func (x *GetIntegrationGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIntegrationGatewayResponse.ProtoReflect.Descriptor instead.
 func (*GetIntegrationGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{12}
+	return file_gateway_client_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetIntegrationGatewayResponse) GetIntegrations() *user.UserIntegrations {
@@ -656,7 +611,7 @@ type SetIntegrationGatewayRequest struct {
 
 func (x *SetIntegrationGatewayRequest) Reset() {
 	*x = SetIntegrationGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[13]
+	mi := &file_gateway_client_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -668,7 +623,7 @@ func (x *SetIntegrationGatewayRequest) String() string {
 func (*SetIntegrationGatewayRequest) ProtoMessage() {}
 
 func (x *SetIntegrationGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[13]
+	mi := &file_gateway_client_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -681,7 +636,7 @@ func (x *SetIntegrationGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetIntegrationGatewayRequest.ProtoReflect.Descriptor instead.
 func (*SetIntegrationGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{13}
+	return file_gateway_client_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SetIntegrationGatewayRequest) GetProvider() string {
@@ -707,7 +662,7 @@ type OAuthConnectResponse struct {
 
 func (x *OAuthConnectResponse) Reset() {
 	*x = OAuthConnectResponse{}
-	mi := &file_gateway_client_proto_msgTypes[14]
+	mi := &file_gateway_client_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -719,7 +674,7 @@ func (x *OAuthConnectResponse) String() string {
 func (*OAuthConnectResponse) ProtoMessage() {}
 
 func (x *OAuthConnectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[14]
+	mi := &file_gateway_client_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -732,7 +687,7 @@ func (x *OAuthConnectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OAuthConnectResponse.ProtoReflect.Descriptor instead.
 func (*OAuthConnectResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{14}
+	return file_gateway_client_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *OAuthConnectResponse) GetUrl() string {
@@ -752,7 +707,7 @@ type ConnectionActionGatewayRequest struct {
 
 func (x *ConnectionActionGatewayRequest) Reset() {
 	*x = ConnectionActionGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[15]
+	mi := &file_gateway_client_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -764,7 +719,7 @@ func (x *ConnectionActionGatewayRequest) String() string {
 func (*ConnectionActionGatewayRequest) ProtoMessage() {}
 
 func (x *ConnectionActionGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[15]
+	mi := &file_gateway_client_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -777,7 +732,7 @@ func (x *ConnectionActionGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectionActionGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ConnectionActionGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{15}
+	return file_gateway_client_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ConnectionActionGatewayRequest) GetProvider() string {
@@ -804,7 +759,7 @@ type ListCountersGatewayResponse struct {
 
 func (x *ListCountersGatewayResponse) Reset() {
 	*x = ListCountersGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[16]
+	mi := &file_gateway_client_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -816,7 +771,7 @@ func (x *ListCountersGatewayResponse) String() string {
 func (*ListCountersGatewayResponse) ProtoMessage() {}
 
 func (x *ListCountersGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[16]
+	mi := &file_gateway_client_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -829,7 +784,7 @@ func (x *ListCountersGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCountersGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ListCountersGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{16}
+	return file_gateway_client_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListCountersGatewayResponse) GetCounters() []*user.Counter {
@@ -849,7 +804,7 @@ type UpdateCounterGatewayRequest struct {
 
 func (x *UpdateCounterGatewayRequest) Reset() {
 	*x = UpdateCounterGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[17]
+	mi := &file_gateway_client_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -861,7 +816,7 @@ func (x *UpdateCounterGatewayRequest) String() string {
 func (*UpdateCounterGatewayRequest) ProtoMessage() {}
 
 func (x *UpdateCounterGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[17]
+	mi := &file_gateway_client_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -874,7 +829,7 @@ func (x *UpdateCounterGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCounterGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCounterGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{17}
+	return file_gateway_client_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *UpdateCounterGatewayRequest) GetName() string {
@@ -901,7 +856,7 @@ type GetBoosterDataGatewayResponse struct {
 
 func (x *GetBoosterDataGatewayResponse) Reset() {
 	*x = GetBoosterDataGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[18]
+	mi := &file_gateway_client_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -913,7 +868,7 @@ func (x *GetBoosterDataGatewayResponse) String() string {
 func (*GetBoosterDataGatewayResponse) ProtoMessage() {}
 
 func (x *GetBoosterDataGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[18]
+	mi := &file_gateway_client_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -926,7 +881,7 @@ func (x *GetBoosterDataGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBoosterDataGatewayResponse.ProtoReflect.Descriptor instead.
 func (*GetBoosterDataGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{18}
+	return file_gateway_client_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetBoosterDataGatewayResponse) GetData() map[string]*structpb.Struct {
@@ -946,7 +901,7 @@ type SetBoosterDataGatewayRequest struct {
 
 func (x *SetBoosterDataGatewayRequest) Reset() {
 	*x = SetBoosterDataGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[19]
+	mi := &file_gateway_client_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -958,7 +913,7 @@ func (x *SetBoosterDataGatewayRequest) String() string {
 func (*SetBoosterDataGatewayRequest) ProtoMessage() {}
 
 func (x *SetBoosterDataGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[19]
+	mi := &file_gateway_client_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -971,7 +926,7 @@ func (x *SetBoosterDataGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBoosterDataGatewayRequest.ProtoReflect.Descriptor instead.
 func (*SetBoosterDataGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{19}
+	return file_gateway_client_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SetBoosterDataGatewayRequest) GetBoosterId() string {
@@ -998,7 +953,7 @@ type ListPersonalRecordsGatewayResponse struct {
 
 func (x *ListPersonalRecordsGatewayResponse) Reset() {
 	*x = ListPersonalRecordsGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[20]
+	mi := &file_gateway_client_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1010,7 +965,7 @@ func (x *ListPersonalRecordsGatewayResponse) String() string {
 func (*ListPersonalRecordsGatewayResponse) ProtoMessage() {}
 
 func (x *ListPersonalRecordsGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[20]
+	mi := &file_gateway_client_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1023,7 +978,7 @@ func (x *ListPersonalRecordsGatewayResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ListPersonalRecordsGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ListPersonalRecordsGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{20}
+	return file_gateway_client_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListPersonalRecordsGatewayResponse) GetRecords() []*user.PersonalRecord {
@@ -1045,7 +1000,7 @@ type SetPersonalRecordGatewayRequest struct {
 
 func (x *SetPersonalRecordGatewayRequest) Reset() {
 	*x = SetPersonalRecordGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[21]
+	mi := &file_gateway_client_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1057,7 +1012,7 @@ func (x *SetPersonalRecordGatewayRequest) String() string {
 func (*SetPersonalRecordGatewayRequest) ProtoMessage() {}
 
 func (x *SetPersonalRecordGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[21]
+	mi := &file_gateway_client_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1070,7 +1025,7 @@ func (x *SetPersonalRecordGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPersonalRecordGatewayRequest.ProtoReflect.Descriptor instead.
 func (*SetPersonalRecordGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{21}
+	return file_gateway_client_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SetPersonalRecordGatewayRequest) GetRecordType() string {
@@ -1111,7 +1066,7 @@ type ListPluginDefaultsGatewayResponse struct {
 
 func (x *ListPluginDefaultsGatewayResponse) Reset() {
 	*x = ListPluginDefaultsGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[22]
+	mi := &file_gateway_client_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1123,7 +1078,7 @@ func (x *ListPluginDefaultsGatewayResponse) String() string {
 func (*ListPluginDefaultsGatewayResponse) ProtoMessage() {}
 
 func (x *ListPluginDefaultsGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[22]
+	mi := &file_gateway_client_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1136,7 +1091,7 @@ func (x *ListPluginDefaultsGatewayResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListPluginDefaultsGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ListPluginDefaultsGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{22}
+	return file_gateway_client_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListPluginDefaultsGatewayResponse) GetDefaults() map[string]*structpb.Struct {
@@ -1156,7 +1111,7 @@ type SetPluginDefaultsGatewayRequest struct {
 
 func (x *SetPluginDefaultsGatewayRequest) Reset() {
 	*x = SetPluginDefaultsGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[23]
+	mi := &file_gateway_client_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1168,7 +1123,7 @@ func (x *SetPluginDefaultsGatewayRequest) String() string {
 func (*SetPluginDefaultsGatewayRequest) ProtoMessage() {}
 
 func (x *SetPluginDefaultsGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[23]
+	mi := &file_gateway_client_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1181,7 +1136,7 @@ func (x *SetPluginDefaultsGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPluginDefaultsGatewayRequest.ProtoReflect.Descriptor instead.
 func (*SetPluginDefaultsGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{23}
+	return file_gateway_client_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *SetPluginDefaultsGatewayRequest) GetPluginId() string {
@@ -1208,7 +1163,7 @@ type SendEmailChangeGatewayRequest struct {
 
 func (x *SendEmailChangeGatewayRequest) Reset() {
 	*x = SendEmailChangeGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[24]
+	mi := &file_gateway_client_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1220,7 +1175,7 @@ func (x *SendEmailChangeGatewayRequest) String() string {
 func (*SendEmailChangeGatewayRequest) ProtoMessage() {}
 
 func (x *SendEmailChangeGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[24]
+	mi := &file_gateway_client_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1233,7 +1188,7 @@ func (x *SendEmailChangeGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendEmailChangeGatewayRequest.ProtoReflect.Descriptor instead.
 func (*SendEmailChangeGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{24}
+	return file_gateway_client_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *SendEmailChangeGatewayRequest) GetNewEmail() string {
@@ -1252,7 +1207,7 @@ type SendPasswordResetGatewayRequest struct {
 
 func (x *SendPasswordResetGatewayRequest) Reset() {
 	*x = SendPasswordResetGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[25]
+	mi := &file_gateway_client_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1264,7 +1219,7 @@ func (x *SendPasswordResetGatewayRequest) String() string {
 func (*SendPasswordResetGatewayRequest) ProtoMessage() {}
 
 func (x *SendPasswordResetGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[25]
+	mi := &file_gateway_client_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1277,7 +1232,7 @@ func (x *SendPasswordResetGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPasswordResetGatewayRequest.ProtoReflect.Descriptor instead.
 func (*SendPasswordResetGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{25}
+	return file_gateway_client_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *SendPasswordResetGatewayRequest) GetEmail() string {
@@ -1297,7 +1252,7 @@ type ListPipelinesGatewayResponse struct {
 
 func (x *ListPipelinesGatewayResponse) Reset() {
 	*x = ListPipelinesGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[26]
+	mi := &file_gateway_client_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1309,7 +1264,7 @@ func (x *ListPipelinesGatewayResponse) String() string {
 func (*ListPipelinesGatewayResponse) ProtoMessage() {}
 
 func (x *ListPipelinesGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[26]
+	mi := &file_gateway_client_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1322,7 +1277,7 @@ func (x *ListPipelinesGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPipelinesGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ListPipelinesGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{26}
+	return file_gateway_client_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListPipelinesGatewayResponse) GetPipelines() []*pipeline.PipelineConfig {
@@ -1341,7 +1296,7 @@ type CreatePipelineGatewayRequest struct {
 
 func (x *CreatePipelineGatewayRequest) Reset() {
 	*x = CreatePipelineGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[27]
+	mi := &file_gateway_client_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1353,7 +1308,7 @@ func (x *CreatePipelineGatewayRequest) String() string {
 func (*CreatePipelineGatewayRequest) ProtoMessage() {}
 
 func (x *CreatePipelineGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[27]
+	mi := &file_gateway_client_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1366,7 +1321,7 @@ func (x *CreatePipelineGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePipelineGatewayRequest.ProtoReflect.Descriptor instead.
 func (*CreatePipelineGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{27}
+	return file_gateway_client_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CreatePipelineGatewayRequest) GetPipeline() *pipeline.PipelineConfig {
@@ -1386,7 +1341,7 @@ type UpdatePipelineGatewayRequest struct {
 
 func (x *UpdatePipelineGatewayRequest) Reset() {
 	*x = UpdatePipelineGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[28]
+	mi := &file_gateway_client_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1398,7 +1353,7 @@ func (x *UpdatePipelineGatewayRequest) String() string {
 func (*UpdatePipelineGatewayRequest) ProtoMessage() {}
 
 func (x *UpdatePipelineGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[28]
+	mi := &file_gateway_client_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1411,7 +1366,7 @@ func (x *UpdatePipelineGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePipelineGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePipelineGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{28}
+	return file_gateway_client_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *UpdatePipelineGatewayRequest) GetId() string {
@@ -1441,7 +1396,7 @@ type ListPipelineRunsGatewayRequest struct {
 
 func (x *ListPipelineRunsGatewayRequest) Reset() {
 	*x = ListPipelineRunsGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[29]
+	mi := &file_gateway_client_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1453,7 +1408,7 @@ func (x *ListPipelineRunsGatewayRequest) String() string {
 func (*ListPipelineRunsGatewayRequest) ProtoMessage() {}
 
 func (x *ListPipelineRunsGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[29]
+	mi := &file_gateway_client_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1466,7 +1421,7 @@ func (x *ListPipelineRunsGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPipelineRunsGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ListPipelineRunsGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{29}
+	return file_gateway_client_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListPipelineRunsGatewayRequest) GetId() string {
@@ -1514,7 +1469,7 @@ type ListPipelineRunsGatewayResponse struct {
 
 func (x *ListPipelineRunsGatewayResponse) Reset() {
 	*x = ListPipelineRunsGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[30]
+	mi := &file_gateway_client_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1526,7 +1481,7 @@ func (x *ListPipelineRunsGatewayResponse) String() string {
 func (*ListPipelineRunsGatewayResponse) ProtoMessage() {}
 
 func (x *ListPipelineRunsGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[30]
+	mi := &file_gateway_client_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1539,7 +1494,7 @@ func (x *ListPipelineRunsGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPipelineRunsGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ListPipelineRunsGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{30}
+	return file_gateway_client_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListPipelineRunsGatewayResponse) GetRuns() []*pipeline.PipelineRun {
@@ -1566,7 +1521,7 @@ type GetPipelineRunGatewayRequest struct {
 
 func (x *GetPipelineRunGatewayRequest) Reset() {
 	*x = GetPipelineRunGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[31]
+	mi := &file_gateway_client_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1578,7 +1533,7 @@ func (x *GetPipelineRunGatewayRequest) String() string {
 func (*GetPipelineRunGatewayRequest) ProtoMessage() {}
 
 func (x *GetPipelineRunGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[31]
+	mi := &file_gateway_client_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1591,7 +1546,7 @@ func (x *GetPipelineRunGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPipelineRunGatewayRequest.ProtoReflect.Descriptor instead.
 func (*GetPipelineRunGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{31}
+	return file_gateway_client_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetPipelineRunGatewayRequest) GetId() string {
@@ -1621,7 +1576,7 @@ type SourceActivityItemGateway struct {
 
 func (x *SourceActivityItemGateway) Reset() {
 	*x = SourceActivityItemGateway{}
-	mi := &file_gateway_client_proto_msgTypes[32]
+	mi := &file_gateway_client_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1633,7 +1588,7 @@ func (x *SourceActivityItemGateway) String() string {
 func (*SourceActivityItemGateway) ProtoMessage() {}
 
 func (x *SourceActivityItemGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[32]
+	mi := &file_gateway_client_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1646,7 +1601,7 @@ func (x *SourceActivityItemGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceActivityItemGateway.ProtoReflect.Descriptor instead.
 func (*SourceActivityItemGateway) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{32}
+	return file_gateway_client_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *SourceActivityItemGateway) GetSourceActivityId() string {
@@ -1695,7 +1650,7 @@ type ListSourceActivitiesGatewayRequest struct {
 
 func (x *ListSourceActivitiesGatewayRequest) Reset() {
 	*x = ListSourceActivitiesGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[33]
+	mi := &file_gateway_client_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1707,7 +1662,7 @@ func (x *ListSourceActivitiesGatewayRequest) String() string {
 func (*ListSourceActivitiesGatewayRequest) ProtoMessage() {}
 
 func (x *ListSourceActivitiesGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[33]
+	mi := &file_gateway_client_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1720,7 +1675,7 @@ func (x *ListSourceActivitiesGatewayRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ListSourceActivitiesGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ListSourceActivitiesGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{33}
+	return file_gateway_client_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListSourceActivitiesGatewayRequest) GetId() string {
@@ -1754,7 +1709,7 @@ type ListSourceActivitiesGatewayResponse struct {
 
 func (x *ListSourceActivitiesGatewayResponse) Reset() {
 	*x = ListSourceActivitiesGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[34]
+	mi := &file_gateway_client_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1766,7 +1721,7 @@ func (x *ListSourceActivitiesGatewayResponse) String() string {
 func (*ListSourceActivitiesGatewayResponse) ProtoMessage() {}
 
 func (x *ListSourceActivitiesGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[34]
+	mi := &file_gateway_client_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1779,7 +1734,7 @@ func (x *ListSourceActivitiesGatewayResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ListSourceActivitiesGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ListSourceActivitiesGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{34}
+	return file_gateway_client_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListSourceActivitiesGatewayResponse) GetActivities() []*SourceActivityItemGateway {
@@ -1807,7 +1762,7 @@ type BackfillActivitiesGatewayRequest struct {
 
 func (x *BackfillActivitiesGatewayRequest) Reset() {
 	*x = BackfillActivitiesGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[35]
+	mi := &file_gateway_client_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1819,7 +1774,7 @@ func (x *BackfillActivitiesGatewayRequest) String() string {
 func (*BackfillActivitiesGatewayRequest) ProtoMessage() {}
 
 func (x *BackfillActivitiesGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[35]
+	mi := &file_gateway_client_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1832,7 +1787,7 @@ func (x *BackfillActivitiesGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BackfillActivitiesGatewayRequest.ProtoReflect.Descriptor instead.
 func (*BackfillActivitiesGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{35}
+	return file_gateway_client_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *BackfillActivitiesGatewayRequest) GetId() string {
@@ -1865,7 +1820,7 @@ type BackfillActivitiesGatewayResponse struct {
 
 func (x *BackfillActivitiesGatewayResponse) Reset() {
 	*x = BackfillActivitiesGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[36]
+	mi := &file_gateway_client_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1877,7 +1832,7 @@ func (x *BackfillActivitiesGatewayResponse) String() string {
 func (*BackfillActivitiesGatewayResponse) ProtoMessage() {}
 
 func (x *BackfillActivitiesGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[36]
+	mi := &file_gateway_client_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1890,7 +1845,7 @@ func (x *BackfillActivitiesGatewayResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use BackfillActivitiesGatewayResponse.ProtoReflect.Descriptor instead.
 func (*BackfillActivitiesGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{36}
+	return file_gateway_client_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *BackfillActivitiesGatewayResponse) GetQueuedCount() int32 {
@@ -1910,7 +1865,7 @@ type ListConnectionActivitiesGatewayRequest struct {
 
 func (x *ListConnectionActivitiesGatewayRequest) Reset() {
 	*x = ListConnectionActivitiesGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[37]
+	mi := &file_gateway_client_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1922,7 +1877,7 @@ func (x *ListConnectionActivitiesGatewayRequest) String() string {
 func (*ListConnectionActivitiesGatewayRequest) ProtoMessage() {}
 
 func (x *ListConnectionActivitiesGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[37]
+	mi := &file_gateway_client_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1935,7 +1890,7 @@ func (x *ListConnectionActivitiesGatewayRequest) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use ListConnectionActivitiesGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ListConnectionActivitiesGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{37}
+	return file_gateway_client_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ListConnectionActivitiesGatewayRequest) GetProvider() string {
@@ -1962,7 +1917,7 @@ type BackfillConnectionActivitiesGatewayRequest struct {
 
 func (x *BackfillConnectionActivitiesGatewayRequest) Reset() {
 	*x = BackfillConnectionActivitiesGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[38]
+	mi := &file_gateway_client_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1974,7 +1929,7 @@ func (x *BackfillConnectionActivitiesGatewayRequest) String() string {
 func (*BackfillConnectionActivitiesGatewayRequest) ProtoMessage() {}
 
 func (x *BackfillConnectionActivitiesGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[38]
+	mi := &file_gateway_client_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1987,7 +1942,7 @@ func (x *BackfillConnectionActivitiesGatewayRequest) ProtoReflect() protoreflect
 
 // Deprecated: Use BackfillConnectionActivitiesGatewayRequest.ProtoReflect.Descriptor instead.
 func (*BackfillConnectionActivitiesGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{38}
+	return file_gateway_client_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *BackfillConnectionActivitiesGatewayRequest) GetProvider() string {
@@ -2014,7 +1969,7 @@ type SubmitInputGatewayRequest struct {
 
 func (x *SubmitInputGatewayRequest) Reset() {
 	*x = SubmitInputGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[39]
+	mi := &file_gateway_client_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2026,7 +1981,7 @@ func (x *SubmitInputGatewayRequest) String() string {
 func (*SubmitInputGatewayRequest) ProtoMessage() {}
 
 func (x *SubmitInputGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[39]
+	mi := &file_gateway_client_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2039,7 +1994,7 @@ func (x *SubmitInputGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitInputGatewayRequest.ProtoReflect.Descriptor instead.
 func (*SubmitInputGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{39}
+	return file_gateway_client_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *SubmitInputGatewayRequest) GetInputId() string {
@@ -2065,7 +2020,7 @@ type CancelPipelineGatewayRequest struct {
 
 func (x *CancelPipelineGatewayRequest) Reset() {
 	*x = CancelPipelineGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[40]
+	mi := &file_gateway_client_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2077,7 +2032,7 @@ func (x *CancelPipelineGatewayRequest) String() string {
 func (*CancelPipelineGatewayRequest) ProtoMessage() {}
 
 func (x *CancelPipelineGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[40]
+	mi := &file_gateway_client_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2090,7 +2045,7 @@ func (x *CancelPipelineGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelPipelineGatewayRequest.ProtoReflect.Descriptor instead.
 func (*CancelPipelineGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{40}
+	return file_gateway_client_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *CancelPipelineGatewayRequest) GetInputId() string {
@@ -2109,7 +2064,7 @@ type CancelPipelineRunGatewayRequest struct {
 
 func (x *CancelPipelineRunGatewayRequest) Reset() {
 	*x = CancelPipelineRunGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[41]
+	mi := &file_gateway_client_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2121,7 +2076,7 @@ func (x *CancelPipelineRunGatewayRequest) String() string {
 func (*CancelPipelineRunGatewayRequest) ProtoMessage() {}
 
 func (x *CancelPipelineRunGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[41]
+	mi := &file_gateway_client_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2134,7 +2089,7 @@ func (x *CancelPipelineRunGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelPipelineRunGatewayRequest.ProtoReflect.Descriptor instead.
 func (*CancelPipelineRunGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{41}
+	return file_gateway_client_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *CancelPipelineRunGatewayRequest) GetRunId() string {
@@ -2153,7 +2108,7 @@ type RepostActivityGatewayRequest struct {
 
 func (x *RepostActivityGatewayRequest) Reset() {
 	*x = RepostActivityGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[42]
+	mi := &file_gateway_client_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2165,7 +2120,7 @@ func (x *RepostActivityGatewayRequest) String() string {
 func (*RepostActivityGatewayRequest) ProtoMessage() {}
 
 func (x *RepostActivityGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[42]
+	mi := &file_gateway_client_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2178,7 +2133,7 @@ func (x *RepostActivityGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepostActivityGatewayRequest.ProtoReflect.Descriptor instead.
 func (*RepostActivityGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{42}
+	return file_gateway_client_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *RepostActivityGatewayRequest) GetId() string {
@@ -2206,7 +2161,7 @@ type UpdateActivityGatewayRequest struct {
 
 func (x *UpdateActivityGatewayRequest) Reset() {
 	*x = UpdateActivityGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[43]
+	mi := &file_gateway_client_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2218,7 +2173,7 @@ func (x *UpdateActivityGatewayRequest) String() string {
 func (*UpdateActivityGatewayRequest) ProtoMessage() {}
 
 func (x *UpdateActivityGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[43]
+	mi := &file_gateway_client_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2231,7 +2186,7 @@ func (x *UpdateActivityGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateActivityGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateActivityGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{43}
+	return file_gateway_client_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *UpdateActivityGatewayRequest) GetId() string {
@@ -2287,7 +2242,7 @@ type InvokeEnricherGatewayRequest struct {
 
 func (x *InvokeEnricherGatewayRequest) Reset() {
 	*x = InvokeEnricherGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[44]
+	mi := &file_gateway_client_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2299,7 +2254,7 @@ func (x *InvokeEnricherGatewayRequest) String() string {
 func (*InvokeEnricherGatewayRequest) ProtoMessage() {}
 
 func (x *InvokeEnricherGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[44]
+	mi := &file_gateway_client_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2312,7 +2267,7 @@ func (x *InvokeEnricherGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvokeEnricherGatewayRequest.ProtoReflect.Descriptor instead.
 func (*InvokeEnricherGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{44}
+	return file_gateway_client_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *InvokeEnricherGatewayRequest) GetId() string {
@@ -2340,7 +2295,7 @@ type InvokeEnricherGatewayResponse struct {
 
 func (x *InvokeEnricherGatewayResponse) Reset() {
 	*x = InvokeEnricherGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[45]
+	mi := &file_gateway_client_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2352,7 +2307,7 @@ func (x *InvokeEnricherGatewayResponse) String() string {
 func (*InvokeEnricherGatewayResponse) ProtoMessage() {}
 
 func (x *InvokeEnricherGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[45]
+	mi := &file_gateway_client_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2365,7 +2320,7 @@ func (x *InvokeEnricherGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InvokeEnricherGatewayResponse.ProtoReflect.Descriptor instead.
 func (*InvokeEnricherGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{45}
+	return file_gateway_client_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *InvokeEnricherGatewayResponse) GetProposed() *activity.EnricherRunLayer {
@@ -2399,7 +2354,7 @@ type ProposedEnricherRunGatewayRequest struct {
 
 func (x *ProposedEnricherRunGatewayRequest) Reset() {
 	*x = ProposedEnricherRunGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[46]
+	mi := &file_gateway_client_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2411,7 +2366,7 @@ func (x *ProposedEnricherRunGatewayRequest) String() string {
 func (*ProposedEnricherRunGatewayRequest) ProtoMessage() {}
 
 func (x *ProposedEnricherRunGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[46]
+	mi := &file_gateway_client_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2424,7 +2379,7 @@ func (x *ProposedEnricherRunGatewayRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ProposedEnricherRunGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ProposedEnricherRunGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{46}
+	return file_gateway_client_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ProposedEnricherRunGatewayRequest) GetId() string {
@@ -2452,7 +2407,7 @@ type ListActivitiesGatewayRequest struct {
 
 func (x *ListActivitiesGatewayRequest) Reset() {
 	*x = ListActivitiesGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[47]
+	mi := &file_gateway_client_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2464,7 +2419,7 @@ func (x *ListActivitiesGatewayRequest) String() string {
 func (*ListActivitiesGatewayRequest) ProtoMessage() {}
 
 func (x *ListActivitiesGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[47]
+	mi := &file_gateway_client_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2477,7 +2432,7 @@ func (x *ListActivitiesGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListActivitiesGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ListActivitiesGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{47}
+	return file_gateway_client_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ListActivitiesGatewayRequest) GetLimit() int32 {
@@ -2504,7 +2459,7 @@ type ListActivitiesGatewayResponse struct {
 
 func (x *ListActivitiesGatewayResponse) Reset() {
 	*x = ListActivitiesGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[48]
+	mi := &file_gateway_client_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2516,7 +2471,7 @@ func (x *ListActivitiesGatewayResponse) String() string {
 func (*ListActivitiesGatewayResponse) ProtoMessage() {}
 
 func (x *ListActivitiesGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[48]
+	mi := &file_gateway_client_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2529,7 +2484,7 @@ func (x *ListActivitiesGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListActivitiesGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ListActivitiesGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{48}
+	return file_gateway_client_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ListActivitiesGatewayResponse) GetActivities() []*activity.StandardizedActivity {
@@ -2556,7 +2511,7 @@ type ListResolvedActivitiesGatewayRequest struct {
 
 func (x *ListResolvedActivitiesGatewayRequest) Reset() {
 	*x = ListResolvedActivitiesGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[49]
+	mi := &file_gateway_client_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2568,7 +2523,7 @@ func (x *ListResolvedActivitiesGatewayRequest) String() string {
 func (*ListResolvedActivitiesGatewayRequest) ProtoMessage() {}
 
 func (x *ListResolvedActivitiesGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[49]
+	mi := &file_gateway_client_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2581,7 +2536,7 @@ func (x *ListResolvedActivitiesGatewayRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ListResolvedActivitiesGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ListResolvedActivitiesGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{49}
+	return file_gateway_client_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ListResolvedActivitiesGatewayRequest) GetLimit() int32 {
@@ -2608,7 +2563,7 @@ type ListResolvedActivitiesGatewayResponse struct {
 
 func (x *ListResolvedActivitiesGatewayResponse) Reset() {
 	*x = ListResolvedActivitiesGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[50]
+	mi := &file_gateway_client_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2620,7 +2575,7 @@ func (x *ListResolvedActivitiesGatewayResponse) String() string {
 func (*ListResolvedActivitiesGatewayResponse) ProtoMessage() {}
 
 func (x *ListResolvedActivitiesGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[50]
+	mi := &file_gateway_client_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2633,7 +2588,7 @@ func (x *ListResolvedActivitiesGatewayResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use ListResolvedActivitiesGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ListResolvedActivitiesGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{50}
+	return file_gateway_client_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ListResolvedActivitiesGatewayResponse) GetActivities() []*activity.ResolvedActivity {
@@ -2667,7 +2622,7 @@ type GetActivityStatsGatewayResponse struct {
 
 func (x *GetActivityStatsGatewayResponse) Reset() {
 	*x = GetActivityStatsGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[51]
+	mi := &file_gateway_client_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2679,7 +2634,7 @@ func (x *GetActivityStatsGatewayResponse) String() string {
 func (*GetActivityStatsGatewayResponse) ProtoMessage() {}
 
 func (x *GetActivityStatsGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[51]
+	mi := &file_gateway_client_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2692,7 +2647,7 @@ func (x *GetActivityStatsGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetActivityStatsGatewayResponse.ProtoReflect.Descriptor instead.
 func (*GetActivityStatsGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{51}
+	return file_gateway_client_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *GetActivityStatsGatewayResponse) GetTotalActivities() int32 {
@@ -2768,7 +2723,7 @@ type ListShowcasesGatewayResponse struct {
 
 func (x *ListShowcasesGatewayResponse) Reset() {
 	*x = ListShowcasesGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[52]
+	mi := &file_gateway_client_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2780,7 +2735,7 @@ func (x *ListShowcasesGatewayResponse) String() string {
 func (*ListShowcasesGatewayResponse) ProtoMessage() {}
 
 func (x *ListShowcasesGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[52]
+	mi := &file_gateway_client_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2793,7 +2748,7 @@ func (x *ListShowcasesGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListShowcasesGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ListShowcasesGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{52}
+	return file_gateway_client_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *ListShowcasesGatewayResponse) GetShowcases() []*activity.ShowcaseProfileEntry {
@@ -2812,7 +2767,7 @@ type CreateShowcaseGatewayRequest struct {
 
 func (x *CreateShowcaseGatewayRequest) Reset() {
 	*x = CreateShowcaseGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[53]
+	mi := &file_gateway_client_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2824,7 +2779,7 @@ func (x *CreateShowcaseGatewayRequest) String() string {
 func (*CreateShowcaseGatewayRequest) ProtoMessage() {}
 
 func (x *CreateShowcaseGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[53]
+	mi := &file_gateway_client_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2837,7 +2792,7 @@ func (x *CreateShowcaseGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateShowcaseGatewayRequest.ProtoReflect.Descriptor instead.
 func (*CreateShowcaseGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{53}
+	return file_gateway_client_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *CreateShowcaseGatewayRequest) GetShowcase() *activity.ShowcasedActivity {
@@ -2857,7 +2812,7 @@ type UpdateShowcaseGatewayRequest struct {
 
 func (x *UpdateShowcaseGatewayRequest) Reset() {
 	*x = UpdateShowcaseGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[54]
+	mi := &file_gateway_client_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2869,7 +2824,7 @@ func (x *UpdateShowcaseGatewayRequest) String() string {
 func (*UpdateShowcaseGatewayRequest) ProtoMessage() {}
 
 func (x *UpdateShowcaseGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[54]
+	mi := &file_gateway_client_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2882,7 +2837,7 @@ func (x *UpdateShowcaseGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateShowcaseGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateShowcaseGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{54}
+	return file_gateway_client_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *UpdateShowcaseGatewayRequest) GetId() string {
@@ -2909,7 +2864,7 @@ type UpdateShowcasePreferencesGatewayRequest struct {
 
 func (x *UpdateShowcasePreferencesGatewayRequest) Reset() {
 	*x = UpdateShowcasePreferencesGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[55]
+	mi := &file_gateway_client_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2921,7 +2876,7 @@ func (x *UpdateShowcasePreferencesGatewayRequest) String() string {
 func (*UpdateShowcasePreferencesGatewayRequest) ProtoMessage() {}
 
 func (x *UpdateShowcasePreferencesGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[55]
+	mi := &file_gateway_client_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2934,7 +2889,7 @@ func (x *UpdateShowcasePreferencesGatewayRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use UpdateShowcasePreferencesGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateShowcasePreferencesGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{55}
+	return file_gateway_client_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *UpdateShowcasePreferencesGatewayRequest) GetPreferences() *activity.ShowcaseProfile {
@@ -2954,7 +2909,7 @@ type GetShowcaseSettingsGatewayResponse struct {
 
 func (x *GetShowcaseSettingsGatewayResponse) Reset() {
 	*x = GetShowcaseSettingsGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[56]
+	mi := &file_gateway_client_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2966,7 +2921,7 @@ func (x *GetShowcaseSettingsGatewayResponse) String() string {
 func (*GetShowcaseSettingsGatewayResponse) ProtoMessage() {}
 
 func (x *GetShowcaseSettingsGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[56]
+	mi := &file_gateway_client_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2979,7 +2934,7 @@ func (x *GetShowcaseSettingsGatewayResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetShowcaseSettingsGatewayResponse.ProtoReflect.Descriptor instead.
 func (*GetShowcaseSettingsGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{56}
+	return file_gateway_client_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *GetShowcaseSettingsGatewayResponse) GetProfile() *activity.ShowcaseProfile {
@@ -3011,7 +2966,7 @@ type ShowcaseActivityEntryGateway struct {
 
 func (x *ShowcaseActivityEntryGateway) Reset() {
 	*x = ShowcaseActivityEntryGateway{}
-	mi := &file_gateway_client_proto_msgTypes[57]
+	mi := &file_gateway_client_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3023,7 +2978,7 @@ func (x *ShowcaseActivityEntryGateway) String() string {
 func (*ShowcaseActivityEntryGateway) ProtoMessage() {}
 
 func (x *ShowcaseActivityEntryGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[57]
+	mi := &file_gateway_client_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3036,7 +2991,7 @@ func (x *ShowcaseActivityEntryGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShowcaseActivityEntryGateway.ProtoReflect.Descriptor instead.
 func (*ShowcaseActivityEntryGateway) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{57}
+	return file_gateway_client_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ShowcaseActivityEntryGateway) GetShowcaseId() string {
@@ -3097,7 +3052,7 @@ type UpdateShowcaseSettingsGatewayRequest struct {
 
 func (x *UpdateShowcaseSettingsGatewayRequest) Reset() {
 	*x = UpdateShowcaseSettingsGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[58]
+	mi := &file_gateway_client_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3109,7 +3064,7 @@ func (x *UpdateShowcaseSettingsGatewayRequest) String() string {
 func (*UpdateShowcaseSettingsGatewayRequest) ProtoMessage() {}
 
 func (x *UpdateShowcaseSettingsGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[58]
+	mi := &file_gateway_client_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3122,7 +3077,7 @@ func (x *UpdateShowcaseSettingsGatewayRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use UpdateShowcaseSettingsGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateShowcaseSettingsGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{58}
+	return file_gateway_client_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *UpdateShowcaseSettingsGatewayRequest) GetSettings() *activity.ShowcaseProfile {
@@ -3141,7 +3096,7 @@ type UpdateShowcaseSlugGatewayRequest struct {
 
 func (x *UpdateShowcaseSlugGatewayRequest) Reset() {
 	*x = UpdateShowcaseSlugGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[59]
+	mi := &file_gateway_client_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3153,7 +3108,7 @@ func (x *UpdateShowcaseSlugGatewayRequest) String() string {
 func (*UpdateShowcaseSlugGatewayRequest) ProtoMessage() {}
 
 func (x *UpdateShowcaseSlugGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[59]
+	mi := &file_gateway_client_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3166,7 +3121,7 @@ func (x *UpdateShowcaseSlugGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateShowcaseSlugGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateShowcaseSlugGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{59}
+	return file_gateway_client_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *UpdateShowcaseSlugGatewayRequest) GetSlug() string {
@@ -3185,7 +3140,7 @@ type UpdateRoundupSettingsGatewayRequest struct {
 
 func (x *UpdateRoundupSettingsGatewayRequest) Reset() {
 	*x = UpdateRoundupSettingsGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[60]
+	mi := &file_gateway_client_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3197,7 +3152,7 @@ func (x *UpdateRoundupSettingsGatewayRequest) String() string {
 func (*UpdateRoundupSettingsGatewayRequest) ProtoMessage() {}
 
 func (x *UpdateRoundupSettingsGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[60]
+	mi := &file_gateway_client_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3210,7 +3165,7 @@ func (x *UpdateRoundupSettingsGatewayRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use UpdateRoundupSettingsGatewayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRoundupSettingsGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{60}
+	return file_gateway_client_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *UpdateRoundupSettingsGatewayRequest) GetSettings() *activity.RoundupSettings {
@@ -3229,7 +3184,7 @@ type RecomputeRoundupGatewayRequest struct {
 
 func (x *RecomputeRoundupGatewayRequest) Reset() {
 	*x = RecomputeRoundupGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[61]
+	mi := &file_gateway_client_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3241,7 +3196,7 @@ func (x *RecomputeRoundupGatewayRequest) String() string {
 func (*RecomputeRoundupGatewayRequest) ProtoMessage() {}
 
 func (x *RecomputeRoundupGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[61]
+	mi := &file_gateway_client_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3254,130 +3209,10 @@ func (x *RecomputeRoundupGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecomputeRoundupGatewayRequest.ProtoReflect.Descriptor instead.
 func (*RecomputeRoundupGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{61}
+	return file_gateway_client_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *RecomputeRoundupGatewayRequest) GetPeriodKey() string {
-	if x != nil {
-		return x.PeriodKey
-	}
-	return ""
-}
-
-type ListShowcaseViewStatsGatewayResponse struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	Profile       *activity.ShowcaseViewStats   `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
-	Showcases     []*activity.ShowcaseViewStats `protobuf:"bytes,2,rep,name=showcases,proto3" json:"showcases,omitempty"`
-	TotalViews    int64                         `protobuf:"varint,3,opt,name=total_views,json=totalViews,proto3" json:"total_views,omitempty"`
-	TotalVisitors int64                         `protobuf:"varint,4,opt,name=total_visitors,json=totalVisitors,proto3" json:"total_visitors,omitempty"`
-	Roundups      []*activity.ShowcaseViewStats `protobuf:"bytes,5,rep,name=roundups,proto3" json:"roundups,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListShowcaseViewStatsGatewayResponse) Reset() {
-	*x = ListShowcaseViewStatsGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[62]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListShowcaseViewStatsGatewayResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListShowcaseViewStatsGatewayResponse) ProtoMessage() {}
-
-func (x *ListShowcaseViewStatsGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[62]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListShowcaseViewStatsGatewayResponse.ProtoReflect.Descriptor instead.
-func (*ListShowcaseViewStatsGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{62}
-}
-
-func (x *ListShowcaseViewStatsGatewayResponse) GetProfile() *activity.ShowcaseViewStats {
-	if x != nil {
-		return x.Profile
-	}
-	return nil
-}
-
-func (x *ListShowcaseViewStatsGatewayResponse) GetShowcases() []*activity.ShowcaseViewStats {
-	if x != nil {
-		return x.Showcases
-	}
-	return nil
-}
-
-func (x *ListShowcaseViewStatsGatewayResponse) GetTotalViews() int64 {
-	if x != nil {
-		return x.TotalViews
-	}
-	return 0
-}
-
-func (x *ListShowcaseViewStatsGatewayResponse) GetTotalVisitors() int64 {
-	if x != nil {
-		return x.TotalVisitors
-	}
-	return 0
-}
-
-func (x *ListShowcaseViewStatsGatewayResponse) GetRoundups() []*activity.ShowcaseViewStats {
-	if x != nil {
-		return x.Roundups
-	}
-	return nil
-}
-
-type GetShowcaseRoundupViewStatsGatewayRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PeriodKey     string                 `protobuf:"bytes,1,opt,name=period_key,json=periodKey,proto3" json:"period_key,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetShowcaseRoundupViewStatsGatewayRequest) Reset() {
-	*x = GetShowcaseRoundupViewStatsGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[63]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetShowcaseRoundupViewStatsGatewayRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetShowcaseRoundupViewStatsGatewayRequest) ProtoMessage() {}
-
-func (x *GetShowcaseRoundupViewStatsGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[63]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetShowcaseRoundupViewStatsGatewayRequest.ProtoReflect.Descriptor instead.
-func (*GetShowcaseRoundupViewStatsGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{63}
-}
-
-func (x *GetShowcaseRoundupViewStatsGatewayRequest) GetPeriodKey() string {
 	if x != nil {
 		return x.PeriodKey
 	}
@@ -3393,7 +3228,7 @@ type UpdateShowcaseSlugGatewayResponse struct {
 
 func (x *UpdateShowcaseSlugGatewayResponse) Reset() {
 	*x = UpdateShowcaseSlugGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[64]
+	mi := &file_gateway_client_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3405,7 +3240,7 @@ func (x *UpdateShowcaseSlugGatewayResponse) String() string {
 func (*UpdateShowcaseSlugGatewayResponse) ProtoMessage() {}
 
 func (x *UpdateShowcaseSlugGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[64]
+	mi := &file_gateway_client_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3418,7 +3253,7 @@ func (x *UpdateShowcaseSlugGatewayResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use UpdateShowcaseSlugGatewayResponse.ProtoReflect.Descriptor instead.
 func (*UpdateShowcaseSlugGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{64}
+	return file_gateway_client_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *UpdateShowcaseSlugGatewayResponse) GetSlug() string {
@@ -3437,7 +3272,7 @@ type GetPictureUploadUrlGatewayRequest struct {
 
 func (x *GetPictureUploadUrlGatewayRequest) Reset() {
 	*x = GetPictureUploadUrlGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[65]
+	mi := &file_gateway_client_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3449,7 +3284,7 @@ func (x *GetPictureUploadUrlGatewayRequest) String() string {
 func (*GetPictureUploadUrlGatewayRequest) ProtoMessage() {}
 
 func (x *GetPictureUploadUrlGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[65]
+	mi := &file_gateway_client_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3462,7 +3297,7 @@ func (x *GetPictureUploadUrlGatewayRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetPictureUploadUrlGatewayRequest.ProtoReflect.Descriptor instead.
 func (*GetPictureUploadUrlGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{65}
+	return file_gateway_client_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *GetPictureUploadUrlGatewayRequest) GetContentType() string {
@@ -3484,7 +3319,7 @@ type GetPictureUploadUrlGatewayResponse struct {
 
 func (x *GetPictureUploadUrlGatewayResponse) Reset() {
 	*x = GetPictureUploadUrlGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[66]
+	mi := &file_gateway_client_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3496,7 +3331,7 @@ func (x *GetPictureUploadUrlGatewayResponse) String() string {
 func (*GetPictureUploadUrlGatewayResponse) ProtoMessage() {}
 
 func (x *GetPictureUploadUrlGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[66]
+	mi := &file_gateway_client_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3509,7 +3344,7 @@ func (x *GetPictureUploadUrlGatewayResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetPictureUploadUrlGatewayResponse.ProtoReflect.Descriptor instead.
 func (*GetPictureUploadUrlGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{66}
+	return file_gateway_client_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *GetPictureUploadUrlGatewayResponse) GetUploadUrl() string {
@@ -3551,7 +3386,7 @@ type GetActivityPhotoUploadUrlGatewayRequest struct {
 
 func (x *GetActivityPhotoUploadUrlGatewayRequest) Reset() {
 	*x = GetActivityPhotoUploadUrlGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[67]
+	mi := &file_gateway_client_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3563,7 +3398,7 @@ func (x *GetActivityPhotoUploadUrlGatewayRequest) String() string {
 func (*GetActivityPhotoUploadUrlGatewayRequest) ProtoMessage() {}
 
 func (x *GetActivityPhotoUploadUrlGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[67]
+	mi := &file_gateway_client_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3576,7 +3411,7 @@ func (x *GetActivityPhotoUploadUrlGatewayRequest) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use GetActivityPhotoUploadUrlGatewayRequest.ProtoReflect.Descriptor instead.
 func (*GetActivityPhotoUploadUrlGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{67}
+	return file_gateway_client_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *GetActivityPhotoUploadUrlGatewayRequest) GetActivityId() string {
@@ -3612,7 +3447,7 @@ type GetActivityPhotoUploadUrlGatewayResponse struct {
 
 func (x *GetActivityPhotoUploadUrlGatewayResponse) Reset() {
 	*x = GetActivityPhotoUploadUrlGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[68]
+	mi := &file_gateway_client_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3624,7 +3459,7 @@ func (x *GetActivityPhotoUploadUrlGatewayResponse) String() string {
 func (*GetActivityPhotoUploadUrlGatewayResponse) ProtoMessage() {}
 
 func (x *GetActivityPhotoUploadUrlGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[68]
+	mi := &file_gateway_client_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3637,7 +3472,7 @@ func (x *GetActivityPhotoUploadUrlGatewayResponse) ProtoReflect() protoreflect.M
 
 // Deprecated: Use GetActivityPhotoUploadUrlGatewayResponse.ProtoReflect.Descriptor instead.
 func (*GetActivityPhotoUploadUrlGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{68}
+	return file_gateway_client_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *GetActivityPhotoUploadUrlGatewayResponse) GetUploadUrl() string {
@@ -3677,7 +3512,7 @@ type ExportPipelineRunGatewayRequest struct {
 
 func (x *ExportPipelineRunGatewayRequest) Reset() {
 	*x = ExportPipelineRunGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[69]
+	mi := &file_gateway_client_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3689,7 +3524,7 @@ func (x *ExportPipelineRunGatewayRequest) String() string {
 func (*ExportPipelineRunGatewayRequest) ProtoMessage() {}
 
 func (x *ExportPipelineRunGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[69]
+	mi := &file_gateway_client_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3702,7 +3537,7 @@ func (x *ExportPipelineRunGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportPipelineRunGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ExportPipelineRunGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{69}
+	return file_gateway_client_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *ExportPipelineRunGatewayRequest) GetRunId() string {
@@ -3723,7 +3558,7 @@ type ExportPipelineRunGatewayResponse struct {
 
 func (x *ExportPipelineRunGatewayResponse) Reset() {
 	*x = ExportPipelineRunGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[70]
+	mi := &file_gateway_client_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3735,7 +3570,7 @@ func (x *ExportPipelineRunGatewayResponse) String() string {
 func (*ExportPipelineRunGatewayResponse) ProtoMessage() {}
 
 func (x *ExportPipelineRunGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[70]
+	mi := &file_gateway_client_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3748,7 +3583,7 @@ func (x *ExportPipelineRunGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportPipelineRunGatewayResponse.ProtoReflect.Descriptor instead.
 func (*ExportPipelineRunGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{70}
+	return file_gateway_client_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *ExportPipelineRunGatewayResponse) GetDownloadUrl() string {
@@ -3785,7 +3620,7 @@ type ParseFitFileGatewayRequest struct {
 
 func (x *ParseFitFileGatewayRequest) Reset() {
 	*x = ParseFitFileGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[71]
+	mi := &file_gateway_client_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3797,7 +3632,7 @@ func (x *ParseFitFileGatewayRequest) String() string {
 func (*ParseFitFileGatewayRequest) ProtoMessage() {}
 
 func (x *ParseFitFileGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[71]
+	mi := &file_gateway_client_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3810,7 +3645,7 @@ func (x *ParseFitFileGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ParseFitFileGatewayRequest.ProtoReflect.Descriptor instead.
 func (*ParseFitFileGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{71}
+	return file_gateway_client_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *ParseFitFileGatewayRequest) GetFitFileContent() []byte {
@@ -3851,7 +3686,7 @@ type GetExerciseLibraryGatewayRequest struct {
 
 func (x *GetExerciseLibraryGatewayRequest) Reset() {
 	*x = GetExerciseLibraryGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[72]
+	mi := &file_gateway_client_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3863,7 +3698,7 @@ func (x *GetExerciseLibraryGatewayRequest) String() string {
 func (*GetExerciseLibraryGatewayRequest) ProtoMessage() {}
 
 func (x *GetExerciseLibraryGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[72]
+	mi := &file_gateway_client_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3876,7 +3711,7 @@ func (x *GetExerciseLibraryGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetExerciseLibraryGatewayRequest.ProtoReflect.Descriptor instead.
 func (*GetExerciseLibraryGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{72}
+	return file_gateway_client_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *GetExerciseLibraryGatewayRequest) GetQ() string {
@@ -3898,7 +3733,7 @@ type ExerciseLibraryEntry struct {
 
 func (x *ExerciseLibraryEntry) Reset() {
 	*x = ExerciseLibraryEntry{}
-	mi := &file_gateway_client_proto_msgTypes[73]
+	mi := &file_gateway_client_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3910,7 +3745,7 @@ func (x *ExerciseLibraryEntry) String() string {
 func (*ExerciseLibraryEntry) ProtoMessage() {}
 
 func (x *ExerciseLibraryEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[73]
+	mi := &file_gateway_client_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3923,7 +3758,7 @@ func (x *ExerciseLibraryEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExerciseLibraryEntry.ProtoReflect.Descriptor instead.
 func (*ExerciseLibraryEntry) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{73}
+	return file_gateway_client_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *ExerciseLibraryEntry) GetName() string {
@@ -3963,7 +3798,7 @@ type GetExerciseLibraryGatewayResponse struct {
 
 func (x *GetExerciseLibraryGatewayResponse) Reset() {
 	*x = GetExerciseLibraryGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[74]
+	mi := &file_gateway_client_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3975,7 +3810,7 @@ func (x *GetExerciseLibraryGatewayResponse) String() string {
 func (*GetExerciseLibraryGatewayResponse) ProtoMessage() {}
 
 func (x *GetExerciseLibraryGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[74]
+	mi := &file_gateway_client_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3988,7 +3823,7 @@ func (x *GetExerciseLibraryGatewayResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetExerciseLibraryGatewayResponse.ProtoReflect.Descriptor instead.
 func (*GetExerciseLibraryGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{74}
+	return file_gateway_client_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *GetExerciseLibraryGatewayResponse) GetExercises() []*ExerciseLibraryEntry {
@@ -4009,7 +3844,7 @@ type RepostVariantGatewayRequest struct {
 
 func (x *RepostVariantGatewayRequest) Reset() {
 	*x = RepostVariantGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[75]
+	mi := &file_gateway_client_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4021,7 +3856,7 @@ func (x *RepostVariantGatewayRequest) String() string {
 func (*RepostVariantGatewayRequest) ProtoMessage() {}
 
 func (x *RepostVariantGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[75]
+	mi := &file_gateway_client_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4034,7 +3869,7 @@ func (x *RepostVariantGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepostVariantGatewayRequest.ProtoReflect.Descriptor instead.
 func (*RepostVariantGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{75}
+	return file_gateway_client_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *RepostVariantGatewayRequest) GetActivityId() string {
@@ -4061,7 +3896,7 @@ type RepostGatewayResponse struct {
 
 func (x *RepostGatewayResponse) Reset() {
 	*x = RepostGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[76]
+	mi := &file_gateway_client_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4073,7 +3908,7 @@ func (x *RepostGatewayResponse) String() string {
 func (*RepostGatewayResponse) ProtoMessage() {}
 
 func (x *RepostGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[76]
+	mi := &file_gateway_client_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4086,7 +3921,7 @@ func (x *RepostGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepostGatewayResponse.ProtoReflect.Descriptor instead.
 func (*RepostGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{76}
+	return file_gateway_client_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *RepostGatewayResponse) GetSuccess() bool {
@@ -4113,7 +3948,7 @@ type GetPipelineRunPayloadGatewayRequest struct {
 
 func (x *GetPipelineRunPayloadGatewayRequest) Reset() {
 	*x = GetPipelineRunPayloadGatewayRequest{}
-	mi := &file_gateway_client_proto_msgTypes[77]
+	mi := &file_gateway_client_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4125,7 +3960,7 @@ func (x *GetPipelineRunPayloadGatewayRequest) String() string {
 func (*GetPipelineRunPayloadGatewayRequest) ProtoMessage() {}
 
 func (x *GetPipelineRunPayloadGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[77]
+	mi := &file_gateway_client_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4138,7 +3973,7 @@ func (x *GetPipelineRunPayloadGatewayRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use GetPipelineRunPayloadGatewayRequest.ProtoReflect.Descriptor instead.
 func (*GetPipelineRunPayloadGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{77}
+	return file_gateway_client_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *GetPipelineRunPayloadGatewayRequest) GetRunId() string {
@@ -4167,7 +4002,7 @@ type GetPipelineRunPayloadGatewayResponse struct {
 
 func (x *GetPipelineRunPayloadGatewayResponse) Reset() {
 	*x = GetPipelineRunPayloadGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[78]
+	mi := &file_gateway_client_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4179,7 +4014,7 @@ func (x *GetPipelineRunPayloadGatewayResponse) String() string {
 func (*GetPipelineRunPayloadGatewayResponse) ProtoMessage() {}
 
 func (x *GetPipelineRunPayloadGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[78]
+	mi := &file_gateway_client_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4192,7 +4027,7 @@ func (x *GetPipelineRunPayloadGatewayResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetPipelineRunPayloadGatewayResponse.ProtoReflect.Descriptor instead.
 func (*GetPipelineRunPayloadGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{78}
+	return file_gateway_client_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *GetPipelineRunPayloadGatewayResponse) GetDownloadUrl() string {
@@ -4223,152 +4058,11 @@ func (x *GetPipelineRunPayloadGatewayResponse) GetExpiresAt() *timestamppb.Times
 	return nil
 }
 
-// Registry
-type GetPluginIconGatewayResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IconData      []byte                 `protobuf:"bytes,1,opt,name=icon_data,json=iconData,proto3" json:"icon_data,omitempty"`
-	ContentType   string                 `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetPluginIconGatewayResponse) Reset() {
-	*x = GetPluginIconGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[79]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetPluginIconGatewayResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetPluginIconGatewayResponse) ProtoMessage() {}
-
-func (x *GetPluginIconGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[79]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetPluginIconGatewayResponse.ProtoReflect.Descriptor instead.
-func (*GetPluginIconGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{79}
-}
-
-func (x *GetPluginIconGatewayResponse) GetIconData() []byte {
-	if x != nil {
-		return x.IconData
-	}
-	return nil
-}
-
-func (x *GetPluginIconGatewayResponse) GetContentType() string {
-	if x != nil {
-		return x.ContentType
-	}
-	return ""
-}
-
-type ListCategoriesGatewayResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Categories    []string               `protobuf:"bytes,1,rep,name=categories,proto3" json:"categories,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListCategoriesGatewayResponse) Reset() {
-	*x = ListCategoriesGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[80]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListCategoriesGatewayResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListCategoriesGatewayResponse) ProtoMessage() {}
-
-func (x *ListCategoriesGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[80]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListCategoriesGatewayResponse.ProtoReflect.Descriptor instead.
-func (*ListCategoriesGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{80}
-}
-
-func (x *ListCategoriesGatewayResponse) GetCategories() []string {
-	if x != nil {
-		return x.Categories
-	}
-	return nil
-}
-
-type ListSourcesGatewayResponse struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Sources       []*plugin.PluginManifest `protobuf:"bytes,1,rep,name=sources,proto3" json:"sources,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListSourcesGatewayResponse) Reset() {
-	*x = ListSourcesGatewayResponse{}
-	mi := &file_gateway_client_proto_msgTypes[81]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListSourcesGatewayResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListSourcesGatewayResponse) ProtoMessage() {}
-
-func (x *ListSourcesGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_client_proto_msgTypes[81]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListSourcesGatewayResponse.ProtoReflect.Descriptor instead.
-func (*ListSourcesGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_client_proto_rawDescGZIP(), []int{81}
-}
-
-func (x *ListSourcesGatewayResponse) GetSources() []*plugin.PluginManifest {
-	if x != nil {
-		return x.Sources
-	}
-	return nil
-}
-
 var File_gateway_client_proto protoreflect.FileDescriptor
 
 const file_gateway_client_proto_rawDesc = "" +
 	"\n" +
-	"\x14gateway/client.proto\x12\x0ffitglue.gateway\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x19models/user/profile.proto\x1a\x1dmodels/user/integration.proto\x1a\x1cmodels/plugin/manifest.proto\x1a\x1cmodels/pipeline/config.proto\x1a\x1fmodels/pipeline/execution.proto\x1a\x1dmodels/activity/roundup.proto\x1a\x1cmodels/activity/source.proto\x1a\"models/activity/standardized.proto\x1a\x1cmodels/activity/record.proto\x1a\x1emodels/activity/uploaded.proto\"\x0e\n" +
+	"\x14gateway/client.proto\x12\x0ffitglue.gateway\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x19models/user/profile.proto\x1a\x1dmodels/user/integration.proto\x1a\x1cmodels/pipeline/config.proto\x1a\x1fmodels/pipeline/execution.proto\x1a\x1dmodels/activity/roundup.proto\x1a\x1cmodels/activity/source.proto\x1a\"models/activity/standardized.proto\x1a\x1cmodels/activity/record.proto\x1a\x1emodels/activity/uploaded.proto\"\x0e\n" +
 	"\fEmptyRequest\"-\n" +
 	"\x0fProviderRequest\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\"#\n" +
@@ -4379,9 +4073,7 @@ const file_gateway_client_proto_rawDesc = "" +
 	"\x11ShowcaseIdRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\".\n" +
 	"\x0fPluginIdRequest\x12\x1b\n" +
-	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\"%\n" +
-	"\x13PluginIdPathRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"1\n" +
+	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\"1\n" +
 	"\x10BoosterIdRequest\x12\x1d\n" +
 	"\n" +
 	"booster_id\x18\x01 \x01(\tR\tboosterId\"4\n" +
@@ -4586,16 +4278,6 @@ const file_gateway_client_proto_rawDesc = "" +
 	"\bsettings\x18\x01 \x01(\v2(.fitglue.models.activity.RoundupSettingsR\bsettings\"?\n" +
 	"\x1eRecomputeRoundupGatewayRequest\x12\x1d\n" +
 	"\n" +
-	"period_key\x18\x01 \x01(\tR\tperiodKey\"\xc6\x02\n" +
-	"$ListShowcaseViewStatsGatewayResponse\x12D\n" +
-	"\aprofile\x18\x01 \x01(\v2*.fitglue.models.activity.ShowcaseViewStatsR\aprofile\x12H\n" +
-	"\tshowcases\x18\x02 \x03(\v2*.fitglue.models.activity.ShowcaseViewStatsR\tshowcases\x12\x1f\n" +
-	"\vtotal_views\x18\x03 \x01(\x03R\n" +
-	"totalViews\x12%\n" +
-	"\x0etotal_visitors\x18\x04 \x01(\x03R\rtotalVisitors\x12F\n" +
-	"\broundups\x18\x05 \x03(\v2*.fitglue.models.activity.ShowcaseViewStatsR\broundups\"J\n" +
-	")GetShowcaseRoundupViewStatsGatewayRequest\x12\x1d\n" +
-	"\n" +
 	"period_key\x18\x01 \x01(\tR\tperiodKey\"7\n" +
 	"!UpdateShowcaseSlugGatewayResponse\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\"F\n" +
@@ -4659,20 +4341,11 @@ const file_gateway_client_proto_rawDesc = "" +
 	"size_bytes\x18\x02 \x01(\x03R\tsizeBytes\x12!\n" +
 	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x129\n" +
 	"\n" +
-	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"^\n" +
-	"\x1cGetPluginIconGatewayResponse\x12\x1b\n" +
-	"\ticon_data\x18\x01 \x01(\fR\biconData\x12!\n" +
-	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\"?\n" +
-	"\x1dListCategoriesGatewayResponse\x12\x1e\n" +
-	"\n" +
-	"categories\x18\x01 \x03(\tR\n" +
-	"categories\"]\n" +
-	"\x1aListSourcesGatewayResponse\x12?\n" +
-	"\asources\x18\x01 \x03(\v2%.fitglue.models.plugin.PluginManifestR\asources*a\n" +
+	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt*a\n" +
 	"\vPayloadKind\x12\x1c\n" +
 	"\x18PAYLOAD_KIND_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15PAYLOAD_KIND_ORIGINAL\x10\x01\x12\x19\n" +
-	"\x15PAYLOAD_KIND_ENRICHED\x10\x022\xedb\n" +
+	"\x15PAYLOAD_KIND_ENRICHED\x10\x022\xdeW\n" +
 	"\x14ClientGatewayService\x12`\n" +
 	"\n" +
 	"GetProfile\x12\x1d.fitglue.gateway.EmptyRequest\x1a .fitglue.models.user.UserProfile\"\x11\x82\xd3\xe4\x93\x02\v\x12\t/users/me\x12u\n" +
@@ -4745,24 +4418,14 @@ const file_gateway_client_proto_rawDesc = "" +
 	"\"GetShowcaseProfilePictureUploadUrl\x122.fitglue.gateway.GetPictureUploadUrlGatewayRequest\x1a3.fitglue.gateway.GetPictureUploadUrlGatewayResponse\"8\x82\xd3\xe4\x93\x022:\x01*\"-/users/me/showcase-management/profile/picture\x12\xb2\x01\n" +
 	"\x15UpdateRoundupSettings\x124.fitglue.gateway.UpdateRoundupSettingsGatewayRequest\x1a(.fitglue.models.activity.ShowcaseProfile\"9\x82\xd3\xe4\x93\x023:\x01*\x1a./users/me/showcase-management/roundup-settings\x12\xb3\x01\n" +
 	"\x10RecomputeRoundup\x12/.fitglue.gateway.RecomputeRoundupGatewayRequest\x1a(.fitglue.models.activity.ShowcaseRoundup\"D\x82\xd3\xe4\x93\x02>\"</users/me/showcase-management/roundup/{period_key}/recompute\x12\xc1\x01\n" +
-	"\x19GetActivityPhotoUploadUrl\x128.fitglue.gateway.GetActivityPhotoUploadUrlGatewayRequest\x1a9.fitglue.gateway.GetActivityPhotoUploadUrlGatewayResponse\"/\x82\xd3\xe4\x93\x02):\x01*\"$/users/me/activity-photos/upload-url\x12\x8e\x01\n" +
-	"\x14GetShowcaseViewStats\x12\".fitglue.gateway.ShowcaseIdRequest\x1a*.fitglue.models.activity.ShowcaseViewStats\"&\x82\xd3\xe4\x93\x02 \x12\x1e/users/me/showcases/{id}/views\x12\x9d\x01\n" +
-	"\x1bGetShowcaseProfileViewStats\x12\x1d.fitglue.gateway.EmptyRequest\x1a*.fitglue.models.activity.ShowcaseViewStats\"3\x82\xd3\xe4\x93\x02-\x12+/users/me/showcase-management/profile/views\x12\xc7\x01\n" +
-	"\x1bGetShowcaseRoundupViewStats\x12:.fitglue.gateway.GetShowcaseRoundupViewStatsGatewayRequest\x1a*.fitglue.models.activity.ShowcaseViewStats\"@\x82\xd3\xe4\x93\x02:\x128/users/me/showcase-management/roundup/{period_key}/views\x12\x9a\x01\n" +
-	"\x15ListShowcaseViewStats\x12\x1d.fitglue.gateway.EmptyRequest\x1a5.fitglue.gateway.ListShowcaseViewStatsGatewayResponse\"+\x82\xd3\xe4\x93\x02%\x12#/users/me/showcase-management/views\x12\x8a\x01\n" +
+	"\x19GetActivityPhotoUploadUrl\x128.fitglue.gateway.GetActivityPhotoUploadUrlGatewayRequest\x1a9.fitglue.gateway.GetActivityPhotoUploadUrlGatewayResponse\"/\x82\xd3\xe4\x93\x02):\x01*\"$/users/me/activity-photos/upload-url\x12\x8a\x01\n" +
 	"\fParseFitFile\x12+.fitglue.gateway.ParseFitFileGatewayRequest\x1a-.fitglue.models.activity.StandardizedActivity\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/users/me/parse-fit\x12\x9f\x01\n" +
 	"\x12GetExerciseLibrary\x121.fitglue.gateway.GetExerciseLibraryGatewayRequest\x1a2.fitglue.gateway.GetExerciseLibraryGatewayResponse\"\"\x82\xd3\xe4\x93\x02\x1c\x12\x1a/users/me/exercise-library\x12\x96\x01\n" +
 	"\x17RepostMissedDestination\x12,.fitglue.gateway.RepostVariantGatewayRequest\x1a&.fitglue.gateway.RepostGatewayResponse\"%\x82\xd3\xe4\x93\x02\x1f:\x01*\"\x1a/repost/missed-destination\x12\x94\x01\n" +
 	"\x16RepostRetryDestination\x12,.fitglue.gateway.RepostVariantGatewayRequest\x1a&.fitglue.gateway.RepostGatewayResponse\"$\x82\xd3\xe4\x93\x02\x1e:\x01*\"\x19/repost/retry-destination\x12\x8c\x01\n" +
 	"\x12RepostFullPipeline\x12,.fitglue.gateway.RepostVariantGatewayRequest\x1a&.fitglue.gateway.RepostGatewayResponse\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/repost/full-pipeline\x12\xb6\x01\n" +
 	"\x15GetPipelineRunPayload\x124.fitglue.gateway.GetPipelineRunPayloadGatewayRequest\x1a5.fitglue.gateway.GetPipelineRunPayloadGatewayResponse\"0\x82\xd3\xe4\x93\x02*\x12(/users/me/pipeline-runs/{run_id}/payload\x12\xa9\x01\n" +
-	"\x11ExportPipelineRun\x120.fitglue.gateway.ExportPipelineRunGatewayRequest\x1a1.fitglue.gateway.ExportPipelineRunGatewayResponse\"/\x82\xd3\xe4\x93\x02)\x12'/users/me/pipeline-runs/{run_id}/export\x12t\n" +
-	"\x11GetPluginRegistry\x12\x1d.fitglue.gateway.EmptyRequest\x1a-.fitglue.models.plugin.PluginRegistryResponse\"\x11\x82\xd3\xe4\x93\x02\v\x12\t/registry\x12\x83\x01\n" +
-	"\x18GetPluginRegistryPlugins\x12\x1d.fitglue.gateway.EmptyRequest\x1a-.fitglue.models.plugin.PluginRegistryResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/registry/plugins\x12x\n" +
-	"\tGetPlugin\x12$.fitglue.gateway.PluginIdPathRequest\x1a%.fitglue.models.plugin.PluginManifest\"\x1e\x82\xd3\xe4\x93\x02\x18\x12\x16/registry/plugins/{id}\x12\x89\x01\n" +
-	"\rGetPluginIcon\x12$.fitglue.gateway.PluginIdPathRequest\x1a-.fitglue.gateway.GetPluginIconGatewayResponse\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/registry/plugins/{id}/icon\x12}\n" +
-	"\x0eListCategories\x12\x1d.fitglue.gateway.EmptyRequest\x1a..fitglue.gateway.ListCategoriesGatewayResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/registry/categories\x12t\n" +
-	"\vListSources\x12\x1d.fitglue.gateway.EmptyRequest\x1a+.fitglue.gateway.ListSourcesGatewayResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/registry/sourcesB7Z5github.com/fitglue/server/src/go/pkg/types/pb/gatewayb\x06proto3"
+	"\x11ExportPipelineRun\x120.fitglue.gateway.ExportPipelineRunGatewayRequest\x1a1.fitglue.gateway.ExportPipelineRunGatewayResponse\"/\x82\xd3\xe4\x93\x02)\x12'/users/me/pipeline-runs/{run_id}/exportB7Z5github.com/fitglue/server/src/go/pkg/types/pb/gatewayb\x06proto3"
 
 var (
 	file_gateway_client_proto_rawDescOnce sync.Once
@@ -4777,7 +4440,7 @@ func file_gateway_client_proto_rawDescGZIP() []byte {
 }
 
 var file_gateway_client_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_gateway_client_proto_msgTypes = make([]protoimpl.MessageInfo, 85)
+var file_gateway_client_proto_msgTypes = make([]protoimpl.MessageInfo, 79)
 var file_gateway_client_proto_goTypes = []any{
 	(PayloadKind)(0),                                   // 0: fitglue.gateway.PayloadKind
 	(*EmptyRequest)(nil),                               // 1: fitglue.gateway.EmptyRequest
@@ -4786,325 +4449,292 @@ var file_gateway_client_proto_goTypes = []any{
 	(*ActivityIdRequest)(nil),                          // 4: fitglue.gateway.ActivityIdRequest
 	(*ShowcaseIdRequest)(nil),                          // 5: fitglue.gateway.ShowcaseIdRequest
 	(*PluginIdRequest)(nil),                            // 6: fitglue.gateway.PluginIdRequest
-	(*PluginIdPathRequest)(nil),                        // 7: fitglue.gateway.PluginIdPathRequest
-	(*BoosterIdRequest)(nil),                           // 8: fitglue.gateway.BoosterIdRequest
-	(*RecordTypeRequest)(nil),                          // 9: fitglue.gateway.RecordTypeRequest
-	(*CounterNameRequest)(nil),                         // 10: fitglue.gateway.CounterNameRequest
-	(*ShowcaseEntryRequest)(nil),                       // 11: fitglue.gateway.ShowcaseEntryRequest
-	(*UpdateProfileGatewayRequest)(nil),                // 12: fitglue.gateway.UpdateProfileGatewayRequest
-	(*GetIntegrationGatewayResponse)(nil),              // 13: fitglue.gateway.GetIntegrationGatewayResponse
-	(*SetIntegrationGatewayRequest)(nil),               // 14: fitglue.gateway.SetIntegrationGatewayRequest
-	(*OAuthConnectResponse)(nil),                       // 15: fitglue.gateway.OAuthConnectResponse
-	(*ConnectionActionGatewayRequest)(nil),             // 16: fitglue.gateway.ConnectionActionGatewayRequest
-	(*ListCountersGatewayResponse)(nil),                // 17: fitglue.gateway.ListCountersGatewayResponse
-	(*UpdateCounterGatewayRequest)(nil),                // 18: fitglue.gateway.UpdateCounterGatewayRequest
-	(*GetBoosterDataGatewayResponse)(nil),              // 19: fitglue.gateway.GetBoosterDataGatewayResponse
-	(*SetBoosterDataGatewayRequest)(nil),               // 20: fitglue.gateway.SetBoosterDataGatewayRequest
-	(*ListPersonalRecordsGatewayResponse)(nil),         // 21: fitglue.gateway.ListPersonalRecordsGatewayResponse
-	(*SetPersonalRecordGatewayRequest)(nil),            // 22: fitglue.gateway.SetPersonalRecordGatewayRequest
-	(*ListPluginDefaultsGatewayResponse)(nil),          // 23: fitglue.gateway.ListPluginDefaultsGatewayResponse
-	(*SetPluginDefaultsGatewayRequest)(nil),            // 24: fitglue.gateway.SetPluginDefaultsGatewayRequest
-	(*SendEmailChangeGatewayRequest)(nil),              // 25: fitglue.gateway.SendEmailChangeGatewayRequest
-	(*SendPasswordResetGatewayRequest)(nil),            // 26: fitglue.gateway.SendPasswordResetGatewayRequest
-	(*ListPipelinesGatewayResponse)(nil),               // 27: fitglue.gateway.ListPipelinesGatewayResponse
-	(*CreatePipelineGatewayRequest)(nil),               // 28: fitglue.gateway.CreatePipelineGatewayRequest
-	(*UpdatePipelineGatewayRequest)(nil),               // 29: fitglue.gateway.UpdatePipelineGatewayRequest
-	(*ListPipelineRunsGatewayRequest)(nil),             // 30: fitglue.gateway.ListPipelineRunsGatewayRequest
-	(*ListPipelineRunsGatewayResponse)(nil),            // 31: fitglue.gateway.ListPipelineRunsGatewayResponse
-	(*GetPipelineRunGatewayRequest)(nil),               // 32: fitglue.gateway.GetPipelineRunGatewayRequest
-	(*SourceActivityItemGateway)(nil),                  // 33: fitglue.gateway.SourceActivityItemGateway
-	(*ListSourceActivitiesGatewayRequest)(nil),         // 34: fitglue.gateway.ListSourceActivitiesGatewayRequest
-	(*ListSourceActivitiesGatewayResponse)(nil),        // 35: fitglue.gateway.ListSourceActivitiesGatewayResponse
-	(*BackfillActivitiesGatewayRequest)(nil),           // 36: fitglue.gateway.BackfillActivitiesGatewayRequest
-	(*BackfillActivitiesGatewayResponse)(nil),          // 37: fitglue.gateway.BackfillActivitiesGatewayResponse
-	(*ListConnectionActivitiesGatewayRequest)(nil),     // 38: fitglue.gateway.ListConnectionActivitiesGatewayRequest
-	(*BackfillConnectionActivitiesGatewayRequest)(nil), // 39: fitglue.gateway.BackfillConnectionActivitiesGatewayRequest
-	(*SubmitInputGatewayRequest)(nil),                  // 40: fitglue.gateway.SubmitInputGatewayRequest
-	(*CancelPipelineGatewayRequest)(nil),               // 41: fitglue.gateway.CancelPipelineGatewayRequest
-	(*CancelPipelineRunGatewayRequest)(nil),            // 42: fitglue.gateway.CancelPipelineRunGatewayRequest
-	(*RepostActivityGatewayRequest)(nil),               // 43: fitglue.gateway.RepostActivityGatewayRequest
-	(*UpdateActivityGatewayRequest)(nil),               // 44: fitglue.gateway.UpdateActivityGatewayRequest
-	(*InvokeEnricherGatewayRequest)(nil),               // 45: fitglue.gateway.InvokeEnricherGatewayRequest
-	(*InvokeEnricherGatewayResponse)(nil),              // 46: fitglue.gateway.InvokeEnricherGatewayResponse
-	(*ProposedEnricherRunGatewayRequest)(nil),          // 47: fitglue.gateway.ProposedEnricherRunGatewayRequest
-	(*ListActivitiesGatewayRequest)(nil),               // 48: fitglue.gateway.ListActivitiesGatewayRequest
-	(*ListActivitiesGatewayResponse)(nil),              // 49: fitglue.gateway.ListActivitiesGatewayResponse
-	(*ListResolvedActivitiesGatewayRequest)(nil),       // 50: fitglue.gateway.ListResolvedActivitiesGatewayRequest
-	(*ListResolvedActivitiesGatewayResponse)(nil),      // 51: fitglue.gateway.ListResolvedActivitiesGatewayResponse
-	(*GetActivityStatsGatewayResponse)(nil),            // 52: fitglue.gateway.GetActivityStatsGatewayResponse
-	(*ListShowcasesGatewayResponse)(nil),               // 53: fitglue.gateway.ListShowcasesGatewayResponse
-	(*CreateShowcaseGatewayRequest)(nil),               // 54: fitglue.gateway.CreateShowcaseGatewayRequest
-	(*UpdateShowcaseGatewayRequest)(nil),               // 55: fitglue.gateway.UpdateShowcaseGatewayRequest
-	(*UpdateShowcasePreferencesGatewayRequest)(nil),    // 56: fitglue.gateway.UpdateShowcasePreferencesGatewayRequest
-	(*GetShowcaseSettingsGatewayResponse)(nil),         // 57: fitglue.gateway.GetShowcaseSettingsGatewayResponse
-	(*ShowcaseActivityEntryGateway)(nil),               // 58: fitglue.gateway.ShowcaseActivityEntryGateway
-	(*UpdateShowcaseSettingsGatewayRequest)(nil),       // 59: fitglue.gateway.UpdateShowcaseSettingsGatewayRequest
-	(*UpdateShowcaseSlugGatewayRequest)(nil),           // 60: fitglue.gateway.UpdateShowcaseSlugGatewayRequest
-	(*UpdateRoundupSettingsGatewayRequest)(nil),        // 61: fitglue.gateway.UpdateRoundupSettingsGatewayRequest
-	(*RecomputeRoundupGatewayRequest)(nil),             // 62: fitglue.gateway.RecomputeRoundupGatewayRequest
-	(*ListShowcaseViewStatsGatewayResponse)(nil),       // 63: fitglue.gateway.ListShowcaseViewStatsGatewayResponse
-	(*GetShowcaseRoundupViewStatsGatewayRequest)(nil),  // 64: fitglue.gateway.GetShowcaseRoundupViewStatsGatewayRequest
-	(*UpdateShowcaseSlugGatewayResponse)(nil),          // 65: fitglue.gateway.UpdateShowcaseSlugGatewayResponse
-	(*GetPictureUploadUrlGatewayRequest)(nil),          // 66: fitglue.gateway.GetPictureUploadUrlGatewayRequest
-	(*GetPictureUploadUrlGatewayResponse)(nil),         // 67: fitglue.gateway.GetPictureUploadUrlGatewayResponse
-	(*GetActivityPhotoUploadUrlGatewayRequest)(nil),    // 68: fitglue.gateway.GetActivityPhotoUploadUrlGatewayRequest
-	(*GetActivityPhotoUploadUrlGatewayResponse)(nil),   // 69: fitglue.gateway.GetActivityPhotoUploadUrlGatewayResponse
-	(*ExportPipelineRunGatewayRequest)(nil),            // 70: fitglue.gateway.ExportPipelineRunGatewayRequest
-	(*ExportPipelineRunGatewayResponse)(nil),           // 71: fitglue.gateway.ExportPipelineRunGatewayResponse
-	(*ParseFitFileGatewayRequest)(nil),                 // 72: fitglue.gateway.ParseFitFileGatewayRequest
-	(*GetExerciseLibraryGatewayRequest)(nil),           // 73: fitglue.gateway.GetExerciseLibraryGatewayRequest
-	(*ExerciseLibraryEntry)(nil),                       // 74: fitglue.gateway.ExerciseLibraryEntry
-	(*GetExerciseLibraryGatewayResponse)(nil),          // 75: fitglue.gateway.GetExerciseLibraryGatewayResponse
-	(*RepostVariantGatewayRequest)(nil),                // 76: fitglue.gateway.RepostVariantGatewayRequest
-	(*RepostGatewayResponse)(nil),                      // 77: fitglue.gateway.RepostGatewayResponse
-	(*GetPipelineRunPayloadGatewayRequest)(nil),        // 78: fitglue.gateway.GetPipelineRunPayloadGatewayRequest
-	(*GetPipelineRunPayloadGatewayResponse)(nil),       // 79: fitglue.gateway.GetPipelineRunPayloadGatewayResponse
-	(*GetPluginIconGatewayResponse)(nil),               // 80: fitglue.gateway.GetPluginIconGatewayResponse
-	(*ListCategoriesGatewayResponse)(nil),              // 81: fitglue.gateway.ListCategoriesGatewayResponse
-	(*ListSourcesGatewayResponse)(nil),                 // 82: fitglue.gateway.ListSourcesGatewayResponse
-	nil,                                                // 83: fitglue.gateway.GetBoosterDataGatewayResponse.DataEntry
-	nil,                                                // 84: fitglue.gateway.ListPluginDefaultsGatewayResponse.DefaultsEntry
-	nil,                                                // 85: fitglue.gateway.SubmitInputGatewayRequest.InputDataEntry
-	(*user.UserProfile)(nil),                           // 86: fitglue.models.user.UserProfile
-	(*user.UserIntegrations)(nil),                      // 87: fitglue.models.user.UserIntegrations
-	(*structpb.Struct)(nil),                            // 88: google.protobuf.Struct
-	(*user.Counter)(nil),                               // 89: fitglue.models.user.Counter
-	(*user.PersonalRecord)(nil),                        // 90: fitglue.models.user.PersonalRecord
-	(*pipeline.PipelineConfig)(nil),                    // 91: fitglue.models.pipeline.PipelineConfig
-	(*timestamppb.Timestamp)(nil),                      // 92: google.protobuf.Timestamp
-	(*pipeline.PipelineRun)(nil),                       // 93: fitglue.models.pipeline.PipelineRun
-	(activity.ActivityType)(0),                         // 94: fitglue.models.activity.ActivityType
-	(*activity.EnricherRunLayer)(nil),                  // 95: fitglue.models.activity.EnricherRunLayer
-	(*activity.StandardizedActivity)(nil),              // 96: fitglue.models.activity.StandardizedActivity
-	(*activity.ResolvedActivity)(nil),                  // 97: fitglue.models.activity.ResolvedActivity
-	(*activity.ShowcaseProfileEntry)(nil),              // 98: fitglue.models.activity.ShowcaseProfileEntry
-	(*activity.ShowcasedActivity)(nil),                 // 99: fitglue.models.activity.ShowcasedActivity
-	(*activity.ShowcaseProfile)(nil),                   // 100: fitglue.models.activity.ShowcaseProfile
-	(*activity.RoundupSettings)(nil),                   // 101: fitglue.models.activity.RoundupSettings
-	(*activity.ShowcaseViewStats)(nil),                 // 102: fitglue.models.activity.ShowcaseViewStats
-	(*plugin.PluginManifest)(nil),                      // 103: fitglue.models.plugin.PluginManifest
-	(*emptypb.Empty)(nil),                              // 104: google.protobuf.Empty
-	(*activity.ShowcaseRoundup)(nil),                   // 105: fitglue.models.activity.ShowcaseRoundup
-	(*plugin.PluginRegistryResponse)(nil),              // 106: fitglue.models.plugin.PluginRegistryResponse
+	(*BoosterIdRequest)(nil),                           // 7: fitglue.gateway.BoosterIdRequest
+	(*RecordTypeRequest)(nil),                          // 8: fitglue.gateway.RecordTypeRequest
+	(*CounterNameRequest)(nil),                         // 9: fitglue.gateway.CounterNameRequest
+	(*ShowcaseEntryRequest)(nil),                       // 10: fitglue.gateway.ShowcaseEntryRequest
+	(*UpdateProfileGatewayRequest)(nil),                // 11: fitglue.gateway.UpdateProfileGatewayRequest
+	(*GetIntegrationGatewayResponse)(nil),              // 12: fitglue.gateway.GetIntegrationGatewayResponse
+	(*SetIntegrationGatewayRequest)(nil),               // 13: fitglue.gateway.SetIntegrationGatewayRequest
+	(*OAuthConnectResponse)(nil),                       // 14: fitglue.gateway.OAuthConnectResponse
+	(*ConnectionActionGatewayRequest)(nil),             // 15: fitglue.gateway.ConnectionActionGatewayRequest
+	(*ListCountersGatewayResponse)(nil),                // 16: fitglue.gateway.ListCountersGatewayResponse
+	(*UpdateCounterGatewayRequest)(nil),                // 17: fitglue.gateway.UpdateCounterGatewayRequest
+	(*GetBoosterDataGatewayResponse)(nil),              // 18: fitglue.gateway.GetBoosterDataGatewayResponse
+	(*SetBoosterDataGatewayRequest)(nil),               // 19: fitglue.gateway.SetBoosterDataGatewayRequest
+	(*ListPersonalRecordsGatewayResponse)(nil),         // 20: fitglue.gateway.ListPersonalRecordsGatewayResponse
+	(*SetPersonalRecordGatewayRequest)(nil),            // 21: fitglue.gateway.SetPersonalRecordGatewayRequest
+	(*ListPluginDefaultsGatewayResponse)(nil),          // 22: fitglue.gateway.ListPluginDefaultsGatewayResponse
+	(*SetPluginDefaultsGatewayRequest)(nil),            // 23: fitglue.gateway.SetPluginDefaultsGatewayRequest
+	(*SendEmailChangeGatewayRequest)(nil),              // 24: fitglue.gateway.SendEmailChangeGatewayRequest
+	(*SendPasswordResetGatewayRequest)(nil),            // 25: fitglue.gateway.SendPasswordResetGatewayRequest
+	(*ListPipelinesGatewayResponse)(nil),               // 26: fitglue.gateway.ListPipelinesGatewayResponse
+	(*CreatePipelineGatewayRequest)(nil),               // 27: fitglue.gateway.CreatePipelineGatewayRequest
+	(*UpdatePipelineGatewayRequest)(nil),               // 28: fitglue.gateway.UpdatePipelineGatewayRequest
+	(*ListPipelineRunsGatewayRequest)(nil),             // 29: fitglue.gateway.ListPipelineRunsGatewayRequest
+	(*ListPipelineRunsGatewayResponse)(nil),            // 30: fitglue.gateway.ListPipelineRunsGatewayResponse
+	(*GetPipelineRunGatewayRequest)(nil),               // 31: fitglue.gateway.GetPipelineRunGatewayRequest
+	(*SourceActivityItemGateway)(nil),                  // 32: fitglue.gateway.SourceActivityItemGateway
+	(*ListSourceActivitiesGatewayRequest)(nil),         // 33: fitglue.gateway.ListSourceActivitiesGatewayRequest
+	(*ListSourceActivitiesGatewayResponse)(nil),        // 34: fitglue.gateway.ListSourceActivitiesGatewayResponse
+	(*BackfillActivitiesGatewayRequest)(nil),           // 35: fitglue.gateway.BackfillActivitiesGatewayRequest
+	(*BackfillActivitiesGatewayResponse)(nil),          // 36: fitglue.gateway.BackfillActivitiesGatewayResponse
+	(*ListConnectionActivitiesGatewayRequest)(nil),     // 37: fitglue.gateway.ListConnectionActivitiesGatewayRequest
+	(*BackfillConnectionActivitiesGatewayRequest)(nil), // 38: fitglue.gateway.BackfillConnectionActivitiesGatewayRequest
+	(*SubmitInputGatewayRequest)(nil),                  // 39: fitglue.gateway.SubmitInputGatewayRequest
+	(*CancelPipelineGatewayRequest)(nil),               // 40: fitglue.gateway.CancelPipelineGatewayRequest
+	(*CancelPipelineRunGatewayRequest)(nil),            // 41: fitglue.gateway.CancelPipelineRunGatewayRequest
+	(*RepostActivityGatewayRequest)(nil),               // 42: fitglue.gateway.RepostActivityGatewayRequest
+	(*UpdateActivityGatewayRequest)(nil),               // 43: fitglue.gateway.UpdateActivityGatewayRequest
+	(*InvokeEnricherGatewayRequest)(nil),               // 44: fitglue.gateway.InvokeEnricherGatewayRequest
+	(*InvokeEnricherGatewayResponse)(nil),              // 45: fitglue.gateway.InvokeEnricherGatewayResponse
+	(*ProposedEnricherRunGatewayRequest)(nil),          // 46: fitglue.gateway.ProposedEnricherRunGatewayRequest
+	(*ListActivitiesGatewayRequest)(nil),               // 47: fitglue.gateway.ListActivitiesGatewayRequest
+	(*ListActivitiesGatewayResponse)(nil),              // 48: fitglue.gateway.ListActivitiesGatewayResponse
+	(*ListResolvedActivitiesGatewayRequest)(nil),       // 49: fitglue.gateway.ListResolvedActivitiesGatewayRequest
+	(*ListResolvedActivitiesGatewayResponse)(nil),      // 50: fitglue.gateway.ListResolvedActivitiesGatewayResponse
+	(*GetActivityStatsGatewayResponse)(nil),            // 51: fitglue.gateway.GetActivityStatsGatewayResponse
+	(*ListShowcasesGatewayResponse)(nil),               // 52: fitglue.gateway.ListShowcasesGatewayResponse
+	(*CreateShowcaseGatewayRequest)(nil),               // 53: fitglue.gateway.CreateShowcaseGatewayRequest
+	(*UpdateShowcaseGatewayRequest)(nil),               // 54: fitglue.gateway.UpdateShowcaseGatewayRequest
+	(*UpdateShowcasePreferencesGatewayRequest)(nil),    // 55: fitglue.gateway.UpdateShowcasePreferencesGatewayRequest
+	(*GetShowcaseSettingsGatewayResponse)(nil),         // 56: fitglue.gateway.GetShowcaseSettingsGatewayResponse
+	(*ShowcaseActivityEntryGateway)(nil),               // 57: fitglue.gateway.ShowcaseActivityEntryGateway
+	(*UpdateShowcaseSettingsGatewayRequest)(nil),       // 58: fitglue.gateway.UpdateShowcaseSettingsGatewayRequest
+	(*UpdateShowcaseSlugGatewayRequest)(nil),           // 59: fitglue.gateway.UpdateShowcaseSlugGatewayRequest
+	(*UpdateRoundupSettingsGatewayRequest)(nil),        // 60: fitglue.gateway.UpdateRoundupSettingsGatewayRequest
+	(*RecomputeRoundupGatewayRequest)(nil),             // 61: fitglue.gateway.RecomputeRoundupGatewayRequest
+	(*UpdateShowcaseSlugGatewayResponse)(nil),          // 62: fitglue.gateway.UpdateShowcaseSlugGatewayResponse
+	(*GetPictureUploadUrlGatewayRequest)(nil),          // 63: fitglue.gateway.GetPictureUploadUrlGatewayRequest
+	(*GetPictureUploadUrlGatewayResponse)(nil),         // 64: fitglue.gateway.GetPictureUploadUrlGatewayResponse
+	(*GetActivityPhotoUploadUrlGatewayRequest)(nil),    // 65: fitglue.gateway.GetActivityPhotoUploadUrlGatewayRequest
+	(*GetActivityPhotoUploadUrlGatewayResponse)(nil),   // 66: fitglue.gateway.GetActivityPhotoUploadUrlGatewayResponse
+	(*ExportPipelineRunGatewayRequest)(nil),            // 67: fitglue.gateway.ExportPipelineRunGatewayRequest
+	(*ExportPipelineRunGatewayResponse)(nil),           // 68: fitglue.gateway.ExportPipelineRunGatewayResponse
+	(*ParseFitFileGatewayRequest)(nil),                 // 69: fitglue.gateway.ParseFitFileGatewayRequest
+	(*GetExerciseLibraryGatewayRequest)(nil),           // 70: fitglue.gateway.GetExerciseLibraryGatewayRequest
+	(*ExerciseLibraryEntry)(nil),                       // 71: fitglue.gateway.ExerciseLibraryEntry
+	(*GetExerciseLibraryGatewayResponse)(nil),          // 72: fitglue.gateway.GetExerciseLibraryGatewayResponse
+	(*RepostVariantGatewayRequest)(nil),                // 73: fitglue.gateway.RepostVariantGatewayRequest
+	(*RepostGatewayResponse)(nil),                      // 74: fitglue.gateway.RepostGatewayResponse
+	(*GetPipelineRunPayloadGatewayRequest)(nil),        // 75: fitglue.gateway.GetPipelineRunPayloadGatewayRequest
+	(*GetPipelineRunPayloadGatewayResponse)(nil),       // 76: fitglue.gateway.GetPipelineRunPayloadGatewayResponse
+	nil,                                   // 77: fitglue.gateway.GetBoosterDataGatewayResponse.DataEntry
+	nil,                                   // 78: fitglue.gateway.ListPluginDefaultsGatewayResponse.DefaultsEntry
+	nil,                                   // 79: fitglue.gateway.SubmitInputGatewayRequest.InputDataEntry
+	(*user.UserProfile)(nil),              // 80: fitglue.models.user.UserProfile
+	(*user.UserIntegrations)(nil),         // 81: fitglue.models.user.UserIntegrations
+	(*structpb.Struct)(nil),               // 82: google.protobuf.Struct
+	(*user.Counter)(nil),                  // 83: fitglue.models.user.Counter
+	(*user.PersonalRecord)(nil),           // 84: fitglue.models.user.PersonalRecord
+	(*pipeline.PipelineConfig)(nil),       // 85: fitglue.models.pipeline.PipelineConfig
+	(*timestamppb.Timestamp)(nil),         // 86: google.protobuf.Timestamp
+	(*pipeline.PipelineRun)(nil),          // 87: fitglue.models.pipeline.PipelineRun
+	(activity.ActivityType)(0),            // 88: fitglue.models.activity.ActivityType
+	(*activity.EnricherRunLayer)(nil),     // 89: fitglue.models.activity.EnricherRunLayer
+	(*activity.StandardizedActivity)(nil), // 90: fitglue.models.activity.StandardizedActivity
+	(*activity.ResolvedActivity)(nil),     // 91: fitglue.models.activity.ResolvedActivity
+	(*activity.ShowcaseProfileEntry)(nil), // 92: fitglue.models.activity.ShowcaseProfileEntry
+	(*activity.ShowcasedActivity)(nil),    // 93: fitglue.models.activity.ShowcasedActivity
+	(*activity.ShowcaseProfile)(nil),      // 94: fitglue.models.activity.ShowcaseProfile
+	(*activity.RoundupSettings)(nil),      // 95: fitglue.models.activity.RoundupSettings
+	(*emptypb.Empty)(nil),                 // 96: google.protobuf.Empty
+	(*activity.ShowcaseRoundup)(nil),      // 97: fitglue.models.activity.ShowcaseRoundup
 }
 var file_gateway_client_proto_depIdxs = []int32{
-	86,  // 0: fitglue.gateway.UpdateProfileGatewayRequest.profile:type_name -> fitglue.models.user.UserProfile
-	87,  // 1: fitglue.gateway.GetIntegrationGatewayResponse.integrations:type_name -> fitglue.models.user.UserIntegrations
-	88,  // 2: fitglue.gateway.SetIntegrationGatewayRequest.integration_data:type_name -> google.protobuf.Struct
-	89,  // 3: fitglue.gateway.ListCountersGatewayResponse.counters:type_name -> fitglue.models.user.Counter
-	83,  // 4: fitglue.gateway.GetBoosterDataGatewayResponse.data:type_name -> fitglue.gateway.GetBoosterDataGatewayResponse.DataEntry
-	88,  // 5: fitglue.gateway.SetBoosterDataGatewayRequest.data:type_name -> google.protobuf.Struct
-	90,  // 6: fitglue.gateway.ListPersonalRecordsGatewayResponse.records:type_name -> fitglue.models.user.PersonalRecord
-	84,  // 7: fitglue.gateway.ListPluginDefaultsGatewayResponse.defaults:type_name -> fitglue.gateway.ListPluginDefaultsGatewayResponse.DefaultsEntry
-	88,  // 8: fitglue.gateway.SetPluginDefaultsGatewayRequest.defaults:type_name -> google.protobuf.Struct
-	91,  // 9: fitglue.gateway.ListPipelinesGatewayResponse.pipelines:type_name -> fitglue.models.pipeline.PipelineConfig
-	91,  // 10: fitglue.gateway.CreatePipelineGatewayRequest.pipeline:type_name -> fitglue.models.pipeline.PipelineConfig
-	91,  // 11: fitglue.gateway.UpdatePipelineGatewayRequest.pipeline:type_name -> fitglue.models.pipeline.PipelineConfig
-	92,  // 12: fitglue.gateway.ListPipelineRunsGatewayRequest.since:type_name -> google.protobuf.Timestamp
-	92,  // 13: fitglue.gateway.ListPipelineRunsGatewayRequest.until:type_name -> google.protobuf.Timestamp
-	93,  // 14: fitglue.gateway.ListPipelineRunsGatewayResponse.runs:type_name -> fitglue.models.pipeline.PipelineRun
-	92,  // 15: fitglue.gateway.SourceActivityItemGateway.start_time:type_name -> google.protobuf.Timestamp
-	33,  // 16: fitglue.gateway.ListSourceActivitiesGatewayResponse.activities:type_name -> fitglue.gateway.SourceActivityItemGateway
-	85,  // 17: fitglue.gateway.SubmitInputGatewayRequest.input_data:type_name -> fitglue.gateway.SubmitInputGatewayRequest.InputDataEntry
-	94,  // 18: fitglue.gateway.UpdateActivityGatewayRequest.type:type_name -> fitglue.models.activity.ActivityType
-	95,  // 19: fitglue.gateway.InvokeEnricherGatewayResponse.proposed:type_name -> fitglue.models.activity.EnricherRunLayer
-	96,  // 20: fitglue.gateway.InvokeEnricherGatewayResponse.preview:type_name -> fitglue.models.activity.StandardizedActivity
-	96,  // 21: fitglue.gateway.ListActivitiesGatewayResponse.activities:type_name -> fitglue.models.activity.StandardizedActivity
-	97,  // 22: fitglue.gateway.ListResolvedActivitiesGatewayResponse.activities:type_name -> fitglue.models.activity.ResolvedActivity
-	98,  // 23: fitglue.gateway.ListShowcasesGatewayResponse.showcases:type_name -> fitglue.models.activity.ShowcaseProfileEntry
-	99,  // 24: fitglue.gateway.CreateShowcaseGatewayRequest.showcase:type_name -> fitglue.models.activity.ShowcasedActivity
-	99,  // 25: fitglue.gateway.UpdateShowcaseGatewayRequest.showcase:type_name -> fitglue.models.activity.ShowcasedActivity
-	100, // 26: fitglue.gateway.UpdateShowcasePreferencesGatewayRequest.preferences:type_name -> fitglue.models.activity.ShowcaseProfile
-	100, // 27: fitglue.gateway.GetShowcaseSettingsGatewayResponse.profile:type_name -> fitglue.models.activity.ShowcaseProfile
-	58,  // 28: fitglue.gateway.GetShowcaseSettingsGatewayResponse.activities:type_name -> fitglue.gateway.ShowcaseActivityEntryGateway
-	100, // 29: fitglue.gateway.UpdateShowcaseSettingsGatewayRequest.settings:type_name -> fitglue.models.activity.ShowcaseProfile
-	101, // 30: fitglue.gateway.UpdateRoundupSettingsGatewayRequest.settings:type_name -> fitglue.models.activity.RoundupSettings
-	102, // 31: fitglue.gateway.ListShowcaseViewStatsGatewayResponse.profile:type_name -> fitglue.models.activity.ShowcaseViewStats
-	102, // 32: fitglue.gateway.ListShowcaseViewStatsGatewayResponse.showcases:type_name -> fitglue.models.activity.ShowcaseViewStats
-	102, // 33: fitglue.gateway.ListShowcaseViewStatsGatewayResponse.roundups:type_name -> fitglue.models.activity.ShowcaseViewStats
-	74,  // 34: fitglue.gateway.GetExerciseLibraryGatewayResponse.exercises:type_name -> fitglue.gateway.ExerciseLibraryEntry
-	0,   // 35: fitglue.gateway.GetPipelineRunPayloadGatewayRequest.which:type_name -> fitglue.gateway.PayloadKind
-	92,  // 36: fitglue.gateway.GetPipelineRunPayloadGatewayResponse.expires_at:type_name -> google.protobuf.Timestamp
-	103, // 37: fitglue.gateway.ListSourcesGatewayResponse.sources:type_name -> fitglue.models.plugin.PluginManifest
-	88,  // 38: fitglue.gateway.GetBoosterDataGatewayResponse.DataEntry.value:type_name -> google.protobuf.Struct
-	88,  // 39: fitglue.gateway.ListPluginDefaultsGatewayResponse.DefaultsEntry.value:type_name -> google.protobuf.Struct
-	1,   // 40: fitglue.gateway.ClientGatewayService.GetProfile:input_type -> fitglue.gateway.EmptyRequest
-	12,  // 41: fitglue.gateway.ClientGatewayService.UpdateProfile:input_type -> fitglue.gateway.UpdateProfileGatewayRequest
-	1,   // 42: fitglue.gateway.ClientGatewayService.DeleteSelf:input_type -> fitglue.gateway.EmptyRequest
-	1,   // 43: fitglue.gateway.ClientGatewayService.ListIntegrations:input_type -> fitglue.gateway.EmptyRequest
-	2,   // 44: fitglue.gateway.ClientGatewayService.GetIntegration:input_type -> fitglue.gateway.ProviderRequest
-	14,  // 45: fitglue.gateway.ClientGatewayService.SetIntegration:input_type -> fitglue.gateway.SetIntegrationGatewayRequest
-	2,   // 46: fitglue.gateway.ClientGatewayService.DeleteIntegration:input_type -> fitglue.gateway.ProviderRequest
-	2,   // 47: fitglue.gateway.ClientGatewayService.OAuthConnect:input_type -> fitglue.gateway.ProviderRequest
-	16,  // 48: fitglue.gateway.ClientGatewayService.ConnectionAction:input_type -> fitglue.gateway.ConnectionActionGatewayRequest
-	38,  // 49: fitglue.gateway.ClientGatewayService.ListConnectionActivities:input_type -> fitglue.gateway.ListConnectionActivitiesGatewayRequest
-	39,  // 50: fitglue.gateway.ClientGatewayService.BackfillConnectionActivities:input_type -> fitglue.gateway.BackfillConnectionActivitiesGatewayRequest
-	1,   // 51: fitglue.gateway.ClientGatewayService.ListCounters:input_type -> fitglue.gateway.EmptyRequest
-	18,  // 52: fitglue.gateway.ClientGatewayService.UpdateCounter:input_type -> fitglue.gateway.UpdateCounterGatewayRequest
-	10,  // 53: fitglue.gateway.ClientGatewayService.DeleteCounter:input_type -> fitglue.gateway.CounterNameRequest
-	1,   // 54: fitglue.gateway.ClientGatewayService.GetBoosterData:input_type -> fitglue.gateway.EmptyRequest
-	20,  // 55: fitglue.gateway.ClientGatewayService.SetBoosterData:input_type -> fitglue.gateway.SetBoosterDataGatewayRequest
-	8,   // 56: fitglue.gateway.ClientGatewayService.DeleteBoosterData:input_type -> fitglue.gateway.BoosterIdRequest
-	1,   // 57: fitglue.gateway.ClientGatewayService.ListPersonalRecords:input_type -> fitglue.gateway.EmptyRequest
-	22,  // 58: fitglue.gateway.ClientGatewayService.SetPersonalRecord:input_type -> fitglue.gateway.SetPersonalRecordGatewayRequest
-	9,   // 59: fitglue.gateway.ClientGatewayService.DeletePersonalRecord:input_type -> fitglue.gateway.RecordTypeRequest
-	1,   // 60: fitglue.gateway.ClientGatewayService.ListPluginDefaults:input_type -> fitglue.gateway.EmptyRequest
-	24,  // 61: fitglue.gateway.ClientGatewayService.SetPluginDefaults:input_type -> fitglue.gateway.SetPluginDefaultsGatewayRequest
-	6,   // 62: fitglue.gateway.ClientGatewayService.DeletePluginDefaults:input_type -> fitglue.gateway.PluginIdRequest
-	1,   // 63: fitglue.gateway.ClientGatewayService.SendVerificationEmail:input_type -> fitglue.gateway.EmptyRequest
-	25,  // 64: fitglue.gateway.ClientGatewayService.SendEmailChangeVerification:input_type -> fitglue.gateway.SendEmailChangeGatewayRequest
-	26,  // 65: fitglue.gateway.ClientGatewayService.SendPasswordReset:input_type -> fitglue.gateway.SendPasswordResetGatewayRequest
-	1,   // 66: fitglue.gateway.ClientGatewayService.MobileSync:input_type -> fitglue.gateway.EmptyRequest
-	1,   // 67: fitglue.gateway.ClientGatewayService.ListPipelines:input_type -> fitglue.gateway.EmptyRequest
-	3,   // 68: fitglue.gateway.ClientGatewayService.GetPipeline:input_type -> fitglue.gateway.PipelineIdRequest
-	28,  // 69: fitglue.gateway.ClientGatewayService.CreatePipeline:input_type -> fitglue.gateway.CreatePipelineGatewayRequest
-	29,  // 70: fitglue.gateway.ClientGatewayService.UpdatePipeline:input_type -> fitglue.gateway.UpdatePipelineGatewayRequest
-	3,   // 71: fitglue.gateway.ClientGatewayService.DeletePipeline:input_type -> fitglue.gateway.PipelineIdRequest
-	30,  // 72: fitglue.gateway.ClientGatewayService.ListPipelineRuns:input_type -> fitglue.gateway.ListPipelineRunsGatewayRequest
-	32,  // 73: fitglue.gateway.ClientGatewayService.GetPipelineRun:input_type -> fitglue.gateway.GetPipelineRunGatewayRequest
-	34,  // 74: fitglue.gateway.ClientGatewayService.ListSourceActivities:input_type -> fitglue.gateway.ListSourceActivitiesGatewayRequest
-	36,  // 75: fitglue.gateway.ClientGatewayService.BackfillActivities:input_type -> fitglue.gateway.BackfillActivitiesGatewayRequest
-	40,  // 76: fitglue.gateway.ClientGatewayService.SubmitInput:input_type -> fitglue.gateway.SubmitInputGatewayRequest
-	41,  // 77: fitglue.gateway.ClientGatewayService.CancelPipeline:input_type -> fitglue.gateway.CancelPipelineGatewayRequest
-	42,  // 78: fitglue.gateway.ClientGatewayService.CancelPipelineRun:input_type -> fitglue.gateway.CancelPipelineRunGatewayRequest
-	43,  // 79: fitglue.gateway.ClientGatewayService.RepostActivity:input_type -> fitglue.gateway.RepostActivityGatewayRequest
-	48,  // 80: fitglue.gateway.ClientGatewayService.ListActivities:input_type -> fitglue.gateway.ListActivitiesGatewayRequest
-	4,   // 81: fitglue.gateway.ClientGatewayService.GetActivity:input_type -> fitglue.gateway.ActivityIdRequest
-	50,  // 82: fitglue.gateway.ClientGatewayService.ListResolvedActivities:input_type -> fitglue.gateway.ListResolvedActivitiesGatewayRequest
-	4,   // 83: fitglue.gateway.ClientGatewayService.GetResolvedActivity:input_type -> fitglue.gateway.ActivityIdRequest
-	4,   // 84: fitglue.gateway.ClientGatewayService.RefreshActivitySource:input_type -> fitglue.gateway.ActivityIdRequest
-	44,  // 85: fitglue.gateway.ClientGatewayService.UpdateActivity:input_type -> fitglue.gateway.UpdateActivityGatewayRequest
-	4,   // 86: fitglue.gateway.ClientGatewayService.ResendActivity:input_type -> fitglue.gateway.ActivityIdRequest
-	45,  // 87: fitglue.gateway.ClientGatewayService.InvokeEnricher:input_type -> fitglue.gateway.InvokeEnricherGatewayRequest
-	47,  // 88: fitglue.gateway.ClientGatewayService.AcceptProposedEnricherRun:input_type -> fitglue.gateway.ProposedEnricherRunGatewayRequest
-	47,  // 89: fitglue.gateway.ClientGatewayService.DismissProposedEnricherRun:input_type -> fitglue.gateway.ProposedEnricherRunGatewayRequest
-	4,   // 90: fitglue.gateway.ClientGatewayService.DeleteActivity:input_type -> fitglue.gateway.ActivityIdRequest
-	1,   // 91: fitglue.gateway.ClientGatewayService.GetActivityStats:input_type -> fitglue.gateway.EmptyRequest
-	1,   // 92: fitglue.gateway.ClientGatewayService.ListShowcases:input_type -> fitglue.gateway.EmptyRequest
-	5,   // 93: fitglue.gateway.ClientGatewayService.GetShowcase:input_type -> fitglue.gateway.ShowcaseIdRequest
-	54,  // 94: fitglue.gateway.ClientGatewayService.CreateShowcase:input_type -> fitglue.gateway.CreateShowcaseGatewayRequest
-	55,  // 95: fitglue.gateway.ClientGatewayService.UpdateShowcase:input_type -> fitglue.gateway.UpdateShowcaseGatewayRequest
-	5,   // 96: fitglue.gateway.ClientGatewayService.DeleteShowcase:input_type -> fitglue.gateway.ShowcaseIdRequest
-	5,   // 97: fitglue.gateway.ClientGatewayService.GenerateShowcaseImages:input_type -> fitglue.gateway.ShowcaseIdRequest
-	1,   // 98: fitglue.gateway.ClientGatewayService.GetShowcasePreferences:input_type -> fitglue.gateway.EmptyRequest
-	56,  // 99: fitglue.gateway.ClientGatewayService.UpdateShowcasePreferences:input_type -> fitglue.gateway.UpdateShowcasePreferencesGatewayRequest
-	1,   // 100: fitglue.gateway.ClientGatewayService.GetShowcaseSettings:input_type -> fitglue.gateway.EmptyRequest
-	59,  // 101: fitglue.gateway.ClientGatewayService.UpdateShowcaseSettings:input_type -> fitglue.gateway.UpdateShowcaseSettingsGatewayRequest
-	60,  // 102: fitglue.gateway.ClientGatewayService.UpdateShowcaseSlug:input_type -> fitglue.gateway.UpdateShowcaseSlugGatewayRequest
-	11,  // 103: fitglue.gateway.ClientGatewayService.AddShowcaseEntry:input_type -> fitglue.gateway.ShowcaseEntryRequest
-	11,  // 104: fitglue.gateway.ClientGatewayService.RemoveShowcaseEntry:input_type -> fitglue.gateway.ShowcaseEntryRequest
-	66,  // 105: fitglue.gateway.ClientGatewayService.GetShowcaseProfilePictureUploadUrl:input_type -> fitglue.gateway.GetPictureUploadUrlGatewayRequest
-	61,  // 106: fitglue.gateway.ClientGatewayService.UpdateRoundupSettings:input_type -> fitglue.gateway.UpdateRoundupSettingsGatewayRequest
-	62,  // 107: fitglue.gateway.ClientGatewayService.RecomputeRoundup:input_type -> fitglue.gateway.RecomputeRoundupGatewayRequest
-	68,  // 108: fitglue.gateway.ClientGatewayService.GetActivityPhotoUploadUrl:input_type -> fitglue.gateway.GetActivityPhotoUploadUrlGatewayRequest
-	5,   // 109: fitglue.gateway.ClientGatewayService.GetShowcaseViewStats:input_type -> fitglue.gateway.ShowcaseIdRequest
-	1,   // 110: fitglue.gateway.ClientGatewayService.GetShowcaseProfileViewStats:input_type -> fitglue.gateway.EmptyRequest
-	64,  // 111: fitglue.gateway.ClientGatewayService.GetShowcaseRoundupViewStats:input_type -> fitglue.gateway.GetShowcaseRoundupViewStatsGatewayRequest
-	1,   // 112: fitglue.gateway.ClientGatewayService.ListShowcaseViewStats:input_type -> fitglue.gateway.EmptyRequest
-	72,  // 113: fitglue.gateway.ClientGatewayService.ParseFitFile:input_type -> fitglue.gateway.ParseFitFileGatewayRequest
-	73,  // 114: fitglue.gateway.ClientGatewayService.GetExerciseLibrary:input_type -> fitglue.gateway.GetExerciseLibraryGatewayRequest
-	76,  // 115: fitglue.gateway.ClientGatewayService.RepostMissedDestination:input_type -> fitglue.gateway.RepostVariantGatewayRequest
-	76,  // 116: fitglue.gateway.ClientGatewayService.RepostRetryDestination:input_type -> fitglue.gateway.RepostVariantGatewayRequest
-	76,  // 117: fitglue.gateway.ClientGatewayService.RepostFullPipeline:input_type -> fitglue.gateway.RepostVariantGatewayRequest
-	78,  // 118: fitglue.gateway.ClientGatewayService.GetPipelineRunPayload:input_type -> fitglue.gateway.GetPipelineRunPayloadGatewayRequest
-	70,  // 119: fitglue.gateway.ClientGatewayService.ExportPipelineRun:input_type -> fitglue.gateway.ExportPipelineRunGatewayRequest
-	1,   // 120: fitglue.gateway.ClientGatewayService.GetPluginRegistry:input_type -> fitglue.gateway.EmptyRequest
-	1,   // 121: fitglue.gateway.ClientGatewayService.GetPluginRegistryPlugins:input_type -> fitglue.gateway.EmptyRequest
-	7,   // 122: fitglue.gateway.ClientGatewayService.GetPlugin:input_type -> fitglue.gateway.PluginIdPathRequest
-	7,   // 123: fitglue.gateway.ClientGatewayService.GetPluginIcon:input_type -> fitglue.gateway.PluginIdPathRequest
-	1,   // 124: fitglue.gateway.ClientGatewayService.ListCategories:input_type -> fitglue.gateway.EmptyRequest
-	1,   // 125: fitglue.gateway.ClientGatewayService.ListSources:input_type -> fitglue.gateway.EmptyRequest
-	86,  // 126: fitglue.gateway.ClientGatewayService.GetProfile:output_type -> fitglue.models.user.UserProfile
-	86,  // 127: fitglue.gateway.ClientGatewayService.UpdateProfile:output_type -> fitglue.models.user.UserProfile
-	104, // 128: fitglue.gateway.ClientGatewayService.DeleteSelf:output_type -> google.protobuf.Empty
-	87,  // 129: fitglue.gateway.ClientGatewayService.ListIntegrations:output_type -> fitglue.models.user.UserIntegrations
-	13,  // 130: fitglue.gateway.ClientGatewayService.GetIntegration:output_type -> fitglue.gateway.GetIntegrationGatewayResponse
-	104, // 131: fitglue.gateway.ClientGatewayService.SetIntegration:output_type -> google.protobuf.Empty
-	104, // 132: fitglue.gateway.ClientGatewayService.DeleteIntegration:output_type -> google.protobuf.Empty
-	15,  // 133: fitglue.gateway.ClientGatewayService.OAuthConnect:output_type -> fitglue.gateway.OAuthConnectResponse
-	104, // 134: fitglue.gateway.ClientGatewayService.ConnectionAction:output_type -> google.protobuf.Empty
-	35,  // 135: fitglue.gateway.ClientGatewayService.ListConnectionActivities:output_type -> fitglue.gateway.ListSourceActivitiesGatewayResponse
-	37,  // 136: fitglue.gateway.ClientGatewayService.BackfillConnectionActivities:output_type -> fitglue.gateway.BackfillActivitiesGatewayResponse
-	17,  // 137: fitglue.gateway.ClientGatewayService.ListCounters:output_type -> fitglue.gateway.ListCountersGatewayResponse
-	89,  // 138: fitglue.gateway.ClientGatewayService.UpdateCounter:output_type -> fitglue.models.user.Counter
-	104, // 139: fitglue.gateway.ClientGatewayService.DeleteCounter:output_type -> google.protobuf.Empty
-	19,  // 140: fitglue.gateway.ClientGatewayService.GetBoosterData:output_type -> fitglue.gateway.GetBoosterDataGatewayResponse
-	104, // 141: fitglue.gateway.ClientGatewayService.SetBoosterData:output_type -> google.protobuf.Empty
-	104, // 142: fitglue.gateway.ClientGatewayService.DeleteBoosterData:output_type -> google.protobuf.Empty
-	21,  // 143: fitglue.gateway.ClientGatewayService.ListPersonalRecords:output_type -> fitglue.gateway.ListPersonalRecordsGatewayResponse
-	90,  // 144: fitglue.gateway.ClientGatewayService.SetPersonalRecord:output_type -> fitglue.models.user.PersonalRecord
-	104, // 145: fitglue.gateway.ClientGatewayService.DeletePersonalRecord:output_type -> google.protobuf.Empty
-	23,  // 146: fitglue.gateway.ClientGatewayService.ListPluginDefaults:output_type -> fitglue.gateway.ListPluginDefaultsGatewayResponse
-	104, // 147: fitglue.gateway.ClientGatewayService.SetPluginDefaults:output_type -> google.protobuf.Empty
-	104, // 148: fitglue.gateway.ClientGatewayService.DeletePluginDefaults:output_type -> google.protobuf.Empty
-	104, // 149: fitglue.gateway.ClientGatewayService.SendVerificationEmail:output_type -> google.protobuf.Empty
-	104, // 150: fitglue.gateway.ClientGatewayService.SendEmailChangeVerification:output_type -> google.protobuf.Empty
-	104, // 151: fitglue.gateway.ClientGatewayService.SendPasswordReset:output_type -> google.protobuf.Empty
-	104, // 152: fitglue.gateway.ClientGatewayService.MobileSync:output_type -> google.protobuf.Empty
-	27,  // 153: fitglue.gateway.ClientGatewayService.ListPipelines:output_type -> fitglue.gateway.ListPipelinesGatewayResponse
-	91,  // 154: fitglue.gateway.ClientGatewayService.GetPipeline:output_type -> fitglue.models.pipeline.PipelineConfig
-	91,  // 155: fitglue.gateway.ClientGatewayService.CreatePipeline:output_type -> fitglue.models.pipeline.PipelineConfig
-	91,  // 156: fitglue.gateway.ClientGatewayService.UpdatePipeline:output_type -> fitglue.models.pipeline.PipelineConfig
-	104, // 157: fitglue.gateway.ClientGatewayService.DeletePipeline:output_type -> google.protobuf.Empty
-	31,  // 158: fitglue.gateway.ClientGatewayService.ListPipelineRuns:output_type -> fitglue.gateway.ListPipelineRunsGatewayResponse
-	93,  // 159: fitglue.gateway.ClientGatewayService.GetPipelineRun:output_type -> fitglue.models.pipeline.PipelineRun
-	35,  // 160: fitglue.gateway.ClientGatewayService.ListSourceActivities:output_type -> fitglue.gateway.ListSourceActivitiesGatewayResponse
-	37,  // 161: fitglue.gateway.ClientGatewayService.BackfillActivities:output_type -> fitglue.gateway.BackfillActivitiesGatewayResponse
-	104, // 162: fitglue.gateway.ClientGatewayService.SubmitInput:output_type -> google.protobuf.Empty
-	104, // 163: fitglue.gateway.ClientGatewayService.CancelPipeline:output_type -> google.protobuf.Empty
-	104, // 164: fitglue.gateway.ClientGatewayService.CancelPipelineRun:output_type -> google.protobuf.Empty
-	104, // 165: fitglue.gateway.ClientGatewayService.RepostActivity:output_type -> google.protobuf.Empty
-	49,  // 166: fitglue.gateway.ClientGatewayService.ListActivities:output_type -> fitglue.gateway.ListActivitiesGatewayResponse
-	96,  // 167: fitglue.gateway.ClientGatewayService.GetActivity:output_type -> fitglue.models.activity.StandardizedActivity
-	51,  // 168: fitglue.gateway.ClientGatewayService.ListResolvedActivities:output_type -> fitglue.gateway.ListResolvedActivitiesGatewayResponse
-	97,  // 169: fitglue.gateway.ClientGatewayService.GetResolvedActivity:output_type -> fitglue.models.activity.ResolvedActivity
-	96,  // 170: fitglue.gateway.ClientGatewayService.RefreshActivitySource:output_type -> fitglue.models.activity.StandardizedActivity
-	96,  // 171: fitglue.gateway.ClientGatewayService.UpdateActivity:output_type -> fitglue.models.activity.StandardizedActivity
-	104, // 172: fitglue.gateway.ClientGatewayService.ResendActivity:output_type -> google.protobuf.Empty
-	46,  // 173: fitglue.gateway.ClientGatewayService.InvokeEnricher:output_type -> fitglue.gateway.InvokeEnricherGatewayResponse
-	96,  // 174: fitglue.gateway.ClientGatewayService.AcceptProposedEnricherRun:output_type -> fitglue.models.activity.StandardizedActivity
-	104, // 175: fitglue.gateway.ClientGatewayService.DismissProposedEnricherRun:output_type -> google.protobuf.Empty
-	104, // 176: fitglue.gateway.ClientGatewayService.DeleteActivity:output_type -> google.protobuf.Empty
-	52,  // 177: fitglue.gateway.ClientGatewayService.GetActivityStats:output_type -> fitglue.gateway.GetActivityStatsGatewayResponse
-	53,  // 178: fitglue.gateway.ClientGatewayService.ListShowcases:output_type -> fitglue.gateway.ListShowcasesGatewayResponse
-	99,  // 179: fitglue.gateway.ClientGatewayService.GetShowcase:output_type -> fitglue.models.activity.ShowcasedActivity
-	99,  // 180: fitglue.gateway.ClientGatewayService.CreateShowcase:output_type -> fitglue.models.activity.ShowcasedActivity
-	99,  // 181: fitglue.gateway.ClientGatewayService.UpdateShowcase:output_type -> fitglue.models.activity.ShowcasedActivity
-	104, // 182: fitglue.gateway.ClientGatewayService.DeleteShowcase:output_type -> google.protobuf.Empty
-	104, // 183: fitglue.gateway.ClientGatewayService.GenerateShowcaseImages:output_type -> google.protobuf.Empty
-	100, // 184: fitglue.gateway.ClientGatewayService.GetShowcasePreferences:output_type -> fitglue.models.activity.ShowcaseProfile
-	100, // 185: fitglue.gateway.ClientGatewayService.UpdateShowcasePreferences:output_type -> fitglue.models.activity.ShowcaseProfile
-	57,  // 186: fitglue.gateway.ClientGatewayService.GetShowcaseSettings:output_type -> fitglue.gateway.GetShowcaseSettingsGatewayResponse
-	100, // 187: fitglue.gateway.ClientGatewayService.UpdateShowcaseSettings:output_type -> fitglue.models.activity.ShowcaseProfile
-	65,  // 188: fitglue.gateway.ClientGatewayService.UpdateShowcaseSlug:output_type -> fitglue.gateway.UpdateShowcaseSlugGatewayResponse
-	104, // 189: fitglue.gateway.ClientGatewayService.AddShowcaseEntry:output_type -> google.protobuf.Empty
-	104, // 190: fitglue.gateway.ClientGatewayService.RemoveShowcaseEntry:output_type -> google.protobuf.Empty
-	67,  // 191: fitglue.gateway.ClientGatewayService.GetShowcaseProfilePictureUploadUrl:output_type -> fitglue.gateway.GetPictureUploadUrlGatewayResponse
-	100, // 192: fitglue.gateway.ClientGatewayService.UpdateRoundupSettings:output_type -> fitglue.models.activity.ShowcaseProfile
-	105, // 193: fitglue.gateway.ClientGatewayService.RecomputeRoundup:output_type -> fitglue.models.activity.ShowcaseRoundup
-	69,  // 194: fitglue.gateway.ClientGatewayService.GetActivityPhotoUploadUrl:output_type -> fitglue.gateway.GetActivityPhotoUploadUrlGatewayResponse
-	102, // 195: fitglue.gateway.ClientGatewayService.GetShowcaseViewStats:output_type -> fitglue.models.activity.ShowcaseViewStats
-	102, // 196: fitglue.gateway.ClientGatewayService.GetShowcaseProfileViewStats:output_type -> fitglue.models.activity.ShowcaseViewStats
-	102, // 197: fitglue.gateway.ClientGatewayService.GetShowcaseRoundupViewStats:output_type -> fitglue.models.activity.ShowcaseViewStats
-	63,  // 198: fitglue.gateway.ClientGatewayService.ListShowcaseViewStats:output_type -> fitglue.gateway.ListShowcaseViewStatsGatewayResponse
-	96,  // 199: fitglue.gateway.ClientGatewayService.ParseFitFile:output_type -> fitglue.models.activity.StandardizedActivity
-	75,  // 200: fitglue.gateway.ClientGatewayService.GetExerciseLibrary:output_type -> fitglue.gateway.GetExerciseLibraryGatewayResponse
-	77,  // 201: fitglue.gateway.ClientGatewayService.RepostMissedDestination:output_type -> fitglue.gateway.RepostGatewayResponse
-	77,  // 202: fitglue.gateway.ClientGatewayService.RepostRetryDestination:output_type -> fitglue.gateway.RepostGatewayResponse
-	77,  // 203: fitglue.gateway.ClientGatewayService.RepostFullPipeline:output_type -> fitglue.gateway.RepostGatewayResponse
-	79,  // 204: fitglue.gateway.ClientGatewayService.GetPipelineRunPayload:output_type -> fitglue.gateway.GetPipelineRunPayloadGatewayResponse
-	71,  // 205: fitglue.gateway.ClientGatewayService.ExportPipelineRun:output_type -> fitglue.gateway.ExportPipelineRunGatewayResponse
-	106, // 206: fitglue.gateway.ClientGatewayService.GetPluginRegistry:output_type -> fitglue.models.plugin.PluginRegistryResponse
-	106, // 207: fitglue.gateway.ClientGatewayService.GetPluginRegistryPlugins:output_type -> fitglue.models.plugin.PluginRegistryResponse
-	103, // 208: fitglue.gateway.ClientGatewayService.GetPlugin:output_type -> fitglue.models.plugin.PluginManifest
-	80,  // 209: fitglue.gateway.ClientGatewayService.GetPluginIcon:output_type -> fitglue.gateway.GetPluginIconGatewayResponse
-	81,  // 210: fitglue.gateway.ClientGatewayService.ListCategories:output_type -> fitglue.gateway.ListCategoriesGatewayResponse
-	82,  // 211: fitglue.gateway.ClientGatewayService.ListSources:output_type -> fitglue.gateway.ListSourcesGatewayResponse
-	126, // [126:212] is the sub-list for method output_type
-	40,  // [40:126] is the sub-list for method input_type
-	40,  // [40:40] is the sub-list for extension type_name
-	40,  // [40:40] is the sub-list for extension extendee
-	0,   // [0:40] is the sub-list for field type_name
+	80,  // 0: fitglue.gateway.UpdateProfileGatewayRequest.profile:type_name -> fitglue.models.user.UserProfile
+	81,  // 1: fitglue.gateway.GetIntegrationGatewayResponse.integrations:type_name -> fitglue.models.user.UserIntegrations
+	82,  // 2: fitglue.gateway.SetIntegrationGatewayRequest.integration_data:type_name -> google.protobuf.Struct
+	83,  // 3: fitglue.gateway.ListCountersGatewayResponse.counters:type_name -> fitglue.models.user.Counter
+	77,  // 4: fitglue.gateway.GetBoosterDataGatewayResponse.data:type_name -> fitglue.gateway.GetBoosterDataGatewayResponse.DataEntry
+	82,  // 5: fitglue.gateway.SetBoosterDataGatewayRequest.data:type_name -> google.protobuf.Struct
+	84,  // 6: fitglue.gateway.ListPersonalRecordsGatewayResponse.records:type_name -> fitglue.models.user.PersonalRecord
+	78,  // 7: fitglue.gateway.ListPluginDefaultsGatewayResponse.defaults:type_name -> fitglue.gateway.ListPluginDefaultsGatewayResponse.DefaultsEntry
+	82,  // 8: fitglue.gateway.SetPluginDefaultsGatewayRequest.defaults:type_name -> google.protobuf.Struct
+	85,  // 9: fitglue.gateway.ListPipelinesGatewayResponse.pipelines:type_name -> fitglue.models.pipeline.PipelineConfig
+	85,  // 10: fitglue.gateway.CreatePipelineGatewayRequest.pipeline:type_name -> fitglue.models.pipeline.PipelineConfig
+	85,  // 11: fitglue.gateway.UpdatePipelineGatewayRequest.pipeline:type_name -> fitglue.models.pipeline.PipelineConfig
+	86,  // 12: fitglue.gateway.ListPipelineRunsGatewayRequest.since:type_name -> google.protobuf.Timestamp
+	86,  // 13: fitglue.gateway.ListPipelineRunsGatewayRequest.until:type_name -> google.protobuf.Timestamp
+	87,  // 14: fitglue.gateway.ListPipelineRunsGatewayResponse.runs:type_name -> fitglue.models.pipeline.PipelineRun
+	86,  // 15: fitglue.gateway.SourceActivityItemGateway.start_time:type_name -> google.protobuf.Timestamp
+	32,  // 16: fitglue.gateway.ListSourceActivitiesGatewayResponse.activities:type_name -> fitglue.gateway.SourceActivityItemGateway
+	79,  // 17: fitglue.gateway.SubmitInputGatewayRequest.input_data:type_name -> fitglue.gateway.SubmitInputGatewayRequest.InputDataEntry
+	88,  // 18: fitglue.gateway.UpdateActivityGatewayRequest.type:type_name -> fitglue.models.activity.ActivityType
+	89,  // 19: fitglue.gateway.InvokeEnricherGatewayResponse.proposed:type_name -> fitglue.models.activity.EnricherRunLayer
+	90,  // 20: fitglue.gateway.InvokeEnricherGatewayResponse.preview:type_name -> fitglue.models.activity.StandardizedActivity
+	90,  // 21: fitglue.gateway.ListActivitiesGatewayResponse.activities:type_name -> fitglue.models.activity.StandardizedActivity
+	91,  // 22: fitglue.gateway.ListResolvedActivitiesGatewayResponse.activities:type_name -> fitglue.models.activity.ResolvedActivity
+	92,  // 23: fitglue.gateway.ListShowcasesGatewayResponse.showcases:type_name -> fitglue.models.activity.ShowcaseProfileEntry
+	93,  // 24: fitglue.gateway.CreateShowcaseGatewayRequest.showcase:type_name -> fitglue.models.activity.ShowcasedActivity
+	93,  // 25: fitglue.gateway.UpdateShowcaseGatewayRequest.showcase:type_name -> fitglue.models.activity.ShowcasedActivity
+	94,  // 26: fitglue.gateway.UpdateShowcasePreferencesGatewayRequest.preferences:type_name -> fitglue.models.activity.ShowcaseProfile
+	94,  // 27: fitglue.gateway.GetShowcaseSettingsGatewayResponse.profile:type_name -> fitglue.models.activity.ShowcaseProfile
+	57,  // 28: fitglue.gateway.GetShowcaseSettingsGatewayResponse.activities:type_name -> fitglue.gateway.ShowcaseActivityEntryGateway
+	94,  // 29: fitglue.gateway.UpdateShowcaseSettingsGatewayRequest.settings:type_name -> fitglue.models.activity.ShowcaseProfile
+	95,  // 30: fitglue.gateway.UpdateRoundupSettingsGatewayRequest.settings:type_name -> fitglue.models.activity.RoundupSettings
+	71,  // 31: fitglue.gateway.GetExerciseLibraryGatewayResponse.exercises:type_name -> fitglue.gateway.ExerciseLibraryEntry
+	0,   // 32: fitglue.gateway.GetPipelineRunPayloadGatewayRequest.which:type_name -> fitglue.gateway.PayloadKind
+	86,  // 33: fitglue.gateway.GetPipelineRunPayloadGatewayResponse.expires_at:type_name -> google.protobuf.Timestamp
+	82,  // 34: fitglue.gateway.GetBoosterDataGatewayResponse.DataEntry.value:type_name -> google.protobuf.Struct
+	82,  // 35: fitglue.gateway.ListPluginDefaultsGatewayResponse.DefaultsEntry.value:type_name -> google.protobuf.Struct
+	1,   // 36: fitglue.gateway.ClientGatewayService.GetProfile:input_type -> fitglue.gateway.EmptyRequest
+	11,  // 37: fitglue.gateway.ClientGatewayService.UpdateProfile:input_type -> fitglue.gateway.UpdateProfileGatewayRequest
+	1,   // 38: fitglue.gateway.ClientGatewayService.DeleteSelf:input_type -> fitglue.gateway.EmptyRequest
+	1,   // 39: fitglue.gateway.ClientGatewayService.ListIntegrations:input_type -> fitglue.gateway.EmptyRequest
+	2,   // 40: fitglue.gateway.ClientGatewayService.GetIntegration:input_type -> fitglue.gateway.ProviderRequest
+	13,  // 41: fitglue.gateway.ClientGatewayService.SetIntegration:input_type -> fitglue.gateway.SetIntegrationGatewayRequest
+	2,   // 42: fitglue.gateway.ClientGatewayService.DeleteIntegration:input_type -> fitglue.gateway.ProviderRequest
+	2,   // 43: fitglue.gateway.ClientGatewayService.OAuthConnect:input_type -> fitglue.gateway.ProviderRequest
+	15,  // 44: fitglue.gateway.ClientGatewayService.ConnectionAction:input_type -> fitglue.gateway.ConnectionActionGatewayRequest
+	37,  // 45: fitglue.gateway.ClientGatewayService.ListConnectionActivities:input_type -> fitglue.gateway.ListConnectionActivitiesGatewayRequest
+	38,  // 46: fitglue.gateway.ClientGatewayService.BackfillConnectionActivities:input_type -> fitglue.gateway.BackfillConnectionActivitiesGatewayRequest
+	1,   // 47: fitglue.gateway.ClientGatewayService.ListCounters:input_type -> fitglue.gateway.EmptyRequest
+	17,  // 48: fitglue.gateway.ClientGatewayService.UpdateCounter:input_type -> fitglue.gateway.UpdateCounterGatewayRequest
+	9,   // 49: fitglue.gateway.ClientGatewayService.DeleteCounter:input_type -> fitglue.gateway.CounterNameRequest
+	1,   // 50: fitglue.gateway.ClientGatewayService.GetBoosterData:input_type -> fitglue.gateway.EmptyRequest
+	19,  // 51: fitglue.gateway.ClientGatewayService.SetBoosterData:input_type -> fitglue.gateway.SetBoosterDataGatewayRequest
+	7,   // 52: fitglue.gateway.ClientGatewayService.DeleteBoosterData:input_type -> fitglue.gateway.BoosterIdRequest
+	1,   // 53: fitglue.gateway.ClientGatewayService.ListPersonalRecords:input_type -> fitglue.gateway.EmptyRequest
+	21,  // 54: fitglue.gateway.ClientGatewayService.SetPersonalRecord:input_type -> fitglue.gateway.SetPersonalRecordGatewayRequest
+	8,   // 55: fitglue.gateway.ClientGatewayService.DeletePersonalRecord:input_type -> fitglue.gateway.RecordTypeRequest
+	1,   // 56: fitglue.gateway.ClientGatewayService.ListPluginDefaults:input_type -> fitglue.gateway.EmptyRequest
+	23,  // 57: fitglue.gateway.ClientGatewayService.SetPluginDefaults:input_type -> fitglue.gateway.SetPluginDefaultsGatewayRequest
+	6,   // 58: fitglue.gateway.ClientGatewayService.DeletePluginDefaults:input_type -> fitglue.gateway.PluginIdRequest
+	1,   // 59: fitglue.gateway.ClientGatewayService.SendVerificationEmail:input_type -> fitglue.gateway.EmptyRequest
+	24,  // 60: fitglue.gateway.ClientGatewayService.SendEmailChangeVerification:input_type -> fitglue.gateway.SendEmailChangeGatewayRequest
+	25,  // 61: fitglue.gateway.ClientGatewayService.SendPasswordReset:input_type -> fitglue.gateway.SendPasswordResetGatewayRequest
+	1,   // 62: fitglue.gateway.ClientGatewayService.MobileSync:input_type -> fitglue.gateway.EmptyRequest
+	1,   // 63: fitglue.gateway.ClientGatewayService.ListPipelines:input_type -> fitglue.gateway.EmptyRequest
+	3,   // 64: fitglue.gateway.ClientGatewayService.GetPipeline:input_type -> fitglue.gateway.PipelineIdRequest
+	27,  // 65: fitglue.gateway.ClientGatewayService.CreatePipeline:input_type -> fitglue.gateway.CreatePipelineGatewayRequest
+	28,  // 66: fitglue.gateway.ClientGatewayService.UpdatePipeline:input_type -> fitglue.gateway.UpdatePipelineGatewayRequest
+	3,   // 67: fitglue.gateway.ClientGatewayService.DeletePipeline:input_type -> fitglue.gateway.PipelineIdRequest
+	29,  // 68: fitglue.gateway.ClientGatewayService.ListPipelineRuns:input_type -> fitglue.gateway.ListPipelineRunsGatewayRequest
+	31,  // 69: fitglue.gateway.ClientGatewayService.GetPipelineRun:input_type -> fitglue.gateway.GetPipelineRunGatewayRequest
+	33,  // 70: fitglue.gateway.ClientGatewayService.ListSourceActivities:input_type -> fitglue.gateway.ListSourceActivitiesGatewayRequest
+	35,  // 71: fitglue.gateway.ClientGatewayService.BackfillActivities:input_type -> fitglue.gateway.BackfillActivitiesGatewayRequest
+	39,  // 72: fitglue.gateway.ClientGatewayService.SubmitInput:input_type -> fitglue.gateway.SubmitInputGatewayRequest
+	40,  // 73: fitglue.gateway.ClientGatewayService.CancelPipeline:input_type -> fitglue.gateway.CancelPipelineGatewayRequest
+	41,  // 74: fitglue.gateway.ClientGatewayService.CancelPipelineRun:input_type -> fitglue.gateway.CancelPipelineRunGatewayRequest
+	42,  // 75: fitglue.gateway.ClientGatewayService.RepostActivity:input_type -> fitglue.gateway.RepostActivityGatewayRequest
+	47,  // 76: fitglue.gateway.ClientGatewayService.ListActivities:input_type -> fitglue.gateway.ListActivitiesGatewayRequest
+	4,   // 77: fitglue.gateway.ClientGatewayService.GetActivity:input_type -> fitglue.gateway.ActivityIdRequest
+	49,  // 78: fitglue.gateway.ClientGatewayService.ListResolvedActivities:input_type -> fitglue.gateway.ListResolvedActivitiesGatewayRequest
+	4,   // 79: fitglue.gateway.ClientGatewayService.GetResolvedActivity:input_type -> fitglue.gateway.ActivityIdRequest
+	4,   // 80: fitglue.gateway.ClientGatewayService.RefreshActivitySource:input_type -> fitglue.gateway.ActivityIdRequest
+	43,  // 81: fitglue.gateway.ClientGatewayService.UpdateActivity:input_type -> fitglue.gateway.UpdateActivityGatewayRequest
+	4,   // 82: fitglue.gateway.ClientGatewayService.ResendActivity:input_type -> fitglue.gateway.ActivityIdRequest
+	44,  // 83: fitglue.gateway.ClientGatewayService.InvokeEnricher:input_type -> fitglue.gateway.InvokeEnricherGatewayRequest
+	46,  // 84: fitglue.gateway.ClientGatewayService.AcceptProposedEnricherRun:input_type -> fitglue.gateway.ProposedEnricherRunGatewayRequest
+	46,  // 85: fitglue.gateway.ClientGatewayService.DismissProposedEnricherRun:input_type -> fitglue.gateway.ProposedEnricherRunGatewayRequest
+	4,   // 86: fitglue.gateway.ClientGatewayService.DeleteActivity:input_type -> fitglue.gateway.ActivityIdRequest
+	1,   // 87: fitglue.gateway.ClientGatewayService.GetActivityStats:input_type -> fitglue.gateway.EmptyRequest
+	1,   // 88: fitglue.gateway.ClientGatewayService.ListShowcases:input_type -> fitglue.gateway.EmptyRequest
+	5,   // 89: fitglue.gateway.ClientGatewayService.GetShowcase:input_type -> fitglue.gateway.ShowcaseIdRequest
+	53,  // 90: fitglue.gateway.ClientGatewayService.CreateShowcase:input_type -> fitglue.gateway.CreateShowcaseGatewayRequest
+	54,  // 91: fitglue.gateway.ClientGatewayService.UpdateShowcase:input_type -> fitglue.gateway.UpdateShowcaseGatewayRequest
+	5,   // 92: fitglue.gateway.ClientGatewayService.DeleteShowcase:input_type -> fitglue.gateway.ShowcaseIdRequest
+	5,   // 93: fitglue.gateway.ClientGatewayService.GenerateShowcaseImages:input_type -> fitglue.gateway.ShowcaseIdRequest
+	1,   // 94: fitglue.gateway.ClientGatewayService.GetShowcasePreferences:input_type -> fitglue.gateway.EmptyRequest
+	55,  // 95: fitglue.gateway.ClientGatewayService.UpdateShowcasePreferences:input_type -> fitglue.gateway.UpdateShowcasePreferencesGatewayRequest
+	1,   // 96: fitglue.gateway.ClientGatewayService.GetShowcaseSettings:input_type -> fitglue.gateway.EmptyRequest
+	58,  // 97: fitglue.gateway.ClientGatewayService.UpdateShowcaseSettings:input_type -> fitglue.gateway.UpdateShowcaseSettingsGatewayRequest
+	59,  // 98: fitglue.gateway.ClientGatewayService.UpdateShowcaseSlug:input_type -> fitglue.gateway.UpdateShowcaseSlugGatewayRequest
+	10,  // 99: fitglue.gateway.ClientGatewayService.AddShowcaseEntry:input_type -> fitglue.gateway.ShowcaseEntryRequest
+	10,  // 100: fitglue.gateway.ClientGatewayService.RemoveShowcaseEntry:input_type -> fitglue.gateway.ShowcaseEntryRequest
+	63,  // 101: fitglue.gateway.ClientGatewayService.GetShowcaseProfilePictureUploadUrl:input_type -> fitglue.gateway.GetPictureUploadUrlGatewayRequest
+	60,  // 102: fitglue.gateway.ClientGatewayService.UpdateRoundupSettings:input_type -> fitglue.gateway.UpdateRoundupSettingsGatewayRequest
+	61,  // 103: fitglue.gateway.ClientGatewayService.RecomputeRoundup:input_type -> fitglue.gateway.RecomputeRoundupGatewayRequest
+	65,  // 104: fitglue.gateway.ClientGatewayService.GetActivityPhotoUploadUrl:input_type -> fitglue.gateway.GetActivityPhotoUploadUrlGatewayRequest
+	69,  // 105: fitglue.gateway.ClientGatewayService.ParseFitFile:input_type -> fitglue.gateway.ParseFitFileGatewayRequest
+	70,  // 106: fitglue.gateway.ClientGatewayService.GetExerciseLibrary:input_type -> fitglue.gateway.GetExerciseLibraryGatewayRequest
+	73,  // 107: fitglue.gateway.ClientGatewayService.RepostMissedDestination:input_type -> fitglue.gateway.RepostVariantGatewayRequest
+	73,  // 108: fitglue.gateway.ClientGatewayService.RepostRetryDestination:input_type -> fitglue.gateway.RepostVariantGatewayRequest
+	73,  // 109: fitglue.gateway.ClientGatewayService.RepostFullPipeline:input_type -> fitglue.gateway.RepostVariantGatewayRequest
+	75,  // 110: fitglue.gateway.ClientGatewayService.GetPipelineRunPayload:input_type -> fitglue.gateway.GetPipelineRunPayloadGatewayRequest
+	67,  // 111: fitglue.gateway.ClientGatewayService.ExportPipelineRun:input_type -> fitglue.gateway.ExportPipelineRunGatewayRequest
+	80,  // 112: fitglue.gateway.ClientGatewayService.GetProfile:output_type -> fitglue.models.user.UserProfile
+	80,  // 113: fitglue.gateway.ClientGatewayService.UpdateProfile:output_type -> fitglue.models.user.UserProfile
+	96,  // 114: fitglue.gateway.ClientGatewayService.DeleteSelf:output_type -> google.protobuf.Empty
+	81,  // 115: fitglue.gateway.ClientGatewayService.ListIntegrations:output_type -> fitglue.models.user.UserIntegrations
+	12,  // 116: fitglue.gateway.ClientGatewayService.GetIntegration:output_type -> fitglue.gateway.GetIntegrationGatewayResponse
+	96,  // 117: fitglue.gateway.ClientGatewayService.SetIntegration:output_type -> google.protobuf.Empty
+	96,  // 118: fitglue.gateway.ClientGatewayService.DeleteIntegration:output_type -> google.protobuf.Empty
+	14,  // 119: fitglue.gateway.ClientGatewayService.OAuthConnect:output_type -> fitglue.gateway.OAuthConnectResponse
+	96,  // 120: fitglue.gateway.ClientGatewayService.ConnectionAction:output_type -> google.protobuf.Empty
+	34,  // 121: fitglue.gateway.ClientGatewayService.ListConnectionActivities:output_type -> fitglue.gateway.ListSourceActivitiesGatewayResponse
+	36,  // 122: fitglue.gateway.ClientGatewayService.BackfillConnectionActivities:output_type -> fitglue.gateway.BackfillActivitiesGatewayResponse
+	16,  // 123: fitglue.gateway.ClientGatewayService.ListCounters:output_type -> fitglue.gateway.ListCountersGatewayResponse
+	83,  // 124: fitglue.gateway.ClientGatewayService.UpdateCounter:output_type -> fitglue.models.user.Counter
+	96,  // 125: fitglue.gateway.ClientGatewayService.DeleteCounter:output_type -> google.protobuf.Empty
+	18,  // 126: fitglue.gateway.ClientGatewayService.GetBoosterData:output_type -> fitglue.gateway.GetBoosterDataGatewayResponse
+	96,  // 127: fitglue.gateway.ClientGatewayService.SetBoosterData:output_type -> google.protobuf.Empty
+	96,  // 128: fitglue.gateway.ClientGatewayService.DeleteBoosterData:output_type -> google.protobuf.Empty
+	20,  // 129: fitglue.gateway.ClientGatewayService.ListPersonalRecords:output_type -> fitglue.gateway.ListPersonalRecordsGatewayResponse
+	84,  // 130: fitglue.gateway.ClientGatewayService.SetPersonalRecord:output_type -> fitglue.models.user.PersonalRecord
+	96,  // 131: fitglue.gateway.ClientGatewayService.DeletePersonalRecord:output_type -> google.protobuf.Empty
+	22,  // 132: fitglue.gateway.ClientGatewayService.ListPluginDefaults:output_type -> fitglue.gateway.ListPluginDefaultsGatewayResponse
+	96,  // 133: fitglue.gateway.ClientGatewayService.SetPluginDefaults:output_type -> google.protobuf.Empty
+	96,  // 134: fitglue.gateway.ClientGatewayService.DeletePluginDefaults:output_type -> google.protobuf.Empty
+	96,  // 135: fitglue.gateway.ClientGatewayService.SendVerificationEmail:output_type -> google.protobuf.Empty
+	96,  // 136: fitglue.gateway.ClientGatewayService.SendEmailChangeVerification:output_type -> google.protobuf.Empty
+	96,  // 137: fitglue.gateway.ClientGatewayService.SendPasswordReset:output_type -> google.protobuf.Empty
+	96,  // 138: fitglue.gateway.ClientGatewayService.MobileSync:output_type -> google.protobuf.Empty
+	26,  // 139: fitglue.gateway.ClientGatewayService.ListPipelines:output_type -> fitglue.gateway.ListPipelinesGatewayResponse
+	85,  // 140: fitglue.gateway.ClientGatewayService.GetPipeline:output_type -> fitglue.models.pipeline.PipelineConfig
+	85,  // 141: fitglue.gateway.ClientGatewayService.CreatePipeline:output_type -> fitglue.models.pipeline.PipelineConfig
+	85,  // 142: fitglue.gateway.ClientGatewayService.UpdatePipeline:output_type -> fitglue.models.pipeline.PipelineConfig
+	96,  // 143: fitglue.gateway.ClientGatewayService.DeletePipeline:output_type -> google.protobuf.Empty
+	30,  // 144: fitglue.gateway.ClientGatewayService.ListPipelineRuns:output_type -> fitglue.gateway.ListPipelineRunsGatewayResponse
+	87,  // 145: fitglue.gateway.ClientGatewayService.GetPipelineRun:output_type -> fitglue.models.pipeline.PipelineRun
+	34,  // 146: fitglue.gateway.ClientGatewayService.ListSourceActivities:output_type -> fitglue.gateway.ListSourceActivitiesGatewayResponse
+	36,  // 147: fitglue.gateway.ClientGatewayService.BackfillActivities:output_type -> fitglue.gateway.BackfillActivitiesGatewayResponse
+	96,  // 148: fitglue.gateway.ClientGatewayService.SubmitInput:output_type -> google.protobuf.Empty
+	96,  // 149: fitglue.gateway.ClientGatewayService.CancelPipeline:output_type -> google.protobuf.Empty
+	96,  // 150: fitglue.gateway.ClientGatewayService.CancelPipelineRun:output_type -> google.protobuf.Empty
+	96,  // 151: fitglue.gateway.ClientGatewayService.RepostActivity:output_type -> google.protobuf.Empty
+	48,  // 152: fitglue.gateway.ClientGatewayService.ListActivities:output_type -> fitglue.gateway.ListActivitiesGatewayResponse
+	90,  // 153: fitglue.gateway.ClientGatewayService.GetActivity:output_type -> fitglue.models.activity.StandardizedActivity
+	50,  // 154: fitglue.gateway.ClientGatewayService.ListResolvedActivities:output_type -> fitglue.gateway.ListResolvedActivitiesGatewayResponse
+	91,  // 155: fitglue.gateway.ClientGatewayService.GetResolvedActivity:output_type -> fitglue.models.activity.ResolvedActivity
+	90,  // 156: fitglue.gateway.ClientGatewayService.RefreshActivitySource:output_type -> fitglue.models.activity.StandardizedActivity
+	90,  // 157: fitglue.gateway.ClientGatewayService.UpdateActivity:output_type -> fitglue.models.activity.StandardizedActivity
+	96,  // 158: fitglue.gateway.ClientGatewayService.ResendActivity:output_type -> google.protobuf.Empty
+	45,  // 159: fitglue.gateway.ClientGatewayService.InvokeEnricher:output_type -> fitglue.gateway.InvokeEnricherGatewayResponse
+	90,  // 160: fitglue.gateway.ClientGatewayService.AcceptProposedEnricherRun:output_type -> fitglue.models.activity.StandardizedActivity
+	96,  // 161: fitglue.gateway.ClientGatewayService.DismissProposedEnricherRun:output_type -> google.protobuf.Empty
+	96,  // 162: fitglue.gateway.ClientGatewayService.DeleteActivity:output_type -> google.protobuf.Empty
+	51,  // 163: fitglue.gateway.ClientGatewayService.GetActivityStats:output_type -> fitglue.gateway.GetActivityStatsGatewayResponse
+	52,  // 164: fitglue.gateway.ClientGatewayService.ListShowcases:output_type -> fitglue.gateway.ListShowcasesGatewayResponse
+	93,  // 165: fitglue.gateway.ClientGatewayService.GetShowcase:output_type -> fitglue.models.activity.ShowcasedActivity
+	93,  // 166: fitglue.gateway.ClientGatewayService.CreateShowcase:output_type -> fitglue.models.activity.ShowcasedActivity
+	93,  // 167: fitglue.gateway.ClientGatewayService.UpdateShowcase:output_type -> fitglue.models.activity.ShowcasedActivity
+	96,  // 168: fitglue.gateway.ClientGatewayService.DeleteShowcase:output_type -> google.protobuf.Empty
+	96,  // 169: fitglue.gateway.ClientGatewayService.GenerateShowcaseImages:output_type -> google.protobuf.Empty
+	94,  // 170: fitglue.gateway.ClientGatewayService.GetShowcasePreferences:output_type -> fitglue.models.activity.ShowcaseProfile
+	94,  // 171: fitglue.gateway.ClientGatewayService.UpdateShowcasePreferences:output_type -> fitglue.models.activity.ShowcaseProfile
+	56,  // 172: fitglue.gateway.ClientGatewayService.GetShowcaseSettings:output_type -> fitglue.gateway.GetShowcaseSettingsGatewayResponse
+	94,  // 173: fitglue.gateway.ClientGatewayService.UpdateShowcaseSettings:output_type -> fitglue.models.activity.ShowcaseProfile
+	62,  // 174: fitglue.gateway.ClientGatewayService.UpdateShowcaseSlug:output_type -> fitglue.gateway.UpdateShowcaseSlugGatewayResponse
+	96,  // 175: fitglue.gateway.ClientGatewayService.AddShowcaseEntry:output_type -> google.protobuf.Empty
+	96,  // 176: fitglue.gateway.ClientGatewayService.RemoveShowcaseEntry:output_type -> google.protobuf.Empty
+	64,  // 177: fitglue.gateway.ClientGatewayService.GetShowcaseProfilePictureUploadUrl:output_type -> fitglue.gateway.GetPictureUploadUrlGatewayResponse
+	94,  // 178: fitglue.gateway.ClientGatewayService.UpdateRoundupSettings:output_type -> fitglue.models.activity.ShowcaseProfile
+	97,  // 179: fitglue.gateway.ClientGatewayService.RecomputeRoundup:output_type -> fitglue.models.activity.ShowcaseRoundup
+	66,  // 180: fitglue.gateway.ClientGatewayService.GetActivityPhotoUploadUrl:output_type -> fitglue.gateway.GetActivityPhotoUploadUrlGatewayResponse
+	90,  // 181: fitglue.gateway.ClientGatewayService.ParseFitFile:output_type -> fitglue.models.activity.StandardizedActivity
+	72,  // 182: fitglue.gateway.ClientGatewayService.GetExerciseLibrary:output_type -> fitglue.gateway.GetExerciseLibraryGatewayResponse
+	74,  // 183: fitglue.gateway.ClientGatewayService.RepostMissedDestination:output_type -> fitglue.gateway.RepostGatewayResponse
+	74,  // 184: fitglue.gateway.ClientGatewayService.RepostRetryDestination:output_type -> fitglue.gateway.RepostGatewayResponse
+	74,  // 185: fitglue.gateway.ClientGatewayService.RepostFullPipeline:output_type -> fitglue.gateway.RepostGatewayResponse
+	76,  // 186: fitglue.gateway.ClientGatewayService.GetPipelineRunPayload:output_type -> fitglue.gateway.GetPipelineRunPayloadGatewayResponse
+	68,  // 187: fitglue.gateway.ClientGatewayService.ExportPipelineRun:output_type -> fitglue.gateway.ExportPipelineRunGatewayResponse
+	112, // [112:188] is the sub-list for method output_type
+	36,  // [36:112] is the sub-list for method input_type
+	36,  // [36:36] is the sub-list for extension type_name
+	36,  // [36:36] is the sub-list for extension extendee
+	0,   // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_gateway_client_proto_init() }
@@ -5112,14 +4742,14 @@ func file_gateway_client_proto_init() {
 	if File_gateway_client_proto != nil {
 		return
 	}
-	file_gateway_client_proto_msgTypes[29].OneofWrappers = []any{}
+	file_gateway_client_proto_msgTypes[28].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_client_proto_rawDesc), len(file_gateway_client_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   85,
+			NumMessages:   79,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

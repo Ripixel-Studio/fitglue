@@ -6,8 +6,8 @@ FitGlue has three distinct HTTP gateway services, each with its own auth policy 
 
 | Service | Callers | Auth | gRPC Clients |
 |---------|---------|------|-------------|
-| `service.api.client` | Web app, mobile app | Firebase Auth JWT | user, pipeline, activity, registry |
-| `service.api.public` | Marketing site, unauthenticated browser | None (rate-limited) | registry, activity |
+| `service.api.client` | Web app, mobile app | Firebase Auth JWT | user, pipeline, activity |
+| `service.api.public` | Unauthenticated browser | None (rate-limited) | activity |
 | `service.api.webhook` | Third-party services (Strava, Fitbit, etc.) | Provider HMAC / Mobile JWT | user (via RPC), Pub/Sub |
 
 ## service.api.client
@@ -39,7 +39,6 @@ No database access. No business logic. Only: extract from request → call RPC �
 - `GET /api/users/me/activities` — Activity list
 - `POST /api/users/me/inputs/{id}/resolve` — Pending input submission
 - `POST /api/users/me/activities/{id}/repost` — Repost activity
-- `GET /api/registry` — Plugin manifest (proxied from service.registry)
 - `GET/POST /api/auth/{provider}` — OAuth initiation and callback
 
 ## service.api.public
@@ -49,7 +48,6 @@ Unauthenticated endpoints for public-facing consumers.
 **Auth:** None. Rate-limited at the load balancer level.
 
 **Key routes:**
-- `GET /api/registry` — Public plugin registry (for marketing site)
 - `GET /api/showcase/{id}` — Public activity showcase page data
 
 ## service.api.webhook

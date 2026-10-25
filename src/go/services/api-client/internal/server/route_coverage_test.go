@@ -73,11 +73,9 @@ func TestRouteCoverage(t *testing.T) {
 		&mockPublisher{},
 		nil, // apiKeyStore
 		nil, // gcsSigner (not needed for route structure)
-		nil, // statsStore (not needed for route structure)
 		&mockUserServiceClient{},
 		&mockPipelineServiceClient{},
 		&mockActivityServiceClient{},
-		&mockRegistryServiceClient{},
 	)
 
 	registeredRoutes := make(map[string]bool)

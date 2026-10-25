@@ -34,127 +34,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /registry:
-        get:
-            tags:
-                - ClientGatewayService
-            description: ===================== Registry (Unauthenticated, but on api-client) =====================
-            operationId: ClientGatewayService_GetPluginRegistry
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/PluginRegistryResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /registry/categories:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_ListCategories
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListCategoriesGatewayResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /registry/plugins:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_GetPluginRegistryPlugins
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/PluginRegistryResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /registry/plugins/{id}:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_GetPlugin
-            parameters:
-                - name: id
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/PluginManifest'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /registry/plugins/{id}/icon:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_GetPluginIcon
-            parameters:
-                - name: id
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/GetPluginIconGatewayResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /registry/sources:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_ListSources
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListSourcesGatewayResponse'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /repost/full-pipeline:
         post:
             tags:
@@ -1787,24 +1666,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /users/me/showcase-management/profile/views:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_GetShowcaseProfileViewStats
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ShowcaseViewStats'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /users/me/showcase-management/roundup-settings:
         put:
             tags:
@@ -1847,48 +1708,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ShowcaseRoundup'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /users/me/showcase-management/roundup/{periodKey}/views:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_GetShowcaseRoundupViewStats
-            parameters:
-                - name: periodKey
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ShowcaseViewStats'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /users/me/showcase-management/views:
-        get:
-            tags:
-                - ClientGatewayService
-            operationId: ClientGatewayService_ListShowcaseViewStats
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListShowcaseViewStatsGatewayResponse'
                 default:
                     description: Default error response
                     content:
@@ -2025,31 +1844,6 @@ paths:
                 "200":
                     description: OK
                     content: {}
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /users/me/showcases/{id}/views:
-        get:
-            tags:
-                - ClientGatewayService
-            description: ===================== Showcase View Metrics (owner-facing) =====================
-            operationId: ClientGatewayService_GetShowcaseViewStats
-            parameters:
-                - name: id
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ShowcaseViewStats'
                 default:
                     description: Default error response
                     content:
@@ -2247,85 +2041,6 @@ components:
             properties:
                 runId:
                     type: string
-        ConfigFieldDependency:
-            type: object
-            properties:
-                fieldKey:
-                    type: string
-                values:
-                    type: array
-                    items:
-                        type: string
-        ConfigFieldOption:
-            type: object
-            properties:
-                value:
-                    type: string
-                label:
-                    type: string
-        ConfigFieldSchema:
-            type: object
-            properties:
-                key:
-                    type: string
-                label:
-                    type: string
-                description:
-                    type: string
-                fieldType:
-                    enum:
-                        - CONFIG_FIELD_TYPE_UNSPECIFIED
-                        - CONFIG_FIELD_TYPE_STRING
-                        - CONFIG_FIELD_TYPE_NUMBER
-                        - CONFIG_FIELD_TYPE_BOOLEAN
-                        - CONFIG_FIELD_TYPE_SELECT
-                        - CONFIG_FIELD_TYPE_MULTI_SELECT
-                        - CONFIG_FIELD_TYPE_KEY_VALUE_MAP
-                        - CONFIG_FIELD_TYPE_DYNAMIC_SELECT
-                        - CONFIG_FIELD_TYPE_LOCATION_SEARCH
-                    type: string
-                    format: enum
-                required:
-                    type: boolean
-                defaultValue:
-                    type: string
-                options:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ConfigFieldOption'
-                validation:
-                    $ref: '#/components/schemas/ConfigFieldValidation'
-                dependsOn:
-                    $ref: '#/components/schemas/ConfigFieldDependency'
-                keyOptions:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ConfigFieldOption'
-                valueOptions:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ConfigFieldOption'
-                dynamicSource:
-                    type: string
-                valueDynamicSource:
-                    type: string
-        ConfigFieldValidation:
-            type: object
-            properties:
-                minLength:
-                    type: integer
-                    format: int32
-                maxLength:
-                    type: integer
-                    format: int32
-                pattern:
-                    type: string
-                minValue:
-                    type: number
-                    format: double
-                maxValue:
-                    type: number
-                    format: double
         ConnectionActionGatewayRequest:
             type: object
             properties:
@@ -2851,15 +2566,6 @@ components:
                 expiresAt:
                     type: string
                     format: date-time
-        GetPluginIconGatewayResponse:
-            type: object
-            properties:
-                iconData:
-                    type: string
-                    format: bytes
-                contentType:
-                    type: string
-            description: Registry
         GetShowcaseSettingsGatewayResponse:
             type: object
             properties:
@@ -3089,65 +2795,6 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/HybridRaceSegment'
-        IntegrationAction:
-            type: object
-            properties:
-                id:
-                    type: string
-                label:
-                    type: string
-                description:
-                    type: string
-                icon:
-                    type: string
-        IntegrationManifest:
-            type: object
-            properties:
-                id:
-                    type: string
-                name:
-                    type: string
-                description:
-                    type: string
-                icon:
-                    type: string
-                authType:
-                    enum:
-                        - INTEGRATION_AUTH_TYPE_UNSPECIFIED
-                        - INTEGRATION_AUTH_TYPE_OAUTH
-                        - INTEGRATION_AUTH_TYPE_API_KEY
-                        - INTEGRATION_AUTH_TYPE_APP_SYNC
-                        - INTEGRATION_AUTH_TYPE_PUBLIC_ID
-                    type: string
-                    format: enum
-                enabled:
-                    type: boolean
-                docsUrl:
-                    type: string
-                setupTitle:
-                    type: string
-                setupInstructions:
-                    type: string
-                apiKeyLabel:
-                    type: string
-                apiKeyHelpUrl:
-                    type: string
-                marketingDescription:
-                    type: string
-                features:
-                    type: array
-                    items:
-                        type: string
-                iconType:
-                    type: string
-                iconPath:
-                    type: string
-                isTemporarilyUnavailable:
-                    type: boolean
-                actions:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/IntegrationAction'
         IntervalSegment:
             type: object
             properties:
@@ -3243,13 +2890,6 @@ components:
                         $ref: '#/components/schemas/StandardizedActivity'
                 nextPageToken:
                     type: string
-        ListCategoriesGatewayResponse:
-            type: object
-            properties:
-                categories:
-                    type: array
-                    items:
-                        type: string
         ListCountersGatewayResponse:
             type: object
             properties:
@@ -3300,23 +2940,6 @@ components:
                         $ref: '#/components/schemas/ResolvedActivity'
                 nextPageToken:
                     type: string
-        ListShowcaseViewStatsGatewayResponse:
-            type: object
-            properties:
-                profile:
-                    $ref: '#/components/schemas/ShowcaseViewStats'
-                showcases:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ShowcaseViewStats'
-                totalViews:
-                    type: string
-                totalVisitors:
-                    type: string
-                roundups:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ShowcaseViewStats'
         ListShowcasesGatewayResponse:
             type: object
             properties:
@@ -3334,13 +2957,6 @@ components:
                         $ref: '#/components/schemas/SourceActivityItemGateway'
                 nextPageToken:
                     type: string
-        ListSourcesGatewayResponse:
-            type: object
-            properties:
-                sources:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PluginManifest'
         LocationSummary:
             type: object
             properties:
@@ -3743,116 +3359,6 @@ components:
                         Unified record of every step in a pipeline run — source, parse, gate,
                          enricher batch, router, and per-destination uploaders.
                          boosters[] is preserved for existing documents; new clients should prefer steps[].
-        PluginManifest:
-            type: object
-            properties:
-                id:
-                    type: string
-                type:
-                    enum:
-                        - PLUGIN_TYPE_UNSPECIFIED
-                        - PLUGIN_TYPE_SOURCE
-                        - PLUGIN_TYPE_ENRICHER
-                        - PLUGIN_TYPE_DESTINATION
-                    type: string
-                    format: enum
-                name:
-                    type: string
-                description:
-                    type: string
-                icon:
-                    type: string
-                configSchema:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ConfigFieldSchema'
-                requiredIntegrations:
-                    type: array
-                    items:
-                        type: string
-                enabled:
-                    type: boolean
-                enricherProviderType:
-                    type: integer
-                    format: int32
-                destinationType:
-                    type: integer
-                    format: int32
-                marketingDescription:
-                    type: string
-                features:
-                    type: array
-                    items:
-                        type: string
-                transformations:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Transformation'
-                useCases:
-                    type: array
-                    items:
-                        type: string
-                externalUrlTemplate:
-                    type: string
-                requiredTier:
-                    type: string
-                category:
-                    type: string
-                sortOrder:
-                    type: integer
-                    format: int32
-                isPremium:
-                    type: boolean
-                popularityScore:
-                    type: integer
-                    format: int32
-                iconType:
-                    type: string
-                iconPath:
-                    type: string
-                isTemporarilyUnavailable:
-                    type: boolean
-                allowMultipleInstances:
-                    type: boolean
-                stage:
-                    enum:
-                        - PIPELINE_STAGE_UNSPECIFIED
-                        - PIPELINE_STAGE_GATE
-                        - PIPELINE_STAGE_ENRICHMENT
-                        - PIPELINE_STAGE_METRICS
-                        - PIPELINE_STAGE_CONTEXT_AI
-                        - PIPELINE_STAGE_INPUT
-                        - PIPELINE_STAGE_VIZ
-                    type: string
-                    description: |-
-                        PipelineStage groups boosters in the pipeline editor UI.
-                         Only meaningful for type == PLUGIN_TYPE_ENRICHER.
-                    format: enum
-                supportsNonBlocking:
-                    type: boolean
-                    description: |-
-                        supportsNonBlocking indicates this enricher can run in non-blocking mode:
-                         the pipeline continues to destinations while the enricher waits for user
-                         input, then destinations are updated (not duplicated) when input is resolved.
-        PluginRegistryResponse:
-            type: object
-            properties:
-                sources:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PluginManifest'
-                enrichers:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PluginManifest'
-                destinations:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PluginManifest'
-                integrations:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/IntegrationManifest'
         PolarIntegration:
             type: object
             properties:
@@ -4421,16 +3927,6 @@ components:
                 showcaseId:
                     type: string
             description: Pre-computed spotlight card — biggest session, longest streak, peak PR day.
-        ShowcaseDailyViewCount:
-            type: object
-            properties:
-                day:
-                    type: string
-                views:
-                    type: string
-                visitors:
-                    type: string
-            description: ShowcaseDailyViewCount is one day's view/visitor counts for a sparkline/trend.
         ShowcaseLink:
             type: object
             properties:
@@ -4870,26 +4366,6 @@ components:
                     type: number
                     format: double
             description: ShowcaseTopPR is a lightweight personal record for display on the profile medal wall.
-        ShowcaseViewStats:
-            type: object
-            properties:
-                targetKey:
-                    type: string
-                views:
-                    type: string
-                visitors:
-                    type: string
-                lastViewedAt:
-                    type: string
-                    format: date-time
-                daily:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/ShowcaseDailyViewCount'
-            description: |-
-                ShowcaseViewStats holds de-duplicated view metrics for one public showcase
-                 surface. `views` is total pageviews (bot-filtered, owner's own visits excluded);
-                 `visitors` is unique visitors deduped per (visitor, day) via a daily-salted hash.
         ShowcasedActivity:
             type: object
             properties:
@@ -5400,21 +4876,6 @@ components:
                 lastUsedAt:
                     type: string
                     format: date-time
-        Transformation:
-            type: object
-            properties:
-                field:
-                    type: string
-                label:
-                    type: string
-                before:
-                    type: string
-                after:
-                    type: string
-                visualType:
-                    type: string
-                afterHtml:
-                    type: string
         UpdateActivityGatewayRequest:
             type: object
             properties:

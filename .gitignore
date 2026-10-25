@@ -39,7 +39,6 @@ src/go/services/api-public/api-public
 src/go/services/api-webhook/api-webhook
 src/go/services/destination/destination
 src/go/services/pipeline/pipeline
-src/go/services/registry/registry
 src/go/services/user/user
 
 # Zip Archives (Terraform Artifacts)

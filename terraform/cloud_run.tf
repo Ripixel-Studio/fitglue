@@ -8,7 +8,6 @@ locals {
     "user"        = { is_public = false }
     "pipeline"    = { is_public = false }
     "activity"    = { is_public = false }
-    "registry"    = { is_public = false }
     "destination" = { is_public = false }
   }
   all_services = merge(local.frontend_services, local.backend_services)
@@ -568,25 +567,6 @@ resource "google_cloud_run_v2_service" "frontend" {
         name  = "ACTIVITY_SERVICE_URL"
         value = google_cloud_run_v2_service.backend["activity"].uri
       }
-      env {
-        name  = "REGISTRY_SERVICE_URL"
-        value = google_cloud_run_v2_service.backend["registry"].uri
-      }
-
-      # ── api-public: showcase view de-dup salt ──
-      dynamic "env" {
-        for_each = each.key == "api-public" ? [1] : []
-        content {
-          name = "VIEW_SALT_SECRET"
-          value_source {
-            secret_key_ref {
-              secret  = google_secret_manager_secret.showcase_view_salt.secret_id
-              version = "latest"
-            }
-          }
-        }
-      }
-
       # ── api-client: OAuth base URLs ──
       dynamic "env" {
         for_each = each.key == "api-client" ? [1] : []

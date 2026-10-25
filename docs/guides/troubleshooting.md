@@ -18,7 +18,6 @@ Use this table to jump straight to the right service, code, and logs for any fai
 | **Pipeline processing (split/route)** | `pipeline` | `internal/pipeline/` | `resource.labels.service_name="pipeline"` | `users/{uid}/pipeline_runs/` |
 | **Destination upload** | `destination` | `services/destination/internal/destination/uploaders/` | `resource.labels.service_name="destination"` | `users/{uid}/pipeline_runs/{id}` → `destinations[]` |
 | **Pending input stalls** | `pipeline` | `internal/pipeline/` | `resource.labels.service_name="pipeline"` | `users/{uid}/pending_inputs/` |
-| **Registry / plugin config** | `api-public` or `api-client` → `registry` | `internal/registry/` | `resource.labels.service_name="registry"` | Static config (no Firestore) |
 
 ---
 
@@ -422,7 +421,7 @@ severity>=WARNING
 jsonPayload.destination="<DESTINATION_NAME>"
 ```
 
-**Service name values**: `api-client`, `api-public`, `api-webhook`, `user`, `pipeline`, `activity`, `registry`, `destination`
+**Service name values**: `api-client`, `api-public`, `api-webhook`, `user`, `pipeline`, `activity`, `destination`
 
 ### Sentry
 

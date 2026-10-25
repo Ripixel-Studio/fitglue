@@ -169,7 +169,7 @@ lint:
 	@echo "Checking for Protobuf JSON misuse..."
 	@./scripts/lint-proto-json.sh
 
-SERVICES := activity api-client api-public api-webhook destination pipeline registry user
+SERVICES := activity api-client api-public api-webhook destination pipeline user
 
 docker:
 	@for service in $(SERVICES); do \

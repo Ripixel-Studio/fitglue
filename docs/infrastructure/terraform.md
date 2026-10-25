@@ -53,9 +53,9 @@ terraform/
 
 ### Cloud Run Services (`cloud_run.tf`)
 
-All 10 services are defined as Cloud Run v2 services using a `for_each` over two local maps:
+All 7 services are defined as Cloud Run v2 services using a `for_each` over two local maps:
 - `frontend_services`: `api-client`, `api-public`, `api-webhook`
-- `backend_services`: `user`, `pipeline`, `activity`, `registry`, `destination`
+- `backend_services`: `user`, `pipeline`, `activity`, `destination`
 
 Each service gets:
 - A dedicated service account (`cr-{name}-sa`)

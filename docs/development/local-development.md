@@ -43,7 +43,7 @@ SYSTEM_EMAIL=noreply@fitglue.tech
 make local
 ```
 
-Starts all 10 Cloud Run emulators via Docker Compose. Services communicate with each other over the Docker internal network. Logs stream to stdout.
+Starts all 7 Cloud Run emulators via Docker Compose. Services communicate with each other over the Docker internal network. Logs stream to stdout.
 
 ```bash
 make local-down   # Stop and remove containers
@@ -141,7 +141,7 @@ This regenerates:
 ```bash
 make build          # Build all Go services
 make build-go       # Same
-make docker         # Build Docker images for all 10 services
+make docker         # Build Docker images for all 7 services
 ```
 
 ## 8. Linting

@@ -19,7 +19,6 @@ import (
 
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
 	pipelinepb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
-	registrypb "github.com/fitglue/server/src/go/pkg/types/pb/services/registry"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 )
 
@@ -78,10 +77,6 @@ func main() {
 	defer activityConn.Close()
 	activityClient := activitypb.NewActivityServiceClient(activityConn)
 
-	registryConn := connect("REGISTRY_SERVICE_URL", "localhost:50055")
-	defer registryConn.Close()
-	registryClient := registrypb.NewRegistryServiceClient(registryConn)
-
 	// Setup Pub/Sub Client
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
@@ -103,7 +98,6 @@ func main() {
 	}
 	defer firestoreClient.Close()
 	apiKeyStore := server.NewFirestoreApiKeyStore(firestoreClient)
-	platformStatsStore := server.NewFirestorePlatformStatsStore(firestoreClient, logger)
 
 	// Setup GCS client for signed payload download URLs
 	gcsClient, err := gcstorage.NewClient(ctx)
@@ -121,11 +115,9 @@ func main() {
 		publisher,
 		apiKeyStore,
 		gcsSigner,
-		platformStatsStore,
 		userClient,
 		pipelineClient,
 		activityClient,
-		registryClient,
 	)
 
 	logger.Info(ctx, "Starting service.api.client", "port", port)

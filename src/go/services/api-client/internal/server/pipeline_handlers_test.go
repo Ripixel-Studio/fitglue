@@ -16,9 +16,7 @@ import (
 
 	pbactivitym "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
-	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	pipelinepb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
-	registrypb "github.com/fitglue/server/src/go/pkg/types/pb/services/registry"
 )
 
 // =============================================================
@@ -128,47 +126,6 @@ func (m *mockPipelineServiceClient) ResendActivity(ctx context.Context, in *pipe
 		return m.resendActivity(ctx, in, opts...)
 	}
 	return &emptypb.Empty{}, nil
-}
-
-// =============================================================
-// Mock RegistryServiceClient
-// =============================================================
-
-type mockRegistryServiceClient struct {
-	listPlugins   func(ctx context.Context, in *registrypb.ListPluginsRequest, opts ...grpc.CallOption) (*registrypb.ListPluginsResponse, error)
-	getPlugin     func(ctx context.Context, in *registrypb.GetPluginRequest, opts ...grpc.CallOption) (*pbplugin.PluginManifest, error)
-	getPluginIcon func(ctx context.Context, in *registrypb.GetPluginIconRequest, opts ...grpc.CallOption) (*registrypb.GetPluginIconResponse, error)
-}
-
-func (m *mockRegistryServiceClient) ListPlugins(ctx context.Context, in *registrypb.ListPluginsRequest, opts ...grpc.CallOption) (*registrypb.ListPluginsResponse, error) {
-	if m.listPlugins != nil {
-		return m.listPlugins(ctx, in, opts...)
-	}
-	return &registrypb.ListPluginsResponse{}, nil
-}
-func (m *mockRegistryServiceClient) GetPlugin(ctx context.Context, in *registrypb.GetPluginRequest, opts ...grpc.CallOption) (*pbplugin.PluginManifest, error) {
-	if m.getPlugin != nil {
-		return m.getPlugin(ctx, in, opts...)
-	}
-	return &pbplugin.PluginManifest{}, nil
-}
-func (m *mockRegistryServiceClient) ListCategories(ctx context.Context, in *registrypb.ListCategoriesRequest, opts ...grpc.CallOption) (*registrypb.ListCategoriesResponse, error) {
-	return &registrypb.ListCategoriesResponse{}, nil
-}
-func (m *mockRegistryServiceClient) GetPluginIcon(ctx context.Context, in *registrypb.GetPluginIconRequest, opts ...grpc.CallOption) (*registrypb.GetPluginIconResponse, error) {
-	if m.getPluginIcon != nil {
-		return m.getPluginIcon(ctx, in, opts...)
-	}
-	return &registrypb.GetPluginIconResponse{ContentType: "image/png", IconData: []byte{0x89, 0x50}}, nil
-}
-func (m *mockRegistryServiceClient) ListSources(ctx context.Context, in *registrypb.ListSourcesRequest, opts ...grpc.CallOption) (*registrypb.ListSourcesResponse, error) {
-	return &registrypb.ListSourcesResponse{}, nil
-}
-func (m *mockRegistryServiceClient) ListDestinations(ctx context.Context, in *registrypb.ListDestinationsRequest, opts ...grpc.CallOption) (*registrypb.ListDestinationsResponse, error) {
-	return &registrypb.ListDestinationsResponse{}, nil
-}
-func (m *mockRegistryServiceClient) GetPluginRegistry(ctx context.Context, in *registrypb.GetPluginRegistryRequest, opts ...grpc.CallOption) (*pbplugin.PluginRegistryResponse, error) {
-	return &pbplugin.PluginRegistryResponse{}, nil
 }
 
 // =============================================================
@@ -418,111 +375,6 @@ func TestHandleRepostActivity_ServiceError(t *testing.T) {
 	}
 }
 
-// =============================================================
-// Registry Handler Tests
-// =============================================================
-
-func buildRegistryServer(regSvc registrypb.RegistryServiceClient) *APIServer {
-	return &APIServer{registrySvc: regSvc}
-}
-
-func TestHandleListPlugins_Success(t *testing.T) {
-	s := buildRegistryServer(&mockRegistryServiceClient{})
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/registry/plugins?category=enricher", nil)
-	w := httptest.NewRecorder()
-	s.handleListPlugins(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestHandleListPlugins_ServiceError(t *testing.T) {
-	reg := &mockRegistryServiceClient{
-		listPlugins: func(_ context.Context, _ *registrypb.ListPluginsRequest, _ ...grpc.CallOption) (*registrypb.ListPluginsResponse, error) {
-			return nil, status.Error(codes.Internal, "load failed")
-		},
-	}
-	s := buildRegistryServer(reg)
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/registry/plugins", nil)
-	w := httptest.NewRecorder()
-	s.handleListPlugins(w, r)
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("expected 500, got %d", w.Code)
-	}
-}
-
-func TestHandleGetPlugin_Success(t *testing.T) {
-	s := buildRegistryServer(&mockRegistryServiceClient{})
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/registry/plugins/strava", nil)
-	w := httptest.NewRecorder()
-	s.handleGetPlugin(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestHandleGetPlugin_NotFound(t *testing.T) {
-	reg := &mockRegistryServiceClient{
-		getPlugin: func(_ context.Context, _ *registrypb.GetPluginRequest, _ ...grpc.CallOption) (*pbplugin.PluginManifest, error) {
-			return nil, status.Error(codes.NotFound, "plugin not found")
-		},
-	}
-	s := buildRegistryServer(reg)
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/registry/plugins/unknown", nil)
-	w := httptest.NewRecorder()
-	s.handleGetPlugin(w, r)
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected 404, got %d", w.Code)
-	}
-}
-
-func TestHandleGetPluginIcon_Success(t *testing.T) {
-	s := buildRegistryServer(&mockRegistryServiceClient{})
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/registry/plugins/strava/icon", nil)
-	w := httptest.NewRecorder()
-	s.handleGetPluginIcon(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-	if w.Header().Get("Content-Type") != "image/png" {
-		t.Errorf("expected image/png content type, got %q", w.Header().Get("Content-Type"))
-	}
-}
-
-func TestHandleGetPluginIcon_Error(t *testing.T) {
-	reg := &mockRegistryServiceClient{
-		getPluginIcon: func(_ context.Context, _ *registrypb.GetPluginIconRequest, _ ...grpc.CallOption) (*registrypb.GetPluginIconResponse, error) {
-			return nil, status.Error(codes.NotFound, "icon not found")
-		},
-	}
-	s := buildRegistryServer(reg)
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/registry/plugins/unknown/icon", nil)
-	w := httptest.NewRecorder()
-	s.handleGetPluginIcon(w, r)
-	if w.Code != http.StatusNotFound {
-		t.Errorf("expected 404, got %d", w.Code)
-	}
-}
-
-func TestHandleListCategories_Success(t *testing.T) {
-	s := buildRegistryServer(&mockRegistryServiceClient{})
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/registry/categories", nil)
-	w := httptest.NewRecorder()
-	s.handleListCategories(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestHandleListSources_Success(t *testing.T) {
-	s := buildRegistryServer(&mockRegistryServiceClient{})
-	r := httptest.NewRequest(http.MethodGet, "/api/v2/registry/sources", nil)
-	w := httptest.NewRecorder()
-	s.handleListSources(w, r)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
-	}
-}
 func (m *mockPipelineServiceClient) InvokeEnricher(ctx context.Context, in *pipelinepb.InvokeEnricherRequest, opts ...grpc.CallOption) (*pipelinepb.InvokeEnricherResponse, error) {
 	if m.invokeEnricher != nil {
 		return m.invokeEnricher(ctx, in, opts...)
