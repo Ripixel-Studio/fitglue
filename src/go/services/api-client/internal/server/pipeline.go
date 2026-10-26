@@ -34,6 +34,7 @@ func (s *APIServer) registerPipelineRoutes(r chi.Router) {
 	r.Get("/users/me/pipeline-runs/{runId}/payload", s.handleGetPipelineRunPayload)
 	r.Get("/users/me/pipeline-runs/{runId}/export", s.handleExportPipelineRun)
 
+	r.Get("/users/me/pending-inputs", s.handleListPendingInputs)
 	r.Post("/users/me/pending-inputs/{inputId}/submit", s.handleSubmitInput)
 	r.Post("/users/me/pending-inputs/{inputId}/cancel", s.handleCancelPipeline)
 	r.Post("/users/me/pipeline-runs/{runId}/cancel", s.handleCancelPipelineRun)
@@ -209,6 +210,28 @@ func (s *APIServer) handleGetPipelineRun(w http.ResponseWriter, r *http.Request)
 	}
 
 	res, err := s.pipelineSvc.GetPipelineRun(r.Context(), req)
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+
+	WriteJSON(w, res)
+}
+
+// handleListPendingInputs returns every pending input the pipeline service holds for the
+// caller (all statuses; the RPC has no filter).
+func (s *APIServer) handleListPendingInputs(w http.ResponseWriter, r *http.Request) {
+	token := getUserToken(r)
+	if token == nil {
+		WriteError(w, statusError(http.StatusUnauthorized, "missing user context"))
+		return
+	}
+
+	req := &pipelinepb.ListPendingInputsRequest{
+		UserId: token.UID,
+	}
+
+	res, err := s.pipelineSvc.ListPendingInputs(r.Context(), req)
 	if err != nil {
 		WriteError(w, err)
 		return

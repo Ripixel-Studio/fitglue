@@ -35,6 +35,12 @@ step makes it unreachable, and F4 deletes it.
 - `install.sh` links `fitglue-*.timer` and removes stale links such as
   `fitglue-api-public.service`.
 
+### feat: list pending inputs on api-client (rethink J4)
+
+- `GET /api/v2/users/me/pending-inputs` on api-client proxies the pipeline
+  service's `ListPendingInputs` for the caller, so Jarvis can read James's
+  pending inputs with the bearer token instead of Firestore.
+
 ### chore: secrets live in ~/.jarvis/fitglue.env on the box (rethink F3.5)
 
 Every value the box units need is now in `~/.jarvis/fitglue.env` (mode 600):

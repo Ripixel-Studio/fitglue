@@ -54,6 +54,7 @@ const (
 	ClientGatewayService_GetPipelineRun_FullMethodName                     = "/fitglue.gateway.ClientGatewayService/GetPipelineRun"
 	ClientGatewayService_ListSourceActivities_FullMethodName               = "/fitglue.gateway.ClientGatewayService/ListSourceActivities"
 	ClientGatewayService_BackfillActivities_FullMethodName                 = "/fitglue.gateway.ClientGatewayService/BackfillActivities"
+	ClientGatewayService_ListPendingInputs_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/ListPendingInputs"
 	ClientGatewayService_SubmitInput_FullMethodName                        = "/fitglue.gateway.ClientGatewayService/SubmitInput"
 	ClientGatewayService_CancelPipeline_FullMethodName                     = "/fitglue.gateway.ClientGatewayService/CancelPipeline"
 	ClientGatewayService_CancelPipelineRun_FullMethodName                  = "/fitglue.gateway.ClientGatewayService/CancelPipelineRun"
@@ -147,6 +148,7 @@ type ClientGatewayServiceClient interface {
 	GetPipelineRun(ctx context.Context, in *GetPipelineRunGatewayRequest, opts ...grpc.CallOption) (*pipeline.PipelineRun, error)
 	ListSourceActivities(ctx context.Context, in *ListSourceActivitiesGatewayRequest, opts ...grpc.CallOption) (*ListSourceActivitiesGatewayResponse, error)
 	BackfillActivities(ctx context.Context, in *BackfillActivitiesGatewayRequest, opts ...grpc.CallOption) (*BackfillActivitiesGatewayResponse, error)
+	ListPendingInputs(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListPendingInputsGatewayResponse, error)
 	SubmitInput(ctx context.Context, in *SubmitInputGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	CancelPipeline(ctx context.Context, in *CancelPipelineGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	CancelPipelineRun(ctx context.Context, in *CancelPipelineRunGatewayRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -527,6 +529,16 @@ func (c *clientGatewayServiceClient) BackfillActivities(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BackfillActivitiesGatewayResponse)
 	err := c.cc.Invoke(ctx, ClientGatewayService_BackfillActivities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *clientGatewayServiceClient) ListPendingInputs(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListPendingInputsGatewayResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPendingInputsGatewayResponse)
+	err := c.cc.Invoke(ctx, ClientGatewayService_ListPendingInputs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -984,6 +996,7 @@ type ClientGatewayServiceServer interface {
 	GetPipelineRun(context.Context, *GetPipelineRunGatewayRequest) (*pipeline.PipelineRun, error)
 	ListSourceActivities(context.Context, *ListSourceActivitiesGatewayRequest) (*ListSourceActivitiesGatewayResponse, error)
 	BackfillActivities(context.Context, *BackfillActivitiesGatewayRequest) (*BackfillActivitiesGatewayResponse, error)
+	ListPendingInputs(context.Context, *EmptyRequest) (*ListPendingInputsGatewayResponse, error)
 	SubmitInput(context.Context, *SubmitInputGatewayRequest) (*emptypb.Empty, error)
 	CancelPipeline(context.Context, *CancelPipelineGatewayRequest) (*emptypb.Empty, error)
 	CancelPipelineRun(context.Context, *CancelPipelineRunGatewayRequest) (*emptypb.Empty, error)
@@ -1152,6 +1165,9 @@ func (UnimplementedClientGatewayServiceServer) ListSourceActivities(context.Cont
 }
 func (UnimplementedClientGatewayServiceServer) BackfillActivities(context.Context, *BackfillActivitiesGatewayRequest) (*BackfillActivitiesGatewayResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BackfillActivities not implemented")
+}
+func (UnimplementedClientGatewayServiceServer) ListPendingInputs(context.Context, *EmptyRequest) (*ListPendingInputsGatewayResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPendingInputs not implemented")
 }
 func (UnimplementedClientGatewayServiceServer) SubmitInput(context.Context, *SubmitInputGatewayRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method SubmitInput not implemented")
@@ -1848,6 +1864,24 @@ func _ClientGatewayService_BackfillActivities_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClientGatewayServiceServer).BackfillActivities(ctx, req.(*BackfillActivitiesGatewayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ClientGatewayService_ListPendingInputs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientGatewayServiceServer).ListPendingInputs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClientGatewayService_ListPendingInputs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientGatewayServiceServer).ListPendingInputs(ctx, req.(*EmptyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2702,6 +2736,10 @@ var ClientGatewayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BackfillActivities",
 			Handler:    _ClientGatewayService_BackfillActivities_Handler,
+		},
+		{
+			MethodName: "ListPendingInputs",
+			Handler:    _ClientGatewayService_ListPendingInputs_Handler,
 		},
 		{
 			MethodName: "SubmitInput",
