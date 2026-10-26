@@ -78,8 +78,10 @@ is the same command; the callback overwrites the integration document.
 - **Webhook subscription (F3.4 b)** is per app, not per user, and is separate
   from connecting. One subscription exists for the app; its `callback_url` is
   `<public base>/api/webhooks/strava` and the verify token is
-  `STRAVA_WEBHOOK_VERIFY_TOKEN`. To inspect / re-point it when the base URL
-  changes:
+  `STRAVA_WEBHOOK_VERIFY_TOKEN`. On the box the callback is
+  `https://jarvis.tail3065f7.ts.net/fg/webhook/strava` and
+  `deploy/box/cutover.sh --strava` does the re-point (`box-cutover.md` §5).
+  By hand, to inspect / re-point it when the base URL changes:
   ```bash
   # view
   curl -G https://www.strava.com/api/v3/push_subscriptions \
@@ -114,7 +116,9 @@ is the same command; the callback overwrites the integration document.
   `<public base>/api/webhooks/fitbit` with the verification code
   `FITBIT_SUBSCRIBER_VERIFICATION_TOKEN`; Fitbit then `GET`s it with
   `?verify=<code>` and expects 204 (`api-webhook` returns 204 on a match, 404
-  otherwise). Change the endpoint there when the public base URL changes.
+  otherwise). Change the endpoint there when the public base URL changes:
+  on the box it is `https://jarvis.tail3065f7.ts.net/fg/webhook/fitbit`
+  (`box-cutover.md` §6).
 - **Per-user subscription is a separate API call and nothing in the Go code
   makes it** (the old guide's claim that the web app did it automatically was
   wrong; `services/api-webhook/.../fitbit` only verifies and receives). After
@@ -175,7 +179,9 @@ register the webhook in Hevy (Settings → Developer → Webhooks, or
 `POST https://api.hevyapp.com/v1/webhook-subscription` with the personal key
 in the `api-key` header) with:
 
-- URL: `<public base>/api/webhooks/hevy`
+- URL: `<public base>/api/webhooks/hevy` — on the box
+  `https://jarvis.tail3065f7.ts.net/fg/webhook/hevy` (`box-cutover.md` §7 has
+  the GET/POST/DELETE calls)
 - auth token: the printed ingress key (Hevy sends it as `Authorization`;
   `api-webhook` also accepts `X-Api-Key` and `?api_key=`).
 

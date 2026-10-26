@@ -87,12 +87,18 @@ resource "google_project_iam_member" "pubsub_sa_subscriber" {
 # Jarvis box (personal-fitglue.md F3.2). Its key lives at
 # ~/.jarvis/fitglue-box-sa.json on the box (chmod 600), never in state or CI.
 #
-# Created by hand with gcloud on 2026-10-25 so F3.1/F3.5 could start before
-# this merged; the import block adopts it into state on the first apply
-# (same pattern as fitglue-api-token in secrets.tf). The role bindings below
-# were also granted by hand; google_*_iam_member is non-authoritative, so the
-# apply converges on them without an import. Remove the import block in the
-# PR after this one has applied.
+# History: created by hand with gcloud on 2026-10-25 so F3.1/F3.5 could start
+# before F3.2 merged, with an import block to adopt it. CI's deploy-prod runs
+# are not serialised: the run for F3.2's commit imported it at 23:33 and the
+# run for F3.3's commit (merged ten seconds earlier, config without this
+# resource) took the state lock next and destroyed it at 23:33:55 (IAM audit
+# log, principal circleci-deployer). The import block is gone (F3.4): the next
+# apply CREATES the account, which gives it a new unique id, so the key at
+# ~/.jarvis/fitglue-box-sa.json must be minted again afterwards:
+#   gcloud iam service-accounts keys create ~/.jarvis/fitglue-box-sa.json \
+#     --iam-account fitglue-box@fitglue-server-prod.iam.gserviceaccount.com
+#   chmod 600 ~/.jarvis/fitglue-box-sa.json
+# deploy/box/cutover.sh --check proves the key with a Firestore read.
 #
 # Roles, and why:
 #   datastore.user            Firestore read/write (all six services)
@@ -102,20 +108,16 @@ resource "google_project_iam_member" "pubsub_sa_subscriber" {
 #                             (only the prompt step uses GEMINI_API_KEY); the
 #                             cr-pipeline-sa holds this today for the same reason
 #   storage.objectAdmin       per bucket, artifacts + showcase-assets only
-#   run.invoker on pipeline   what parkrun-agent has, so the parkrun agent can
-#                             switch to this key in F3.4(e); goes with
-#                             cloud_run.tf in F4
+#   run.invoker on pipeline   what parkrun-agent had; the parkrun agent uses
+#                             this key since F3.4(e) and talks to the box
+#                             pipeline, so this only matters if it is pointed
+#                             back at Cloud Run; goes with cloud_run.tf in F4
 # Not granted: secretmanager.secretAccessor (secrets become ~/.jarvis/fitglue.env
 # in F3.5), iam.serviceAccountTokenCreator (signed GCS URLs are signed locally
 # with the key's private key; Cloud Run needed the IAM signBlob API instead).
 # Pub/Sub push to the box keeps signing its OIDC tokens with the cr-*-sa
 # accounts named in pubsub.tf; nothing here is involved in that.
 # ──────────────────────────────────────────────────────────────────────────────
-
-import {
-  to = google_service_account.fitglue_box
-  id = "projects/fitglue-server-prod/serviceAccounts/fitglue-box@fitglue-server-prod.iam.gserviceaccount.com"
-}
 
 resource "google_service_account" "fitglue_box" {
   account_id   = "fitglue-box"

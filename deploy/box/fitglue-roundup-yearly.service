@@ -1,0 +1,23 @@
+# FitGlue yearly roundup trigger (rethink F3.4). Replaces the Cloud Scheduler job
+# `yearly-roundup-generator`: publishes {"period_type":"year"} to
+# topic-roundup-trigger, whose push subscription delivers it to the activity
+# service (/fg/pubsub/activity/roundup → 8105 /pubsub/roundup), which generates
+# the showcase roundup for the year that just ended. Fired by fitglue-roundup-yearly.timer;
+# run by hand with `systemctl --user start fitglue-roundup-yearly.service`.
+[Unit]
+Description=FitGlue yearly roundup trigger (publish to topic-roundup-trigger)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/work/fitglue-server
+EnvironmentFile=%h/.jarvis/fitglue.env
+Environment=PROJECT_ID=fitglue-server-prod
+Environment=GOOGLE_APPLICATION_CREDENTIALS=%h/.jarvis/fitglue-box-sa.json
+ExecStart=%h/work/fitglue-server/bin/fitgluectl trigger roundup --data '{"period_type":"year"}'
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fitglue-roundup-yearly
+NoNewPrivileges=true
+PrivateTmp=true

@@ -95,7 +95,8 @@ Event-driven messaging between functions:
 | `topic-pipeline-activity` | Pipeline (splitter) | Pipeline (enricher) |
 | `topic-enriched-activity` | Pipeline (enricher) | Destination |
 | `topic-destination-upload` | Pipeline (router) | Destination |
-| `topic-parkrun-results-trigger` | Cloud Scheduler | Pipeline |
+| `topic-parkrun-results-trigger` | `fitglue-parkrun-check.timer` on the box (`fitgluectl trigger parkrun-check`; Cloud Scheduler until F3.4) | Pipeline |
+| `topic-roundup-trigger` | `fitglue-roundup-{weekly,monthly,yearly}.timer` on the box (`fitgluectl trigger roundup`) | Activity |
 
 ### Firestore (`firestore.tf`)
 
@@ -178,7 +179,7 @@ Service accounts and permissions:
 |-----------------|---------|-----------|
 | `circleci-deployer` | CI/CD deployment (until F4) | Editor, Run Admin, Project IAM Admin |
 | `cr-<service>-sa` | One per Cloud Run service (until F4) | Datastore User, Pub/Sub Publisher, Secret Accessor, Storage Object Admin (project-level); `pipeline` also AI Platform User, `activity` also SA Token Creator |
-| `parkrun-agent` | Off-cloud parkrun fetch agent on the box | Run Invoker on `pipeline` only. Retired in favour of `fitglue-box` once F3.4(e) switches the agent's key |
+| `parkrun-agent` | Off-cloud parkrun fetch agent on the box | Run Invoker on `pipeline` only. F3.4(e) switched the agent to the `fitglue-box` key (`~/.jarvis/parkrun-agent.env`); this SA and its grant go with Cloud Run in F4 |
 | `fitglue-box` | **The FitGlue services on the Jarvis box** (F3.2) | see below |
 
 #### `fitglue-box` — identity for the box

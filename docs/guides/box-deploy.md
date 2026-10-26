@@ -1,10 +1,11 @@
 # Running FitGlue on the box
 
-Since rethink F3.1 the seven services run as systemd **user** units on the
+Since rethink F3.1 the six services run as systemd **user** units on the
 Jarvis box, as static binaries, against the same Firestore, GCS and Pub/Sub in
 `fitglue-server-prod` that Cloud Run uses. This guide is the box side; the
-cloud side (Pub/Sub subscriptions, Strava/Fitbit callbacks, scheduler timers)
-is re-pointed in F3.4 and torn down in F4.
+cloud side (Pub/Sub subscriptions, Strava/Fitbit/Hevy callbacks, the scheduler
+jobs, the parkrun agent) is re-pointed in F3.4 — `docs/guides/box-cutover.md`,
+`deploy/box/cutover.sh` — and torn down in F4.
 
 ```
 internet ── Tailscale Funnel (443, F3.3) ── Caddy 127.0.0.1:8100 ──┐
@@ -46,7 +47,9 @@ OIDC token; the trust boundary here is the loopback interface.
 | Path | What |
 |---|---|
 | `deploy/box/fitglue-<svc>.service` | one user unit per service: `ExecStart=%h/work/fitglue-server/bin/<svc>`, fixed non-secret env, journald, `Restart=on-failure` |
-| `deploy/box/fitglue.target` | wants all seven; `start`/`stop` it to move them together |
+| `deploy/box/fitglue.target` | wants the six services and the four timers; `start`/`stop` it to move them together |
+| `deploy/box/fitglue-roundup-{weekly,monthly,yearly}.timer`, `fitglue-parkrun-check.timer` (+ `.service`) | the Cloud Scheduler jobs, as user timers (F3.4): each runs `bin/fitgluectl trigger …` |
+| `deploy/box/cutover.sh` | the cut-over runbook as a script: `--check`, `--start`, `--pubsub`, `--parkrun`, `--strava`, `--scale-down-cloud`, `--rollback` |
 | `deploy/box/install.sh` | symlinks the units into `~/.config/systemd/user/`, `daemon-reload`, enables the target (`--no-enable` to skip) |
 | `deploy/box/fitglue.env.example` | every key `~/.jarvis/fitglue.env` must hold, with comments, no values |
 | `deploy/box/caddy/`, `deploy/box/fitglue-caddy.service`, `deploy/box/funnel.md` | the ingress (F3.3, `docs/guides/box-ingress.md`); separate lifecycle, not part of `fitglue.target` |
@@ -110,7 +113,7 @@ make deploy-box    # build-box; systemctl --user daemon-reload; restart the
 make status-box    # systemctl --user list-units fitglue.target fitglue-*.service
 
 deploy/box/install.sh                 # first time on a box; enables fitglue.target
-systemctl --user start fitglue.target # cutover (F3.4) — not before
+deploy/box/cutover.sh --start         # cutover (F3.4): enable --now fitglue.target + health waits
 systemctl --user stop fitglue.target  # everything down
 
 journalctl --user -u fitglue-pipeline -f            # one service
@@ -150,7 +153,7 @@ through Funnel, so the check moved into the process:
 The audience is a fixed string, not derived from the request, because Caddy
 rewrites the path (`/fg/pubsub/pipeline/raw` → `/pubsub/raw`) and Pub/Sub's
 default audience is the full push URL, which would differ per subscription.
-**F3.4 must set the same explicit audience on every push subscription:**
+**F3.4 sets the same explicit audience on every push subscription** (`terraform/pubsub.tf`, `local.box_pubsub_audience`):
 
 ```hcl
 push_config {
@@ -162,9 +165,8 @@ push_config {
 }
 ```
 
-and `~/.jarvis/fitglue.env` gets `PUBSUB_PUSH_AUDIENCE=https://jarvis.tail3065f7.ts.net/fg/pubsub`
-(any string works as long as both sides agree; a URL under the Funnel host is
-conventional). The signing account stays the per-service `cr-<svc>-sa` that
+and `~/.jarvis/fitglue.env` has `PUBSUB_PUSH_AUDIENCE=https://jarvis.tail3065f7.ts.net/fg/pubsub`
+(`cutover.sh --check` fails on any other value). The signing account stays the per-service `cr-<svc>-sa` that
 `pubsub.tf` already names — F3.2 deliberately kept `fitglue-box` out of push
 signing, so no new IAM is needed. Those accounts go away with Cloud Run in
 F4, at which point the subscriptions move to one account (and
@@ -173,9 +175,9 @@ pin would have to be per unit, so leave it unset.
 
 The pipeline's `/internal/parkrun-*` endpoints are separate: they verify the
 box parkrun agent's token against `https://<Host header>`. Once the agent
-calls `http://127.0.0.1:8104` directly (F3.4e) it must mint its token for
-audience `https://127.0.0.1:8104`, or that check needs the same env-driven
-audience — F3.4's call.
+calls `http://127.0.0.1:8104` directly (F3.4e) it mints its token for
+audience `https://127.0.0.1:8104` — derived from the URL's host in
+`parkrun_agent.py`, no server change (`box-cutover.md` §4).
 
 ## What is still cloud
 
@@ -190,10 +192,12 @@ Everything stateful:
   and receives their pushes via Funnel.
 - **Secret Manager** — read by nothing on the box since F3.5 (`fitglue.env`
   has the values); the secrets and `terraform/secrets.tf` go in F4.2.
-- **Cloud Run** — until F3.4 scales it to zero and F4 deletes it. The
+- **Cloud Run** — until F3.4's cut-over makes it unreachable (`cutover.sh
+  --scale-down-cloud`) and F4 deletes it. The
   `parkrun-fetcher` service is dead weight (WAF-walled); the box agent
   replaced it.
-- **Cloud Scheduler** — replaced by systemd timers in F3.4f.
+- ~~Cloud Scheduler~~ — replaced by the `fitglue-roundup-*` / `fitglue-parkrun-check`
+  user timers (F3.4f); `terraform/scheduler.tf` is gone.
 - **DNS, the Firebase site, the assets load balancer** — S4/F4.
 
 Identity for all of it is the `fitglue-box` service account key at

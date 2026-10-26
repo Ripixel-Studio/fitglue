@@ -1,0 +1,23 @@
+# FitGlue weekly roundup trigger (rethink F3.4). Replaces the Cloud Scheduler job
+# `weekly-roundup-generator`: publishes {"period_type":"week"} to
+# topic-roundup-trigger, whose push subscription delivers it to the activity
+# service (/fg/pubsub/activity/roundup → 8105 /pubsub/roundup), which generates
+# the showcase roundup for the week that just ended. Fired by fitglue-roundup-weekly.timer;
+# run by hand with `systemctl --user start fitglue-roundup-weekly.service`.
+[Unit]
+Description=FitGlue weekly roundup trigger (publish to topic-roundup-trigger)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/work/fitglue-server
+EnvironmentFile=%h/.jarvis/fitglue.env
+Environment=PROJECT_ID=fitglue-server-prod
+Environment=GOOGLE_APPLICATION_CREDENTIALS=%h/.jarvis/fitglue-box-sa.json
+ExecStart=%h/work/fitglue-server/bin/fitgluectl trigger roundup --data '{"period_type":"week"}'
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fitglue-roundup-weekly
+NoNewPrivileges=true
+PrivateTmp=true

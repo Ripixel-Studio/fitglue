@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install the FitGlue systemd *user* units on the box (rethink F3.1). No sudo.
 #
-#   deploy/box/install.sh              symlink units, daemon-reload, enable fitglue.target
+#   deploy/box/install.sh              symlink units + timers, daemon-reload, enable fitglue.target
 #   deploy/box/install.sh --no-enable  same, but leave the target disabled (nothing
 #                                      starts at login/boot) - for the period when
 #                                      Cloud Run is still serving and only ad-hoc
@@ -29,9 +29,20 @@ case "$state" in
 esac
 
 mkdir -p "$dest"
-for f in "$here"/fitglue-*.service "$here"/fitglue.target; do
+for f in "$here"/fitglue-*.service "$here"/fitglue-*.timer "$here"/fitglue.target; do
   ln -sfn "$f" "$dest/$(basename "$f")"
   echo "linked $(basename "$f")"
+done
+# Units this checkout no longer ships but an earlier install linked (e.g.
+# fitglue-api-public.service, deleted in F3.4): drop the dangling symlinks so
+# daemon-reload does not keep a dead unit around.
+for link in "$dest"/fitglue-*.service "$dest"/fitglue-*.timer; do
+  [ -L "$link" ] || continue
+  case "$(readlink "$link")" in "$here"/*) ;; *) continue ;; esac
+  if [ ! -e "$link" ]; then
+    rm -f "$link"
+    echo "removed stale $(basename "$link")"
+  fi
 done
 systemctl --user daemon-reload
 
@@ -52,4 +63,4 @@ else
   systemctl --user daemon-reload
   echo "fitglue.target left disabled (--no-enable); state: $(systemctl --user is-enabled fitglue.target 2>&1)"
 fi
-systemctl --user list-units --all --no-pager --plain 'fitglue.target' 'fitglue-*.service'
+systemctl --user list-units --all --no-pager --plain 'fitglue.target' 'fitglue-*.service' 'fitglue-*.timer'

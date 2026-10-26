@@ -5,6 +5,36 @@ Hand-written since F1.8 of the single-user conversion; entries below
 
 ## Unreleased
 
+### feat!: re-point Pub/Sub, schedulers, webhooks and the parkrun agent at the box (rethink F3.4)
+
+The inputs now arrive on the box through Funnel (`docs/guides/box-cutover.md`,
+`deploy/box/cutover.sh`); Cloud Run keeps running until the cut-over's proof
+step makes it unreachable, and F4 deletes it.
+
+- `terraform/pubsub.tf`: every push subscription's endpoint is
+  `https://jarvis.tail3065f7.ts.net/fg/pubsub/<svc>/<path>` with
+  `oidc_token.audience = https://jarvis.tail3065f7.ts.net/fg/pubsub` (must equal
+  `PUBSUB_PUSH_AUDIENCE` in `~/.jarvis/fitglue.env`; signing accounts unchanged).
+- Removed `terraform/scheduler.tf` (weekly/monthly/yearly roundup,
+  parkrun-results-check). Replaced by systemd user timers in `deploy/box/`
+  (`fitglue-roundup-{weekly,monthly,yearly}.timer`, `fitglue-parkrun-check.timer`),
+  same schedules and message bodies, wanted by `fitglue.target`, linked by
+  `install.sh`.
+- Added `fitgluectl trigger <roundup|parkrun-check|topic-…> [--data json]
+  [--attr k=v] [--dry-run]` — what the timers run.
+- Removed the `pubsub_self_invoke` run.invoker grants in `cloud_run.tf`; a push
+  at a Cloud Run URL is now 403.
+- Added `deploy/box/cutover.sh` (`--check`, `--start`, `--pubsub`, `--parkrun`,
+  `--strava`, `--scale-down-cloud`, `--rollback`) and `docs/guides/box-cutover.md`
+  with the Strava delete+create, the Fitbit console values and the Hevy
+  `/v1/webhook-subscription` calls. Cloud Run rejects `max-instances=0`, so the
+  "scaled to zero" proof is `--ingress=internal`, recorded and reversible.
+- The box parkrun agent (jarvis repo, `scripts/parkrun_agent.py`) reads
+  `~/.jarvis/parkrun-agent.env` to call `http://127.0.0.1:8104` with the
+  `fitglue-box` key, minting its token for `https://127.0.0.1:8104`.
+- `install.sh` links `fitglue-*.timer` and removes stale links such as
+  `fitglue-api-public.service`.
+
 ### chore: secrets live in ~/.jarvis/fitglue.env on the box (rethink F3.5)
 
 Every value the box units need is now in `~/.jarvis/fitglue.env` (mode 600):

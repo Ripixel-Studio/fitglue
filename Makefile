@@ -155,8 +155,10 @@ build-ctl:
 # service units above that are currently active (not fitglue-caddy, which is
 # F3.3's ingress and has its own lifecycle). It never *starts* a
 # stopped unit — cutover from Cloud Run is `systemctl --user start fitglue.target`,
-# done once in F3.4. Run it from ~/work/fitglue-server (the checkout the units'
-# ExecStart points at). See docs/guides/box-deploy.md.
+# done once in F3.4 (deploy/box/cutover.sh --start). Run it from
+# ~/work/fitglue-server (the checkout the units' ExecStart points at). See
+# docs/guides/box-deploy.md. The roundup/parkrun-check timers (F3.4) run
+# bin/fitgluectl, which build-box also produces; they need no restart.
 BOX_SERVICES := api-webhook api-client user pipeline activity destination
 BOX_TOOLS := fitgluectl bootstrap-owner
 BOX_GOFLAGS := -trimpath -ldflags="-s -w"
@@ -187,7 +189,7 @@ deploy-box: build-box
 	@$(MAKE) --no-print-directory status-box
 
 status-box:
-	@systemctl --user list-units --all --no-pager --plain 'fitglue.target' 'fitglue-*.service'
+	@systemctl --user list-units --all --no-pager --plain 'fitglue.target' 'fitglue-*.service' 'fitglue-*.timer'
 
 # --- Single-user bootstrap ---
 # FitGlue has one user. There is no sign-up path any more; the owner's user

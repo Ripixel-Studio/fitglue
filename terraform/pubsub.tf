@@ -1,3 +1,19 @@
+# Push subscriptions deliver to the box (rethink F3.4) through Tailscale Funnel →
+# Caddy (deploy/box/caddy/Caddyfile, docs/guides/box-ingress.md):
+#   /fg/pubsub/pipeline/{raw,run,enriched,parkrun-check} → pipeline    8104 /pubsub/…
+#   /fg/pubsub/activity/roundup                          → activity    8105 /pubsub/roundup
+#   /fg/pubsub/destination/                              → destination 8106 /
+# Each push carries an OIDC token signed as the per-service cr-<svc>-sa (unchanged
+# from Cloud Run) with ONE explicit audience for every subscription. The services
+# verify it in-process (infra.PubSubPushAuthFromEnv, F3.1) against
+# PUBSUB_PUSH_AUDIENCE in ~/.jarvis/fitglue.env, which must equal
+# local.box_pubsub_audience exactly. Pub/Sub's default audience is the push URL,
+# which differs per subscription and is rewritten by Caddy, hence the fixed value.
+locals {
+  box_pubsub_base     = "https://jarvis.tail3065f7.ts.net/fg/pubsub"
+  box_pubsub_audience = local.box_pubsub_base
+}
+
 resource "google_pubsub_topic" "raw_activity" {
   name    = "topic-raw-activity"
   project = var.project_id
@@ -67,9 +83,10 @@ resource "google_pubsub_subscription" "enrichment_lag_sub" {
   project = var.project_id
 
   push_config {
-    push_endpoint = "${google_cloud_run_v2_service.backend["pipeline"].uri}/pubsub/run"
+    push_endpoint = "${local.box_pubsub_base}/pipeline/run"
     oidc_token {
       service_account_email = google_service_account.cloud_run_sa["pipeline"].email
+      audience              = local.box_pubsub_audience
     }
   }
 
@@ -143,9 +160,10 @@ resource "google_pubsub_subscription" "parkrun_results_check_sub" {
   project = var.project_id
 
   push_config {
-    push_endpoint = "${google_cloud_run_v2_service.backend["pipeline"].uri}/pubsub/parkrun-check"
+    push_endpoint = "${local.box_pubsub_base}/pipeline/parkrun-check"
     oidc_token {
       service_account_email = google_service_account.cloud_run_sa["pipeline"].email
+      audience              = local.box_pubsub_audience
     }
   }
 
@@ -153,7 +171,7 @@ resource "google_pubsub_subscription" "parkrun_results_check_sub" {
   ack_deadline_seconds = 300
 
   # Discard undelivered messages after 2h (aligned to check interval).
-  # If the handler is down that long, the next scheduler fire will start fresh.
+  # If the handler is down that long, the next timer fire will start fresh.
   message_retention_duration = "7200s"
 
   retry_policy {
@@ -167,9 +185,10 @@ resource "google_pubsub_subscription" "destination_upload_sub" {
   topic = google_pubsub_topic.destination_upload.name
 
   push_config {
-    push_endpoint = "${google_cloud_run_v2_service.backend["destination"].uri}/"
+    push_endpoint = "${local.box_pubsub_base}/destination/"
     oidc_token {
       service_account_email = google_service_account.cloud_run_sa["destination"].email
+      audience              = local.box_pubsub_audience
     }
   }
 
@@ -187,9 +206,10 @@ resource "google_pubsub_subscription" "pipeline_raw_sub" {
   topic = google_pubsub_topic.raw_activity.name
 
   push_config {
-    push_endpoint = "${google_cloud_run_v2_service.backend["pipeline"].uri}/pubsub/raw"
+    push_endpoint = "${local.box_pubsub_base}/pipeline/raw"
     oidc_token {
       service_account_email = google_service_account.cloud_run_sa["pipeline"].email
+      audience              = local.box_pubsub_audience
     }
   }
 
@@ -205,9 +225,10 @@ resource "google_pubsub_subscription" "pipeline_enriched_sub" {
   topic = google_pubsub_topic.enriched_activity.name
 
   push_config {
-    push_endpoint = "${google_cloud_run_v2_service.backend["pipeline"].uri}/pubsub/enriched"
+    push_endpoint = "${local.box_pubsub_base}/pipeline/enriched"
     oidc_token {
       service_account_email = google_service_account.cloud_run_sa["pipeline"].email
+      audience              = local.box_pubsub_audience
     }
   }
 
@@ -223,9 +244,10 @@ resource "google_pubsub_subscription" "pipeline_run_sub" {
   topic = google_pubsub_topic.pipeline_activity.name
 
   push_config {
-    push_endpoint = "${google_cloud_run_v2_service.backend["pipeline"].uri}/pubsub/run"
+    push_endpoint = "${local.box_pubsub_base}/pipeline/run"
     oidc_token {
       service_account_email = google_service_account.cloud_run_sa["pipeline"].email
+      audience              = local.box_pubsub_audience
     }
   }
 
@@ -243,7 +265,8 @@ resource "google_pubsub_subscription" "pipeline_run_sub" {
   }
 }
 
-# Roundup trigger — Cloud Scheduler publishes here to kick off roundup generation.
+# Roundup trigger — the box's fitglue-roundup-{weekly,monthly,yearly}.timer units
+# publish here (`fitgluectl trigger roundup`, F3.4; Cloud Scheduler before that).
 resource "google_pubsub_topic" "roundup_trigger" {
   name    = "topic-roundup-trigger"
   project = var.project_id
@@ -257,9 +280,10 @@ resource "google_pubsub_subscription" "roundup_trigger_sub" {
   project = var.project_id
 
   push_config {
-    push_endpoint = "${google_cloud_run_v2_service.backend["activity"].uri}/pubsub/roundup"
+    push_endpoint = "${local.box_pubsub_base}/activity/roundup"
     oidc_token {
       service_account_email = google_service_account.cloud_run_sa["activity"].email
+      audience              = local.box_pubsub_audience
     }
   }
 
