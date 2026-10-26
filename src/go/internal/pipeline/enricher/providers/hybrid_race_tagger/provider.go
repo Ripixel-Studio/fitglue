@@ -128,7 +128,63 @@ func looksLikeHybridRace(activity *pbactivity.StandardizedActivity) bool {
 		totalDistance <= hyroxDistanceMaxM
 }
 
-// Enrich is called on first run - returns WaitForInputError with lap metadata and preset options
+// Config keys read from the enricher's typedConfig (passed to Enrich as inputs).
+//
+//   - auto_preset: a preset ID from GetPresetList() (e.g. "hyrox_men_open"). When set and
+//     the activity title or a tag contains one of auto_keywords, the preset is applied
+//     immediately instead of raising a race_selection pending input.
+//   - auto_keywords: comma-separated, case-insensitive substrings; defaults to "hyrox"
+//     when auto_preset is set.
+const (
+	configAutoPreset   = "auto_preset"
+	configAutoKeywords = "auto_keywords"
+	defaultAutoKeyword = "hyrox"
+)
+
+// autoSelection returns the preset ID to apply without asking, when the enricher is
+// configured with auto_preset and the activity's title or a tag contains one of the
+// configured keywords. The bool is false when nothing matched, no auto_preset is
+// configured, or the configured preset is unknown (logged at Warn so the pending-input
+// path runs as before).
+func autoSelection(logger *slog.Logger, activity *pbactivity.StandardizedActivity, inputs map[string]string) (string, bool) {
+	presetID := strings.TrimSpace(inputs[configAutoPreset])
+	if presetID == "" {
+		return "", false
+	}
+	if _, ok := GetPreset(presetID); !ok {
+		logger.Warn("hybrid_race_tagger: auto_preset is not a known preset, falling back to pending input",
+			"auto_preset", presetID)
+		return "", false
+	}
+
+	keywords := make([]string, 0)
+	for _, kw := range strings.Split(inputs[configAutoKeywords], ",") {
+		if kw = strings.ToLower(strings.TrimSpace(kw)); kw != "" {
+			keywords = append(keywords, kw)
+		}
+	}
+	if len(keywords) == 0 {
+		keywords = []string{defaultAutoKeyword}
+	}
+
+	haystacks := make([]string, 0, 1+len(activity.Tags))
+	haystacks = append(haystacks, strings.ToLower(activity.Name))
+	for _, tag := range activity.Tags {
+		haystacks = append(haystacks, strings.ToLower(tag))
+	}
+	for _, h := range haystacks {
+		for _, kw := range keywords {
+			if strings.Contains(h, kw) {
+				return presetID, true
+			}
+		}
+	}
+	return "", false
+}
+
+// Enrich is called on first run. When auto_preset is configured and a keyword matches,
+// the preset is applied directly; otherwise a candidate activity returns
+// WaitForInputError with lap metadata and preset options.
 func (p *HybridRaceTaggerProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
 	logger.Info("hybrid_race_tagger: checking for laps to tag")
 
@@ -140,6 +196,17 @@ func (p *HybridRaceTaggerProvider) Enrich(ctx context.Context, logger *slog.Logg
 				"reason": "no_laps",
 			},
 		}, nil
+	}
+
+	// A configured keyword is as explicit as the built-in keyword override: apply the
+	// configured preset now, exactly as if the user had submitted it, and never block.
+	if presetID, ok := autoSelection(logger, activity, inputs); ok {
+		logger.Info("hybrid_race_tagger: auto-selected preset, skipping pending input",
+			"preset", presetID,
+			"name", activity.Name,
+			"lap_count", len(activity.Sessions[0].Laps),
+		)
+		return p.applySelection(activity, UserSelection{PresetID: presetID})
 	}
 
 	if !looksLikeHybridRace(activity) {
@@ -242,6 +309,13 @@ func (p *HybridRaceTaggerProvider) EnrichResume(ctx context.Context, activity *p
 		}, nil
 	}
 
+	return p.applySelection(activity, selection)
+}
+
+// applySelection maps the activity's laps onto the selected preset. It is the single
+// code path behind both the pending-input continuation (EnrichResume) and the
+// auto_preset shortcut in Enrich, so the two produce identical results.
+func (p *HybridRaceTaggerProvider) applySelection(activity *pbactivity.StandardizedActivity, selection UserSelection) (*providers.EnrichmentResult, error) {
 	if len(activity.Sessions) == 0 {
 		return nil, fmt.Errorf("activity has no sessions")
 	}
