@@ -32,6 +32,7 @@ type mockPipelineServiceClient struct {
 	listPipelineRuns           func(ctx context.Context, in *pipelinepb.ListPipelineRunsRequest, opts ...grpc.CallOption) (*pipelinepb.ListPipelineRunsResponse, error)
 	getPipelineRun             func(ctx context.Context, in *pipelinepb.GetPipelineRunRequest, opts ...grpc.CallOption) (*pbpipeline.PipelineRun, error)
 	submitInput                func(ctx context.Context, in *pipelinepb.SubmitInputRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	listPendingInputs          func(ctx context.Context, in *pipelinepb.ListPendingInputsRequest, opts ...grpc.CallOption) (*pipelinepb.ListPendingInputsResponse, error)
 	repostActivity             func(ctx context.Context, in *pipelinepb.RepostActivityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	updateActivity             func(ctx context.Context, in *pipelinepb.UpdateActivityRequest, opts ...grpc.CallOption) (*pbactivitym.StandardizedActivity, error)
 	resendActivity             func(ctx context.Context, in *pipelinepb.ResendActivityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -77,6 +78,9 @@ func (m *mockPipelineServiceClient) SubmitInput(ctx context.Context, in *pipelin
 	return &emptypb.Empty{}, nil
 }
 func (m *mockPipelineServiceClient) ListPendingInputs(ctx context.Context, in *pipelinepb.ListPendingInputsRequest, opts ...grpc.CallOption) (*pipelinepb.ListPendingInputsResponse, error) {
+	if m.listPendingInputs != nil {
+		return m.listPendingInputs(ctx, in, opts...)
+	}
 	return &pipelinepb.ListPendingInputsResponse{}, nil
 }
 func (m *mockPipelineServiceClient) ResolvePendingInput(ctx context.Context, in *pipelinepb.ResolvePendingInputRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
@@ -309,6 +313,51 @@ func TestHandleGetPipelineRun_NoToken(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/api/v2/users/me/pipelines/pipe1/runs/run1", nil)
 	w := httptest.NewRecorder()
 	s.handleGetPipelineRun(w, r)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", w.Code)
+	}
+}
+
+func TestHandleListPendingInputs_Success(t *testing.T) {
+	var gotUID string
+	s := buildPipelineServer(&mockPipelineServiceClient{
+		listPendingInputs: func(ctx context.Context, in *pipelinepb.ListPendingInputsRequest, opts ...grpc.CallOption) (*pipelinepb.ListPendingInputsResponse, error) {
+			gotUID = in.UserId
+			return &pipelinepb.ListPendingInputsResponse{Inputs: []*pbpipeline.PendingInput{
+				{ActivityId: "act1", UserId: in.UserId, Status: pbpipeline.PendingInput_STATUS_WAITING, EnricherProviderId: "parkrun"},
+			}}, nil
+		},
+	})
+	r := httptest.NewRequest(http.MethodGet, "/api/v2/users/me/pending-inputs", nil)
+	r = withToken(r, "user1")
+	w := httptest.NewRecorder()
+	s.handleListPendingInputs(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if gotUID != "user1" {
+		t.Errorf("expected owner uid from principal, got %q", gotUID)
+	}
+	var body struct {
+		Inputs []struct {
+			ActivityId         string `json:"activityId"`
+			Status             string `json:"status"`
+			EnricherProviderId string `json:"enricherProviderId"`
+		} `json:"inputs"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	if len(body.Inputs) != 1 || body.Inputs[0].ActivityId != "act1" || body.Inputs[0].Status != "STATUS_WAITING" || body.Inputs[0].EnricherProviderId != "parkrun" {
+		t.Errorf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestHandleListPendingInputs_NoToken(t *testing.T) {
+	s := buildPipelineServer(&mockPipelineServiceClient{})
+	r := httptest.NewRequest(http.MethodGet, "/api/v2/users/me/pending-inputs", nil)
+	w := httptest.NewRecorder()
+	s.handleListPendingInputs(w, r)
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("expected 401, got %d", w.Code)
 	}

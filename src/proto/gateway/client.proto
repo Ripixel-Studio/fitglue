@@ -12,6 +12,7 @@ import "models/user/profile.proto";
 import "models/user/integration.proto";
 import "models/pipeline/config.proto";
 import "models/pipeline/execution.proto";
+import "models/pipeline/pending_input.proto";
 
 import "models/activity/roundup.proto";
 import "models/activity/source.proto";
@@ -209,6 +210,11 @@ service ClientGatewayService {
     option (google.api.http) = {
       post: "/users/me/pipelines/{id}/backfill"
       body: "*"
+    };
+  }
+  rpc ListPendingInputs(EmptyRequest) returns (ListPendingInputsGatewayResponse) {
+    option (google.api.http) = {
+      get: "/users/me/pending-inputs"
     };
   }
   rpc SubmitInput(SubmitInputGatewayRequest) returns (google.protobuf.Empty) {
@@ -603,6 +609,9 @@ message BackfillConnectionActivitiesGatewayRequest {
   repeated string source_activity_ids = 2;
 }
 
+message ListPendingInputsGatewayResponse {
+  repeated fitglue.models.pipeline.PendingInput inputs = 1;
+}
 message SubmitInputGatewayRequest {
   string input_id = 1;
   map<string, string> input_data = 2;

@@ -880,6 +880,24 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /users/me/pending-inputs:
+        get:
+            tags:
+                - ClientGatewayService
+            operationId: ClientGatewayService_ListPendingInputs
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListPendingInputsGatewayResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
     /users/me/pending-inputs/{inputId}/cancel:
         post:
             tags:
@@ -2811,6 +2829,13 @@ components:
                     items:
                         $ref: '#/components/schemas/Counter'
             description: Counters
+        ListPendingInputsGatewayResponse:
+            type: object
+            properties:
+                inputs:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/PendingInput'
         ListPersonalRecordsGatewayResponse:
             type: object
             properties:
@@ -2986,6 +3011,74 @@ components:
                 pipelineId:
                     type: string
             description: FIT File Parse
+        PendingInput:
+            type: object
+            properties:
+                activityId:
+                    type: string
+                userId:
+                    type: string
+                status:
+                    enum:
+                        - STATUS_UNSPECIFIED
+                        - STATUS_WAITING
+                        - STATUS_COMPLETED
+                    type: string
+                    format: enum
+                requiredFields:
+                    type: array
+                    items:
+                        type: string
+                inputData:
+                    type: object
+                    additionalProperties:
+                        type: string
+                originalPayloadUri:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                completedAt:
+                    type: string
+                    format: date-time
+                continuedWithoutResolution:
+                    type: boolean
+                linkedActivityId:
+                    type: string
+                pipelineId:
+                    type: string
+                enricherProviderId:
+                    type: string
+                autoPopulated:
+                    type: boolean
+                autoDeadline:
+                    type: string
+                    format: date-time
+                providerMetadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                sourceDisplayName:
+                    type: string
+                    description: |-
+                        Display metadata about the source activity (populated when the pending input is created).
+                         Used by the web UI to identify which activity a pending input relates to.
+                sourceActivityType:
+                    type: string
+                sourceStartTime:
+                    type: string
+                    format: date-time
+                sourceActivitySource:
+                    type: string
+                nonBlocking:
+                    type: boolean
+                    description: |-
+                        When true, this pending input does not block the pipeline — destinations are called
+                         immediately with whatever enrichment is available. On resolution, destinations are
+                         updated via Update() rather than Create().
         PersonalRecord:
             type: object
             properties:
