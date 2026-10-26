@@ -6,8 +6,10 @@
 //	fitgluectl connect hevy --api-key-stdin                 stores the key + mints the webhook ingress key
 //	fitgluectl connect intervals --api-key-stdin --athlete-id i12345
 //	fitgluectl connections [--json]                         what is connected, token expiry
+//	fitgluectl trigger roundup --data '{"period_type":"week"}' publish a roundup trigger (the box timers)
+//	fitgluectl trigger parkrun-check                        publish a parkrun results-check trigger
 //
-// It talks to Firestore and GCS directly with Application Default Credentials
+// It talks to Firestore, GCS and Pub/Sub directly with Application Default Credentials
 // (gcloud auth application-default login, or a service account), so it runs
 // from the box with no services deployed. See docs/guides/site-export.md and
 // docs/guides/connect-sources.md.
@@ -34,6 +36,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  export-site   export the showcase as static JSON for the personal site")
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
 	fmt.Fprintln(os.Stderr, "  connections   list the owner's connected providers")
+	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup / parkrun-check trigger message (what the box timers run)")
 }
 
 func main() {
@@ -50,6 +53,8 @@ func main() {
 		err = connectCommand(ctx, os.Args[2:], os.Stdin, os.Stdout, os.Stderr, openOwnerStore)
 	case "connections":
 		err = connectionsCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openOwnerStore)
+	case "trigger":
+		err = triggerCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, publishToPubSub)
 	case "-h", "--help", "help":
 		usage()
 		return

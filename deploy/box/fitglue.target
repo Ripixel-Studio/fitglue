@@ -2,9 +2,14 @@
 # brings them up together; stop/restart propagate through PartOf=.
 # install.sh enables this target so it comes up with the user session
 # (loginctl linger keeps that session alive across logouts and reboots).
+#
+# The timers (F3.4) replace the Cloud Scheduler jobs: three roundup triggers
+# and the parkrun results check. They are Wants= here so the whole deployment
+# moves together; each timer's PartOf= stops it with the target.
 [Unit]
-Description=FitGlue (all services on the box)
+Description=FitGlue (all services and timers on the box)
 Wants=fitglue-api-webhook.service fitglue-api-client.service fitglue-user.service fitglue-pipeline.service fitglue-activity.service fitglue-destination.service
+Wants=fitglue-roundup-weekly.timer fitglue-roundup-monthly.timer fitglue-roundup-yearly.timer fitglue-parkrun-check.timer
 
 [Install]
 WantedBy=default.target

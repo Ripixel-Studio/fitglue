@@ -818,19 +818,11 @@ resource "google_cloud_run_v2_service_iam_member" "destination_to_activity" {
   member   = "serviceAccount:${google_service_account.cloud_run_sa["destination"].email}"
 }
 
-# Pub/Sub push subscriptions use OIDC tokens with each service's own SA,
-# so the SA needs run.invoker on itself to authenticate the push.
-locals {
-  pubsub_push_targets = ["pipeline", "destination", "activity"]
-}
-
-resource "google_cloud_run_v2_service_iam_member" "pubsub_self_invoke" {
-  for_each = toset(local.pubsub_push_targets)
-  name     = google_cloud_run_v2_service.backend[each.key].name
-  location = google_cloud_run_v2_service.backend[each.key].location
-  role     = "roles/run.invoker"
-  member   = "serviceAccount:${google_service_account.cloud_run_sa[each.key].email}"
-}
+# The Pub/Sub push subscriptions no longer target Cloud Run (F3.4: pubsub.tf
+# pushes to the box through Funnel), so the cr-<svc>-sa self-invoker grants that
+# let a push authenticate to pipeline/destination/activity are gone. A stale push
+# at a Cloud Run URL now gets 403 from Cloud Run IAM — part of the proof that
+# nothing reaches the cloud deployment any more.
 
 # ── Parkrun Fetcher ──
 # Standalone Playwright-based service that fetches Parkrun result pages,

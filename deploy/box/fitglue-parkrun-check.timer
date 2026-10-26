@@ -1,0 +1,17 @@
+# Same schedule as the Cloud Scheduler job it replaces (parkrun-results-check):
+# 10:00, 12:00, 14:00, 16:00, 18:00, 20:00 Europe/London — the window in which
+# parkrun publishes results (noon to evening), six times a day, never overnight.
+# Pending inputs past their deadline are expired by the handler, so a missed
+# fire is caught up by the next one; Persistent= also replays one missed run.
+[Unit]
+Description=FitGlue parkrun results check timer
+PartOf=fitglue.target
+
+[Timer]
+OnCalendar=*-*-* 10,12,14,16,18,20:00:00 Europe/London
+Persistent=true
+RandomizedDelaySec=60
+Unit=fitglue-parkrun-check.service
+
+[Install]
+WantedBy=timers.target

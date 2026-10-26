@@ -1,0 +1,27 @@
+# FitGlue parkrun results check trigger (rethink F3.4). Replaces the Cloud
+# Scheduler job `parkrun-results-check`: publishes {} to
+# topic-parkrun-results-trigger, whose push subscription delivers it to the
+# pipeline service (/fg/pubsub/pipeline/parkrun-check → 8104
+# /pubsub/parkrun-check), which auto-resolves waiting parkrun pending inputs
+# or expires them past their deadline. This is the in-cloud fetch path; the
+# page fetch that actually works is the box agent (jarvis-parkrun-agent.timer,
+# ~/jarvis/scripts/parkrun_agent.py) because GCP egress is WAF-walled. Fired
+# by fitglue-parkrun-check.timer; run by hand with
+# `systemctl --user start fitglue-parkrun-check.service`.
+[Unit]
+Description=FitGlue parkrun results check trigger (publish to topic-parkrun-results-trigger)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/work/fitglue-server
+EnvironmentFile=%h/.jarvis/fitglue.env
+Environment=PROJECT_ID=fitglue-server-prod
+Environment=GOOGLE_APPLICATION_CREDENTIALS=%h/.jarvis/fitglue-box-sa.json
+ExecStart=%h/work/fitglue-server/bin/fitgluectl trigger parkrun-check
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fitglue-parkrun-check
+NoNewPrivileges=true
+PrivateTmp=true

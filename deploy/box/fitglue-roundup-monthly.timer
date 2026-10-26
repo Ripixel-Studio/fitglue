@@ -1,0 +1,14 @@
+# Same schedule as the Cloud Scheduler job it replaces (monthly-roundup-generator).
+# Persistent= fires a missed run at the next boot/login, as Scheduler's retry did.
+[Unit]
+Description=FitGlue monthly roundup trigger timer
+PartOf=fitglue.target
+
+[Timer]
+OnCalendar=*-*-01 06:00:00 UTC
+Persistent=true
+RandomizedDelaySec=60
+Unit=fitglue-roundup-monthly.service
+
+[Install]
+WantedBy=timers.target
