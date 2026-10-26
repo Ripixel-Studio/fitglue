@@ -135,25 +135,99 @@ func looksLikeHybridRace(activity *pbactivity.StandardizedActivity) bool {
 //     immediately instead of raising a race_selection pending input.
 //   - auto_keywords: comma-separated, case-insensitive substrings; defaults to "hyrox"
 //     when auto_preset is set.
+//   - auto_preset_map: ordered "keyword=preset_id" pairs separated by ";" (or ","), e.g.
+//     "doubles=hyrox_doubles_men;solo=hyrox_men_open;pro=hyrox_men_pro". Once the activity
+//     is recognised as a hybrid race (an auto_keywords hit, or the built-in keyword and
+//     structural detection), the first pair whose keyword is a substring of the lower-cased
+//     title or a tag chooses the preset. No pair matching falls back to auto_preset when
+//     set; otherwise the pending input is raised as usual. Pairs naming an unknown preset
+//     are logged at Warn and skipped.
 const (
-	configAutoPreset   = "auto_preset"
-	configAutoKeywords = "auto_keywords"
-	defaultAutoKeyword = "hyrox"
+	configAutoPreset    = "auto_preset"
+	configAutoKeywords  = "auto_keywords"
+	configAutoPresetMap = "auto_preset_map"
+	defaultAutoKeyword  = "hyrox"
 )
 
-// autoSelection returns the preset ID to apply without asking, when the enricher is
-// configured with auto_preset and the activity's title or a tag contains one of the
-// configured keywords. The bool is false when nothing matched, no auto_preset is
-// configured, or the configured preset is unknown (logged at Warn so the pending-input
-// path runs as before).
-func autoSelection(logger *slog.Logger, activity *pbactivity.StandardizedActivity, inputs map[string]string) (string, bool) {
-	presetID := strings.TrimSpace(inputs[configAutoPreset])
-	if presetID == "" {
-		return "", false
+// presetRule is one parsed auto_preset_map pair.
+type presetRule struct {
+	keyword  string
+	presetID string
+}
+
+// parseAutoPresetMap parses auto_preset_map in order, keeping only pairs that name a
+// known preset. Pairs with an unknown preset, or without "=", are logged at Warn and
+// skipped; keywords are lower-cased and trimmed. An empty or all-invalid map yields nil.
+func parseAutoPresetMap(logger *slog.Logger, raw string) []presetRule {
+	rules := make([]presetRule, 0)
+	for _, pair := range strings.FieldsFunc(raw, func(r rune) bool { return r == ';' || r == ',' }) {
+		pair = strings.TrimSpace(pair)
+		if pair == "" {
+			continue
+		}
+		keyword, presetID, found := strings.Cut(pair, "=")
+		keyword = strings.ToLower(strings.TrimSpace(keyword))
+		presetID = strings.TrimSpace(presetID)
+		if !found || keyword == "" || presetID == "" {
+			logger.Warn("hybrid_race_tagger: auto_preset_map entry is not keyword=preset_id, skipping",
+				"entry", pair)
+			continue
+		}
+		if _, ok := GetPreset(presetID); !ok {
+			logger.Warn("hybrid_race_tagger: auto_preset_map entry names an unknown preset, skipping",
+				"keyword", keyword, "preset", presetID)
+			continue
+		}
+		rules = append(rules, presetRule{keyword: keyword, presetID: presetID})
 	}
-	if _, ok := GetPreset(presetID); !ok {
-		logger.Warn("hybrid_race_tagger: auto_preset is not a known preset, falling back to pending input",
-			"auto_preset", presetID)
+	if len(rules) == 0 {
+		return nil
+	}
+	return rules
+}
+
+// lowerHaystacks returns the activity title and tags, lower-cased, for substring matching.
+func lowerHaystacks(activity *pbactivity.StandardizedActivity) []string {
+	haystacks := make([]string, 0, 1+len(activity.Tags))
+	haystacks = append(haystacks, strings.ToLower(activity.Name))
+	for _, tag := range activity.Tags {
+		haystacks = append(haystacks, strings.ToLower(tag))
+	}
+	return haystacks
+}
+
+// containsAny reports whether any haystack contains any of the (lower-cased) keywords.
+func containsAny(haystacks, keywords []string) bool {
+	for _, h := range haystacks {
+		for _, kw := range keywords {
+			if strings.Contains(h, kw) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// autoSelection returns the preset ID to apply without asking. The bool is false when
+// nothing matched or nothing is configured, so the pending-input path runs as before.
+//
+// Without auto_preset_map (#93 behaviour): auto_preset is applied when the title or a tag
+// contains one of auto_keywords.
+//
+// With auto_preset_map: the activity must first be recognised as a hybrid race, either
+// by an auto_keywords hit or by looksLikeHybridRace; then the first map pair whose
+// keyword matches wins, else auto_preset when set, else nothing.
+func autoSelection(logger *slog.Logger, activity *pbactivity.StandardizedActivity, inputs map[string]string) (string, bool) {
+	fallback := strings.TrimSpace(inputs[configAutoPreset])
+	if fallback != "" {
+		if _, ok := GetPreset(fallback); !ok {
+			logger.Warn("hybrid_race_tagger: auto_preset is not a known preset, ignoring it",
+				"auto_preset", fallback)
+			fallback = ""
+		}
+	}
+	rules := parseAutoPresetMap(logger, inputs[configAutoPresetMap])
+	if fallback == "" && len(rules) == 0 {
 		return "", false
 	}
 
@@ -167,24 +241,33 @@ func autoSelection(logger *slog.Logger, activity *pbactivity.StandardizedActivit
 		keywords = []string{defaultAutoKeyword}
 	}
 
-	haystacks := make([]string, 0, 1+len(activity.Tags))
-	haystacks = append(haystacks, strings.ToLower(activity.Name))
-	for _, tag := range activity.Tags {
-		haystacks = append(haystacks, strings.ToLower(tag))
-	}
-	for _, h := range haystacks {
-		for _, kw := range keywords {
-			if strings.Contains(h, kw) {
-				return presetID, true
-			}
+	haystacks := lowerHaystacks(activity)
+	keywordHit := containsAny(haystacks, keywords)
+
+	if len(rules) == 0 {
+		if keywordHit {
+			return fallback, true
 		}
+		return "", false
+	}
+
+	if !keywordHit && !looksLikeHybridRace(activity) {
+		return "", false
+	}
+	for _, rule := range rules {
+		if containsAny(haystacks, []string{rule.keyword}) {
+			return rule.presetID, true
+		}
+	}
+	if fallback != "" {
+		return fallback, true
 	}
 	return "", false
 }
 
-// Enrich is called on first run. When auto_preset is configured and a keyword matches,
-// the preset is applied directly; otherwise a candidate activity returns
-// WaitForInputError with lap metadata and preset options.
+// Enrich is called on first run. When auto_preset / auto_preset_map are configured and
+// the activity matches, the preset is applied directly; otherwise a candidate activity
+// returns WaitForInputError with lap metadata and preset options.
 func (p *HybridRaceTaggerProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
 	logger.Info("hybrid_race_tagger: checking for laps to tag")
 
