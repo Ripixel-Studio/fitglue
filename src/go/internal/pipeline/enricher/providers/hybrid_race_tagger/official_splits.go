@@ -223,3 +223,17 @@ func stationsFromOfficialSplits(official officialSplits, preset RacePreset, sess
 	}
 	return results, sets
 }
+
+// officialDivision returns the value of a "Division: …" line in a description (ROXFIT
+// writes "🏆 Division: Doubles Men"), or "".
+func officialDivision(desc string) string {
+	for _, line := range strings.Split(desc, "\n") {
+		lower := strings.ToLower(line)
+		idx := strings.Index(lower, "division:")
+		if idx < 0 {
+			continue
+		}
+		return strings.TrimSpace(line[idx+len("division:"):])
+	}
+	return ""
+}

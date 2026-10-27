@@ -20,6 +20,7 @@ import (
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	httputil "github.com/fitglue/server/src/go/pkg/infrastructure/http"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
+	"github.com/fitglue/server/src/go/pkg/title"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
@@ -236,16 +237,32 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 	activityName := payload.Metadata["activity_name"]
 	payloadDescription := payload.Metadata["description"]
 
+	fitglueWrote := false
+	if isSameSource {
+		fitglueWrote = u.fitglueWroteActivity(ctx, payload, pipelineRun)
+	}
+
 	var mergedDescription string
 	if isSameSource {
-		mergedDescription = keepForeignSourceDescription(existingActivity.Description, payloadDescription, u.fitglueWroteActivity(ctx, payload, pipelineRun))
+		mergedDescription = keepForeignSourceDescription(existingActivity.Description, payloadDescription, fitglueWrote)
 	} else {
 		mergedDescription = description.MergeDescription(existingActivity.Description, payloadDescription, payload.Metadata)
 	}
 
 	updateBody := map[string]interface{}{}
 	if isSameSource && activityName != "" && activityName != existingActivity.Name {
-		updateBody["name"] = activityName
+		// Keep a title someone else wrote (e.g. ROXFIT's "HYROX - Birmingham - 01:15:29")
+		// when it is about the same thing as FitGlue's and says more; replace defaults.
+		decision := title.Choose(existingActivity.Name, activityName, fitglueWrote)
+		slog.Default().Info("Strava same-source title decision",
+			"strava_id", stravaIDStr,
+			"existing", existingActivity.Name,
+			"proposed", activityName,
+			"keep_existing", decision.Keep,
+			"reason", decision.Reason)
+		if decision.Title != existingActivity.Name {
+			updateBody["name"] = decision.Title
+		}
 	}
 	if mergedDescription != existingActivity.Description {
 		updateBody["description"] = mergedDescription

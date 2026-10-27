@@ -191,12 +191,19 @@ func parseAutoPresetMap(logger *slog.Logger, raw string) []presetRule {
 	return rules
 }
 
-// lowerHaystacks returns the activity title and tags, lower-cased, for substring matching.
+// lowerHaystacks returns the activity title, tags and — when a race-timing app wrote one
+// into the description — the official division (ROXFIT's "Division: Doubles Men"),
+// lower-cased, for substring matching. The division keeps auto_preset_map working when
+// the title carries no division words (e.g. ROXFIT's "HYROX - Birmingham - 01:15:29"
+// with no calendar title applied).
 func lowerHaystacks(activity *pbactivity.StandardizedActivity) []string {
-	haystacks := make([]string, 0, 1+len(activity.Tags))
+	haystacks := make([]string, 0, 2+len(activity.Tags))
 	haystacks = append(haystacks, strings.ToLower(activity.Name))
 	for _, tag := range activity.Tags {
 		haystacks = append(haystacks, strings.ToLower(tag))
+	}
+	if division := officialDivision(activity.Description); division != "" {
+		haystacks = append(haystacks, strings.ToLower(division))
 	}
 	return haystacks
 }

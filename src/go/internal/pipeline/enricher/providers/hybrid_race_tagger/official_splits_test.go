@@ -169,3 +169,37 @@ func TestHRT_Enrich_OfficialSplitsWithoutLaps(t *testing.T) {
 		t.Errorf("segments = %d, want 16", got)
 	}
 }
+
+func TestOfficialDivision(t *testing.T) {
+	if got := officialDivision(roxfitBirmingham); got != "Doubles Men" {
+		t.Errorf("division = %q, want Doubles Men", got)
+	}
+	if got := officialDivision("Morning run"); got != "" {
+		t.Errorf("division = %q, want empty", got)
+	}
+}
+
+// auto_preset_map must still pick doubles whether the tagger sees the calendar title
+// (ical_title runs first) or ROXFIT's own title, which has no division words — then the
+// official "Division:" line supplies them. No auto_preset fallback, so a miss would block.
+func TestHRT_AutoPresetMap_DivisionFromOfficialDescription(t *testing.T) {
+	inputs := map[string]string{"auto_preset_map": "doubles=hyrox_doubles_men;solo=hyrox_men_open"}
+	for _, name := range []string{"HYROX - Birmingham - 01:15:29", "Hyrox Birmingham - Open Men's Doubles"} {
+		a := &pbactivity.StandardizedActivity{
+			Name:        name,
+			Description: roxfitBirmingham,
+			Sessions:    []*pbactivity.Session{{TotalDistance: 8700, StartTime: timestamppb.Now(), Laps: []*pbactivity.Lap{makeLap(976, 330, 0)}}},
+		}
+		res, err := (&HybridRaceTaggerProvider{}).Enrich(context.Background(), slog.Default(), a, hrtUser(), inputs, false)
+		if err != nil {
+			t.Fatalf("%q: Enrich: %v", name, err)
+		}
+		if res.Metadata["preset"] != "Hyrox - Men's Doubles" {
+			t.Errorf("%q: preset = %q, want Hyrox - Men's Doubles", name, res.Metadata["preset"])
+		}
+	}
+	// Without the description, ROXFIT's title alone matches no map keyword: pending input.
+	a := &pbactivity.StandardizedActivity{Name: "HYROX - Birmingham - 01:15:29", Sessions: []*pbactivity.Session{hyroxLikeSession()}}
+	_, err := (&HybridRaceTaggerProvider{}).Enrich(context.Background(), slog.Default(), a, hrtUser(), inputs, false)
+	expectWaitForInput(t, err)
+}
