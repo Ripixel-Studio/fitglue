@@ -114,7 +114,12 @@ func looksLikeHybridRace(activity *pbactivity.StandardizedActivity) bool {
 		}
 	}
 
-	// 2. Structural heuristic: lap count AND total distance must both be in range.
+	// 2. An official split block (ROXFIT) in the description is as explicit as a keyword.
+	if _, ok := parseOfficialSplits(activity.Description); ok {
+		return true
+	}
+
+	// 3. Structural heuristic: lap count AND total distance must both be in range.
 	if len(activity.Sessions) == 0 {
 		return false
 	}
@@ -271,7 +276,10 @@ func autoSelection(logger *slog.Logger, activity *pbactivity.StandardizedActivit
 func (p *HybridRaceTaggerProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
 	logger.Info("hybrid_race_tagger: checking for laps to tag")
 
-	if len(activity.Sessions) == 0 || len(activity.Sessions[0].Laps) == 0 {
+	// Official splits in the description (ROXFIT) stand in for laps, so an activity with
+	// a split block but no laps is still taggable.
+	_, hasOfficialSplits := parseOfficialSplits(activity.Description)
+	if len(activity.Sessions) == 0 || (len(activity.Sessions[0].Laps) == 0 && !hasOfficialSplits) {
 		logger.Info("hybrid_race_tagger: no laps to tag")
 		return &providers.EnrichmentResult{
 			Metadata: map[string]string{
@@ -410,6 +418,33 @@ func (p *HybridRaceTaggerProvider) applySelection(activity *pbactivity.Standardi
 	preset, ok := GetPreset(selection.PresetID)
 	if !ok {
 		return nil, fmt.Errorf("unknown preset: %s", selection.PresetID)
+	}
+
+	// Official splits (ROXFIT) win over laps: build the summary and strength sets from
+	// them, leave the laps alone (they do not line up with the stations), and emit no
+	// description section — the official block is already in the description.
+	if official, ok := parseOfficialSplits(activity.Description); ok {
+		stationResults, strengthSets := stationsFromOfficialSplits(official, preset, session.StartTime)
+		hybridSummary := generateHybridSummary(stationResults)
+		session.StrengthSets = append(session.StrengthSets, strengthSets...)
+		return &providers.EnrichmentResult{
+			ActivityType: pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT,
+			Tags:         []string{strings.ToUpper(preset.RaceType)},
+			ExcludeEnrichers: []pbplugin.EnricherProviderType{
+				pbplugin.EnricherProviderType_ENRICHER_PROVIDER_PACE_SUMMARY,
+			},
+			HybridRaceSummary: hybridSummary,
+			Metadata: map[string]string{
+				"status":           "success",
+				"preset":           preset.Name,
+				"race_type":        preset.RaceType,
+				"split_source":     "official_description",
+				"laps_count":       fmt.Sprintf("%d", len(originalLaps)),
+				"strength_sets":    fmt.Sprintf("%d", len(strengthSets)),
+				"summary_segments": fmt.Sprintf("%d", len(hybridSummary.Segments)),
+				"roxzone_seconds":  fmt.Sprintf("%.0f", official.RoxzoneSeconds),
+			},
+		}, nil
 	}
 
 	// Apply lap merges if provided

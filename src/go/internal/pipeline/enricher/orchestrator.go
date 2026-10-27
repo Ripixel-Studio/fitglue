@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fitglue/server/src/go/pkg/description"
 	formatters "github.com/fitglue/server/src/go/pkg/types/formatters"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 
@@ -56,6 +57,10 @@ type Orchestrator struct {
 	// production wiring in function.go sets it to location_naming.ReverseGeocode. When nil, the
 	// implicit location carries coordinates only (no place name).
 	geocode location_naming.GeocodeFunc
+	// fetchSourceDescription re-reads a source activity's current description (see
+	// refreshSourceDescription). Nil in NewOrchestrator so unit tests stay offline; the
+	// production wiring in function.go sets the Strava fetcher.
+	fetchSourceDescription SourceDescriptionFetcher
 }
 
 func NewOrchestrator(db shared.Database, storage shared.BlobStore, bucketName string) *Orchestrator {
@@ -167,7 +172,8 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 	//  (a) guard against re-running a cancelled pipeline (Pub/Sub redelivery)
 	//  (b) build the replay journal for non-idempotent enrichers on resume
 	completedJournal := map[string]map[string]string{} // provider name → replay metadata
-	if existingRun, runErr := o.database.GetPipelineRun(ctx, payload.UserId, pipelineExecutionID); runErr == nil && existingRun != nil {
+	existingRun, runErr := o.database.GetPipelineRun(ctx, payload.UserId, pipelineExecutionID)
+	if runErr == nil && existingRun != nil {
 		if existingRun.Status == pbpipeline.PipelineRunStatus_PIPELINE_RUN_STATUS_CANCELLED {
 			logger.Info("Pipeline run already cancelled — skipping enrichment", "pipeline_execution_id", pipelineExecutionID)
 			return &ProcessResult{
@@ -212,6 +218,12 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 	// Create initial pipeline run document for lifecycle tracking (RUNNING status)
 	// This ensures we track the pipeline execution even if it fails partway through
 	o.createInitialPipelineRun(ctx, logger, payload.UserId, pipelineExecutionID, pipeline.ID, activityId, payload, activeDestinations, isResumeMode)
+
+	// Same-source refresh: a Strava activity created by a third-party app (ROXFIT) can
+	// gain its description after FitGlue's ingest read it. Re-read it now — before the
+	// payload is persisted and slot 0 is taken — so the destination's same-source
+	// overwrite carries it instead of erasing it. Runs on lag retries and resumes too.
+	sourceWritten, sourceWriteChecked := o.refreshSourceDescription(ctx, logger, payload, pipelineExecutionID, existingRun)
 
 	// Upload original payload to GCS for Magic Actions (retry/repost) BEFORE any mutations
 	// This ensures the stored payload has the clean original description (Rule E22: Reset-on-Repost)
@@ -901,6 +913,13 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 		if payload.RepostMode != "" {
 			finalEvent.EnrichmentMetadata["repost_mode"] = payload.RepostMode
 		}
+	}
+
+	// Tell same-source uploaders whether FitGlue had already written back to the source
+	// activity before this pass (see refreshSourceDescription). "false" lets the Strava
+	// uploader keep a description it finds there rather than overwrite it.
+	if sourceWriteChecked {
+		finalEvent.EnrichmentMetadata[description.MetadataSourceWrittenByFitGlue] = strconv.FormatBool(sourceWritten)
 	}
 
 	// Same-Source Detection: When the activity's source platform matches a destination,

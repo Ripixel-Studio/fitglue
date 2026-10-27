@@ -9,6 +9,13 @@ import (
 	"unicode"
 )
 
+// MetadataSourceWrittenByFitGlue is the enrichment-metadata key the enricher sets on
+// Strava-sourced events: "true" when FitGlue had already written back to the source
+// activity before this pass, "false" when it never had. Same-source uploaders use it to
+// decide whether a description already on the activity is FitGlue's own (safe to
+// overwrite) or someone else's (keep it).
+const MetadataSourceWrittenByFitGlue = "source_written_by_fitglue"
+
 // isEmojiOrSpecialStart checks if a string starts with an emoji or special character.
 // This is used to detect section boundaries.
 func isEmojiOrSpecialStart(s string) bool {
