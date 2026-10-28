@@ -34,6 +34,9 @@ type MockDatabase struct {
 	GetPipelineRunFunc     func(ctx context.Context, userId string, id string) (*pbpipeline.PipelineRun, error)
 	CreatePendingInputFunc func(ctx context.Context, userId string, input *pbpipeline.PendingInput) error
 	GetPendingInputFunc    func(ctx context.Context, userId string, id string) (*pbpipeline.PendingInput, error)
+	// Optional hooks for the source-description refresh guard (nil → no records).
+	GetUploadedActivityFunc    func(ctx context.Context, userId string, destination pbplugin.DestinationType, destinationId string) (*pbactivity.UploadedActivityRecord, error)
+	GetDestinationOutcomesFunc func(ctx context.Context, userId string, pipelineRunId string) ([]*pbpipeline.DestinationOutcome, error)
 }
 
 func (m *MockDatabase) GetUser(ctx context.Context, id string) (*user.Record, error) {
@@ -151,6 +154,9 @@ func (m *MockDatabase) SetUploadedActivity(ctx context.Context, userId string, r
 	return nil
 }
 func (m *MockDatabase) GetUploadedActivity(ctx context.Context, userId string, destination pbplugin.DestinationType, destinationId string) (*pbactivity.UploadedActivityRecord, error) {
+	if m.GetUploadedActivityFunc != nil {
+		return m.GetUploadedActivityFunc(ctx, userId, destination, destinationId)
+	}
 	return nil, nil
 }
 func (m *MockDatabase) TryClaimDestinationCreate(ctx context.Context, userId string, claimKey string, ttl time.Duration) (bool, error) {
@@ -181,6 +187,9 @@ func (m *MockDatabase) SetDestinationOutcome(ctx context.Context, userId string,
 	return nil
 }
 func (m *MockDatabase) GetDestinationOutcomes(ctx context.Context, userId string, pipelineRunId string) ([]*pbpipeline.DestinationOutcome, error) {
+	if m.GetDestinationOutcomesFunc != nil {
+		return m.GetDestinationOutcomesFunc(ctx, userId, pipelineRunId)
+	}
 	return nil, nil
 }
 func (m *MockDatabase) GetBoosterData(ctx context.Context, userId string, boosterId string) (map[string]interface{}, error) {

@@ -250,6 +250,9 @@ func enrichHandler(ctx context.Context, e cloudevents.Event, fwCtx *framework.Fr
 	// activities get a real place name (showcase page + roundup "where it happened"), not just
 	// coordinates. Unit tests leave this nil to stay offline.
 	orchestrator.geocode = location_naming.ReverseGeocode
+	// Re-read a Strava source activity's description before building the description, so
+	// text a third-party app (ROXFIT) added after ingest is kept, not overwritten.
+	orchestrator.fetchSourceDescription = NewStravaSourceDescriptionFetcher(fwCtx.Service)
 
 	// Register Providers from registry
 	for _, provider := range providers.GetAll() {

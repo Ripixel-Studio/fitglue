@@ -20,6 +20,7 @@ import (
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	httputil "github.com/fitglue/server/src/go/pkg/infrastructure/http"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
+	"github.com/fitglue/server/src/go/pkg/title"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
@@ -236,16 +237,32 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 	activityName := payload.Metadata["activity_name"]
 	payloadDescription := payload.Metadata["description"]
 
+	fitglueWrote := false
+	if isSameSource {
+		fitglueWrote = u.fitglueWroteActivity(ctx, payload, pipelineRun)
+	}
+
 	var mergedDescription string
 	if isSameSource {
-		mergedDescription = payloadDescription
+		mergedDescription = keepForeignSourceDescription(existingActivity.Description, payloadDescription, fitglueWrote)
 	} else {
 		mergedDescription = description.MergeDescription(existingActivity.Description, payloadDescription, payload.Metadata)
 	}
 
 	updateBody := map[string]interface{}{}
 	if isSameSource && activityName != "" && activityName != existingActivity.Name {
-		updateBody["name"] = activityName
+		// Keep a title someone else wrote (e.g. ROXFIT's "HYROX - Birmingham - 01:15:29")
+		// when it is about the same thing as FitGlue's and says more; replace defaults.
+		decision := title.Choose(existingActivity.Name, activityName, fitglueWrote)
+		slog.Default().Info("Strava same-source title decision",
+			"strava_id", stravaIDStr,
+			"existing", existingActivity.Name,
+			"proposed", activityName,
+			"keep_existing", decision.Keep,
+			"reason", decision.Reason)
+		if decision.Title != existingActivity.Name {
+			updateBody["name"] = decision.Title
+		}
 	}
 	if mergedDescription != existingActivity.Description {
 		updateBody["description"] = mergedDescription
@@ -278,6 +295,53 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 	}
 
 	return nil
+}
+
+// fitglueWroteActivity reports whether the description on a same-source Strava activity
+// may be FitGlue's own output. The enricher decides this before the pass (metadata
+// source_written_by_fitglue: a prior Strava write from any pipeline or run); a SUCCESS
+// Strava outcome on this run also counts. Unknown (no metadata, e.g. an event enriched
+// before this field existed) falls back to the run outcome alone.
+func (u *Uploader) fitglueWroteActivity(ctx context.Context, payload *pbevents.ActivityPayload, pipelineRun *pbpipeline.PipelineRun) bool {
+	if payload.Metadata[description.MetadataSourceWrittenByFitGlue] == "true" {
+		return true
+	}
+	isStravaSuccess := func(d *pbpipeline.DestinationOutcome) bool {
+		return d.GetDestination() == pbplugin.DestinationType_DESTINATION_STRAVA &&
+			d.GetStatus() == pbpipeline.DestinationStatus_DESTINATION_STATUS_SUCCESS
+	}
+	for _, d := range pipelineRun.GetDestinations() {
+		if isStravaSuccess(d) {
+			return true
+		}
+	}
+	if u.svc != nil && u.svc.DB != nil && payload.PipelineExecutionId != nil && *payload.PipelineExecutionId != "" {
+		if outcomes, err := u.svc.DB.GetDestinationOutcomes(ctx, payload.UserId, *payload.PipelineExecutionId); err == nil {
+			for _, d := range outcomes {
+				if isStravaSuccess(d) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// keepForeignSourceDescription decides the description for a same-source Strava update.
+// Normally FitGlue's payload replaces the activity's description wholesale (it already
+// carries the source text in its first slot). But when FitGlue has never written to this
+// activity, whatever is there was written by someone else — the user, or an app such as
+// ROXFIT with official race splits — and must not be lost: if the payload does not
+// already contain it, it is kept as the original, ahead of FitGlue's text.
+func keepForeignSourceDescription(existing, payloadDescription string, fitglueWrote bool) string {
+	trimmed := strings.TrimSpace(existing)
+	if fitglueWrote || trimmed == "" || strings.Contains(payloadDescription, trimmed) {
+		return payloadDescription
+	}
+	if strings.TrimSpace(payloadDescription) == "" {
+		return existing
+	}
+	return trimmed + "\n\n" + payloadDescription
 }
 
 func waitForUploadCompletion(ctx context.Context, client *http.Client, uploadID int64) (*strava.Upload, error) {
