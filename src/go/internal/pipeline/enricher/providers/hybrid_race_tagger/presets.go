@@ -29,8 +29,11 @@ type RacePreset struct {
 }
 
 // Hyrox weights by category and division
-// Reference: https://hyrox.com/race/ (official weight chart)
-// Note: Sled weights are "incl. sled" values
+// Reference: the official HYROX rulebook / weight chart (hyrox.com, "The Fitness Race"),
+// 25/26 season. Sled weights are "incl. sled" values. Distances and reps are the same in
+// every division: SkiErg 1000m, Sled Push 50m, Sled Pull 50m, Burpee Broad Jumps 80m,
+// Row 1000m, Farmers Carry 200m, Sandbag Lunges 100m, Wall Balls 100 reps (target 3.00m
+// men, 2.70m women).
 
 // Women's Open
 const (
@@ -122,28 +125,46 @@ var RacePresets = map[string]RacePreset{
 		RaceType:    "hyrox",
 		Stations:    hyroxStations(HyroxMenProSledPushKg, HyroxMenProSledPullKg, HyroxMenProFarmersKg, HyroxMenProSandbagKg, HyroxMenProWallBallKg),
 	},
-	// Doubles presets
+	// Doubles presets. Doubles race at the standards of the matching solo division (the
+	// two partners split each station's work; distances and reps are unchanged): Open
+	// Doubles at the Open weights, Pro Doubles at the Pro weights. Mixed Doubles runs at
+	// the Men's Open weights on every station except Wall Balls, where each partner throws
+	// their own division's ball (men 6kg / 3.00m, women 4kg / 2.70m); the preset records
+	// the men's 6kg because a set carries one weight.
 	"hyrox_doubles_women": {
 		ID:          "hyrox_doubles_women",
 		Name:        "Hyrox - Women's Doubles",
-		Description: "Hyrox doubles race for women (uses Women's Pro weights)",
+		Description: "Hyrox doubles race for women (Women's Open weights)",
 		RaceType:    "hyrox",
-		Stations:    hyroxStations(HyroxWomenProSledPushKg, HyroxWomenProSledPullKg, HyroxWomenProFarmersKg, HyroxWomenProSandbagKg, HyroxWomenProWallBallKg),
+		Stations:    hyroxStations(HyroxWomenOpenSledPushKg, HyroxWomenOpenSledPullKg, HyroxWomenOpenFarmersKg, HyroxWomenOpenSandbagKg, HyroxWomenOpenWallBallKg),
 	},
 	"hyrox_doubles_men": {
 		ID:          "hyrox_doubles_men",
 		Name:        "Hyrox - Men's Doubles",
-		Description: "Hyrox doubles race for men (uses Men's Pro weights)",
+		Description: "Hyrox doubles race for men (Men's Open weights)",
+		RaceType:    "hyrox",
+		Stations:    hyroxStations(HyroxMenOpenSledPushKg, HyroxMenOpenSledPullKg, HyroxMenOpenFarmersKg, HyroxMenOpenSandbagKg, HyroxMenOpenWallBallKg),
+	},
+	"hyrox_doubles_women_pro": {
+		ID:          "hyrox_doubles_women_pro",
+		Name:        "Hyrox - Women's Pro Doubles",
+		Description: "Hyrox pro doubles race for women (Women's Pro weights)",
+		RaceType:    "hyrox",
+		Stations:    hyroxStations(HyroxWomenProSledPushKg, HyroxWomenProSledPullKg, HyroxWomenProFarmersKg, HyroxWomenProSandbagKg, HyroxWomenProWallBallKg),
+	},
+	"hyrox_doubles_men_pro": {
+		ID:          "hyrox_doubles_men_pro",
+		Name:        "Hyrox - Men's Pro Doubles",
+		Description: "Hyrox pro doubles race for men (Men's Pro weights)",
 		RaceType:    "hyrox",
 		Stations:    hyroxStations(HyroxMenProSledPushKg, HyroxMenProSledPullKg, HyroxMenProFarmersKg, HyroxMenProSandbagKg, HyroxMenProWallBallKg),
 	},
 	"hyrox_mixed_doubles": {
 		ID:          "hyrox_mixed_doubles",
 		Name:        "Hyrox - Mixed Doubles",
-		Description: "Hyrox race with mixed gender partner (uses Men's Open weights)",
+		Description: "Hyrox race with mixed gender partner (Men's Open weights; own-gender wall balls)",
 		RaceType:    "hyrox",
-		// Mixed doubles uses Men's Open weights
-		Stations: hyroxStations(HyroxMenOpenSledPushKg, HyroxMenOpenSledPullKg, HyroxMenOpenFarmersKg, HyroxMenOpenSandbagKg, HyroxMenOpenWallBallKg),
+		Stations:    hyroxStations(HyroxMenOpenSledPushKg, HyroxMenOpenSledPullKg, HyroxMenOpenFarmersKg, HyroxMenOpenSandbagKg, HyroxMenOpenWallBallKg),
 	},
 }
 
@@ -166,6 +187,8 @@ func GetPresetList() []struct {
 		{ID: "hyrox_doubles_women", Name: "Hyrox - Women's Doubles"},
 		{ID: "hyrox_doubles_men", Name: "Hyrox - Men's Doubles"},
 		{ID: "hyrox_mixed_doubles", Name: "Hyrox - Mixed Doubles"},
+		{ID: "hyrox_doubles_women_pro", Name: "Hyrox - Women's Pro Doubles"},
+		{ID: "hyrox_doubles_men_pro", Name: "Hyrox - Men's Pro Doubles"},
 	}
 }
 

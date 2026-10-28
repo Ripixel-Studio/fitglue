@@ -168,7 +168,7 @@ func TestEnrich_HybridRaceHyrox(t *testing.T) {
 	p.SetService(&bootstrap.Service{DB: &mocks.MockDatabase{}}) // all records new
 
 	activity := &pbactivity.StandardizedActivity{
-		Name: "Hyrox London",
+		Name: "Hyrox London - Open Men's Solo",
 		Type: pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT,
 		Tags: []string{"HYROX"},
 		Sessions: []*pbactivity.Session{
@@ -192,7 +192,7 @@ func TestEnrich_HybridRaceHyrox(t *testing.T) {
 	if res.Metadata["pr_status"] != "pr_detected" {
 		t.Fatalf("expected pr_detected for hyrox, got %v", res.Metadata)
 	}
-	// total_time + skierg + sled_push + wall_balls = 4 PRs.
+	// total_time + skierg + sled_push + wall_balls = 4 PRs, all in the Open Men's Solo bucket.
 	if res.Metadata["pr_count"] != "4" {
 		t.Errorf("expected 4 hybrid PRs, got %q", res.Metadata["pr_count"])
 	}

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fitglue/server/src/go/pkg/hyrox"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -21,37 +22,29 @@ func TestParseOfficialSplits_RoxfitBirmingham(t *testing.T) {
 		t.Fatal("expected the split block to parse")
 	}
 	// 17 lines: 16 runs/stations + Roxzone.
-	if len(got.Splits) != 16 {
-		t.Fatalf("splits = %d, want 16", len(got.Splits))
+	if len(got.Segments) != 16 {
+		t.Fatalf("segments = %d, want 16", len(got.Segments))
 	}
 	if got.RoxzoneSeconds != 6*60+14 {
 		t.Errorf("roxzone = %v, want 374", got.RoxzoneSeconds)
 	}
-	var running, functional float64
-	for _, s := range got.Splits {
-		if s.IsRun {
-			running += s.Seconds
-		} else {
-			functional += s.Seconds
-		}
+	if got.RunSeconds() != 44*60+21 {
+		t.Errorf("total running = %s, want 44:21", formatDuration(got.RunSeconds()))
 	}
-	if running != 44*60+21 {
-		t.Errorf("total running = %s, want 44:21", formatDuration(running))
+	if got.StationSeconds() != 25*60+3 {
+		t.Errorf("total functional = %s, want 25:03", formatDuration(got.StationSeconds()))
 	}
-	if functional != 25*60+3 {
-		t.Errorf("total functional = %s, want 25:03", formatDuration(functional))
-	}
-	want := []string{"", "SkiErg", "", "Sled Push", "", "Sled Pull", "", "Burpee Broad Jump", "", "Rowing (Machine)", "", "Farmers Carry", "", "Sandbag Lunges", "", "Wall Balls"}
-	for i, s := range got.Splits {
+	want := []string{"run_1", "skierg", "run_2", "sled_push", "run_3", "sled_pull", "run_4", "burpee_broad_jump", "run_5", "rowing", "run_6", "farmers_carry", "run_7", "sandbag_lunges", "run_8", "wall_balls"}
+	for i, s := range got.Segments {
 		if s.IsRun != (i%2 == 0) {
 			t.Errorf("split %d (%s) IsRun = %v", i, s.Label, s.IsRun)
 		}
-		if s.Station != want[i] {
-			t.Errorf("split %d station = %q, want %q", i, s.Station, want[i])
+		if s.Key != want[i] {
+			t.Errorf("split %d key = %q, want %q", i, s.Key, want[i])
 		}
 	}
-	if got.Splits[0].Label != "Run 1" || got.Splits[0].Seconds != 294 {
-		t.Errorf("first split = %+v", got.Splits[0])
+	if got.Segments[0].Label != "Run 1" || got.Segments[0].Seconds != 294 {
+		t.Errorf("first split = %+v", got.Segments[0])
 	}
 }
 
@@ -130,7 +123,7 @@ func TestHRT_ApplySelection_UsesOfficialSplits(t *testing.T) {
 			wb = s
 		}
 	}
-	if wb == nil || wb.Reps != 100 || wb.WeightKg != HyroxMenProWallBallKg || wb.DurationSeconds != 257 {
+	if wb == nil || wb.Reps != 100 || wb.WeightKg != HyroxMenOpenWallBallKg || wb.DurationSeconds != 257 {
 		t.Errorf("wall balls set = %+v", wb)
 	}
 	if res.Tags[0] != "HYROX" {
@@ -170,15 +163,6 @@ func TestHRT_Enrich_OfficialSplitsWithoutLaps(t *testing.T) {
 	}
 }
 
-func TestOfficialDivision(t *testing.T) {
-	if got := officialDivision(roxfitBirmingham); got != "Doubles Men" {
-		t.Errorf("division = %q, want Doubles Men", got)
-	}
-	if got := officialDivision("Morning run"); got != "" {
-		t.Errorf("division = %q, want empty", got)
-	}
-}
-
 // auto_preset_map must still pick doubles whether the tagger sees the calendar title
 // (ical_title runs first) or ROXFIT's own title, which has no division words — then the
 // official "Division:" line supplies them. No auto_preset fallback, so a miss would block.
@@ -202,4 +186,73 @@ func TestHRT_AutoPresetMap_DivisionFromOfficialDescription(t *testing.T) {
 	a := &pbactivity.StandardizedActivity{Name: "HYROX - Birmingham - 01:15:29", Sessions: []*pbactivity.Session{hyroxLikeSession()}}
 	_, err := (&HybridRaceTaggerProvider{}).Enrich(context.Background(), slog.Default(), a, hrtUser(), inputs, false)
 	expectWaitForInput(t, err)
+}
+
+// Doubles race at the Open standards, not Pro: Birmingham's doubles sled push was
+// recorded at 202kg before this was fixed.
+func TestHRT_DoublesPresetsUseDivisionStandards(t *testing.T) {
+	weight := func(presetID, station string) float64 {
+		p, ok := GetPreset(presetID)
+		if !ok {
+			t.Fatalf("preset %s missing", presetID)
+		}
+		for _, s := range p.Stations {
+			if s.Name == station {
+				return s.WeightKg
+			}
+		}
+		t.Fatalf("%s has no %s", presetID, station)
+		return 0
+	}
+	cases := []struct {
+		preset   string
+		sledPush float64
+		wallBall float64
+	}{
+		{"hyrox_men_open", HyroxMenOpenSledPushKg, HyroxMenOpenWallBallKg},
+		{"hyrox_doubles_men", HyroxMenOpenSledPushKg, HyroxMenOpenWallBallKg},
+		{"hyrox_mixed_doubles", HyroxMenOpenSledPushKg, HyroxMenOpenWallBallKg},
+		{"hyrox_men_pro", HyroxMenProSledPushKg, HyroxMenProWallBallKg},
+		{"hyrox_doubles_men_pro", HyroxMenProSledPushKg, HyroxMenProWallBallKg},
+		{"hyrox_doubles_women", HyroxWomenOpenSledPushKg, HyroxWomenOpenWallBallKg},
+		{"hyrox_doubles_women_pro", HyroxWomenProSledPushKg, HyroxWomenProWallBallKg},
+	}
+	for _, c := range cases {
+		if got := weight(c.preset, "Sled Push"); got != c.sledPush {
+			t.Errorf("%s sled push = %v, want %v", c.preset, got, c.sledPush)
+		}
+		if got := weight(c.preset, "Wall Balls"); got != c.wallBall {
+			t.Errorf("%s wall balls = %v, want %v", c.preset, got, c.wallBall)
+		}
+	}
+	// Every division has a preset, and every listed preset exists.
+	for _, d := range hyrox.Divisions {
+		if _, ok := GetPreset(d.PresetID); !ok {
+			t.Errorf("division %s has no preset %s", d.Key, d.PresetID)
+		}
+	}
+	for _, p := range GetPresetList() {
+		if _, ok := GetPreset(p.ID); !ok {
+			t.Errorf("listed preset %s missing", p.ID)
+		}
+	}
+}
+
+// The official Division line chooses the preset even when an ordered keyword map would
+// pick the wrong one ("Pro Doubles Men" contains "doubles" before "pro").
+func TestHRT_OfficialDivisionBeatsKeywordMap(t *testing.T) {
+	desc := strings.Replace(roxfitBirmingham, "Division: Doubles Men", "Division: Pro Doubles Men", 1)
+	a := &pbactivity.StandardizedActivity{
+		Name:        "Hyrox Birmingham - Doubles",
+		Description: desc,
+		Sessions:    []*pbactivity.Session{{TotalDistance: 8700, StartTime: timestamppb.Now()}},
+	}
+	res, err := (&HybridRaceTaggerProvider{}).Enrich(context.Background(), slog.Default(), a, hrtUser(),
+		map[string]string{"auto_preset_map": "doubles=hyrox_doubles_men;pro=hyrox_men_pro", "auto_preset": "hyrox_men_open"}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Metadata["preset"] != "Hyrox - Men's Pro Doubles" {
+		t.Errorf("preset = %q", res.Metadata["preset"])
+	}
 }

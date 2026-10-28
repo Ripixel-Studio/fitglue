@@ -12,6 +12,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/muscle_heatmap"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
+	"github.com/fitglue/server/src/go/pkg/hyrox"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
@@ -414,6 +415,9 @@ func detectHybridRaceType(activity *pbactivity.StandardizedActivity) string {
 
 // checkHybridRaceRecords checks for hybrid race PRs (total time and individual stations)
 func (p *PersonalRecordsProvider) checkHybridRaceRecords(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, userID, raceType string) ([]NewPRResult, error) {
+	if raceType == string(HybridRaceHyrox) {
+		return p.checkHyroxRecords(ctx, logger, activity, userID), nil
+	}
 	var results []NewPRResult
 
 	// Calculate total activity time
@@ -464,29 +468,10 @@ func (p *PersonalRecordsProvider) checkHybridRaceRecords(ctx context.Context, lo
 	return results, nil
 }
 
-// normalizeStationName converts exercise names to station keys for PRs
+// normalizeStationName converts exercise names to station keys for PRs (ATHX; Hyrox
+// records go through checkHyroxRecords).
 func normalizeStationName(exerciseName string) string {
-	lower := strings.ToLower(exerciseName)
-	switch {
-	case strings.Contains(lower, "skierg"):
-		return "skierg"
-	case strings.Contains(lower, "sled push"):
-		return "sled_push"
-	case strings.Contains(lower, "sled pull"):
-		return "sled_pull"
-	case strings.Contains(lower, "burpee"):
-		return "burpee_broad_jump"
-	case strings.Contains(lower, "row"):
-		return "rowing"
-	case strings.Contains(lower, "farmer"):
-		return "farmers_carry"
-	case strings.Contains(lower, "sandbag"), strings.Contains(lower, "lunge"):
-		return "sandbag_lunges"
-	case strings.Contains(lower, "wall ball"):
-		return "wall_balls"
-	default:
-		return ""
-	}
+	return hyrox.StationKey(exerciseName)
 }
 
 // checkAndUpdateRecord compares the new value with the existing record and updates if it's a PR
@@ -700,6 +685,9 @@ func formatRecordTypeForDisplay(recordType string) string {
 	}
 
 	// Handle hybrid race record types
+	if display, ok := hyroxRecordDisplay(recordType); ok {
+		return display
+	}
 	if strings.HasPrefix(recordType, "hybrid_race_") {
 		raceType, category := ParseHybridRaceRecordType(recordType)
 		if raceType != "" && category != "" {

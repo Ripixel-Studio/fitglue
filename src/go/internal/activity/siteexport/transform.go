@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -111,6 +112,8 @@ type activityFile struct {
 	Entry         json.RawMessage `json:"entry"`
 	Series        *Series         `json:"series"`
 	RoutePoints   [][]float64     `json:"routePoints"`
+	Race          *Race           `json:"race,omitempty"`     // §3.4, Hyrox races with splits only
+	KmSplits      []KmSplit       `json:"kmSplits,omitempty"` // §3.5, distance activities with HR only
 }
 
 type roundupFile struct {
@@ -157,6 +160,8 @@ func BuildIndex(profile *pbactivity.ShowcaseProfile, entries []*pbactivity.Showc
 func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.ShowcaseProfileEntry, now time.Time) ([]byte, error) {
 	category := ResolveCategory(showcase)
 	series, route := DeriveTelemetry(showcase.ActivityData)
+	race := DeriveRace(showcase)
+	kmSplits := DeriveKmSplits(showcase.ActivityData, category)
 
 	// Strip the records after deriving series/route from them (§3.1). Work on
 	// a clone so the caller's message is untouched.
@@ -185,6 +190,8 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 		Entry:         entryJSON,
 		Series:        series,
 		RoutePoints:   route,
+		Race:          race,
+		KmSplits:      kmSplits,
 	})
 }
 
@@ -368,6 +375,19 @@ func DeriveTelemetry(data *pbactivity.StandardizedActivity) (*Series, [][]float6
 	series := &Series{N: 0}
 	if len(records) == 0 {
 		return series, [][]float64{}
+	}
+	// Records from several sources arrive concatenated (a race-timing app's sparse track,
+	// then a Fitbit HR stream); bucket them in time order. Only when every record is timed,
+	// so an untimed stream keeps its recorded order.
+	allTimed := true
+	for _, r := range records {
+		if r.Timestamp == nil {
+			allTimed = false
+			break
+		}
+	}
+	if allTimed {
+		sort.SliceStable(records, func(i, j int) bool { return records[i].Timestamp.AsTime().Before(records[j].Timestamp.AsTime()) })
 	}
 	if base.IsZero() {
 		for _, r := range records {

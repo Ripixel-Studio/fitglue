@@ -47,9 +47,12 @@ deleted (F1.5b). On top of that, per the contract:
   `GetPublicShowcase` returns it, minus `activityDataUri`, `fitFileUri`,
   `pipelineExecutionId`, `activityId`, and with every `laps[].records` emptied.
   What the records fed is re-exported as `series` (≤ 120 bucket-averaged
-  samples per metric) and `routePoints` (≤ 200 `[lat, lng]` pairs). `category`
-  is derived (`strength` / `cardio-distance` / `cardio-time` / `sport` /
-  `untraditional`).
+  samples per metric, records in time order) and `routePoints` (≤ 200
+  `[lat, lng]` pairs). `category` is derived (`strength` / `cardio-distance` /
+  `cardio-time` / `sport` / `untraditional`). Hyrox races with splits also get
+  `race` (official splits, division, placings, per-segment avg/max HR —
+  contract §3.4) and distance activities with HR get `kmSplits` (avg/max HR per
+  whole km — §3.5); both are omitted otherwise.
 - `roundup/<key>.json`: the `ShowcaseRoundup` minus `userId`, plus the derived
   `previousKey`.
 
