@@ -1,789 +1,451 @@
 package fitbit_heart_rate
 
 import (
-	user "github.com/fitglue/server/src/go/pkg/domain/user"
-
-	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
-
-	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
-
-	"bytes"
 	"context"
-	"io"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
+	"github.com/fitglue/server/src/go/pkg/domain/user"
+	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
+	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
+	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const mockProfileUTC = `{"user":{"timezone":"UTC"}}`
-
-func TestFitBitHeartRate_Enrich(t *testing.T) {
-	// Setup mock HTTP client
-	mockHTTPClient := &http.Client{
-		Transport: &mockTransport{
-			DoFunc: func(req *http.Request) (*http.Response, error) {
-				if strings.Contains(req.URL.Path, "/profile.json") {
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-					}, nil
-				}
-				mockResponse := `{
-					"activities-heart-intraday": {
-						"dataset": [
-							{"time": "10:00:00", "value": 120},
-							{"time": "10:00:30", "value": 125},
-							{"time": "10:01:00", "value": 130}
-						]
-					}
-				}`
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewBufferString(mockResponse)),
-				}, nil
-			},
-		},
-	}
-
-	// Create provider with mock service
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	// Create test activity
-	startTime := time.Date(2025, 12, 25, 10, 0, 0, 0, time.UTC)
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(startTime),
-		Sessions: []*pbactivity.Session{
-			{TotalElapsedTime: 3600}, // 1 hour
-		},
-	}
-
-	// Create test user with Fitbit integration
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-		},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{
-				Enabled:     true,
-				AccessToken: "test-token",
-			},
-		},
-	}
-
-	// Execute enrichment
-	result, err := provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, nil, mockHTTPClient, false)
-
-	if err != nil {
-		t.Fatalf("Enrich failed: %v", err)
-	}
-
-	// Verify result
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
-
-	if result.Metadata["hr_source"] != "fitbit" {
-		t.Errorf("Expected hr_source=fitbit, got %s", result.Metadata["hr_source"])
-	}
-	if result.Metadata["status_detail"] != "Success" {
-		t.Errorf("Expected status_detail=Success, got %s", result.Metadata["status_detail"])
-	}
-	if result.Metadata["query_start"] != "10:00" {
-		t.Errorf("Expected query_start=10:00, got %s", result.Metadata["query_start"])
-	}
-
-	if len(result.HeartRateStream) != 3600 {
-		t.Errorf("Expected heart rate stream of 3600 seconds, got %d", len(result.HeartRateStream))
-	}
-
-	// Verify heart rate stream has data
-	foundData := false
-	for _, val := range result.HeartRateStream {
-		if val > 0 {
-			foundData = true
-			break
-		}
-	}
-	if !foundData {
-		t.Error("Heart rate stream contains only zeros, expected populated data")
-	}
+// fakeHealth is a Google Health API stand-in: it serves heart-rate samples
+// from a list, honours the physical-time filter, and records every request.
+type fakeHealth struct {
+	mu       sync.Mutex
+	samples  []time.Time // one sample per entry, bpm = 100 + index
+	status   int         // non-zero: answer every request with this status
+	body     string      // body for status
+	header   http.Header // extra headers for status
+	requests []*http.Request
+	srv      *httptest.Server
 }
 
-// TestFitBitHeartRate_Enrich_PerSessionWindow is a regression test for the cross-activity HR
-// duplication bug (two same-morning Pilates classes both received the earlier session's HR).
-//
-// Two distinct, non-overlapping activities an hour apart share the SAME stale top-level
-// activity.StartTime (07:00) — the real-world condition where the top-level field is set to the
-// day's / first activity's start — but carry DISTINCT per-session start times (07:00 and 08:00).
-// The enricher must slice its Fitbit query window from the session start, so the two activities
-// query different windows. Sliced from the shared top-level StartTime (the bug), both would query
-// 07:00 and inherit byte-for-byte identical heart-rate streams.
-func TestFitBitHeartRate_Enrich_PerSessionWindow(t *testing.T) {
-	newClient := func() *http.Client {
-		return &http.Client{
-			Transport: &mockTransport{
-				DoFunc: func(req *http.Request) (*http.Response, error) {
-					if strings.Contains(req.URL.Path, "/profile.json") {
-						return &http.Response{
-							StatusCode: 200,
-							Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-						}, nil
-					}
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(`{"activities-heart-intraday":{"dataset":[{"time":"07:00:00","value":80}]}}`)),
-					}, nil
-				},
-			},
+func newFakeHealth(t *testing.T) *fakeHealth {
+	f := &fakeHealth{}
+	f.srv = httptest.NewServer(http.HandlerFunc(f.serve))
+	t.Cleanup(f.srv.Close)
+	return f
+}
+
+func (f *fakeHealth) serve(w http.ResponseWriter, r *http.Request) {
+	f.mu.Lock()
+	f.requests = append(f.requests, r.Clone(context.Background()))
+	f.mu.Unlock()
+	if f.status != 0 {
+		for k, v := range f.header {
+			w.Header()[k] = v
 		}
+		w.WriteHeader(f.status)
+		fmt.Fprint(w, f.body)
+		return
 	}
+	if r.URL.Path != "/v4/users/me/dataTypes/heart-rate/dataPoints" {
+		http.NotFound(w, r)
+		return
+	}
+	// heart_rate.sample_time.physical_time >= "<from>" AND heart_rate.sample_time.physical_time < "<to>"
+	parts := strings.Split(r.URL.Query().Get("filter"), `"`)
+	if len(parts) != 5 || strings.TrimSpace(parts[0]) != "heart_rate.sample_time.physical_time >=" ||
+		strings.TrimSpace(parts[2]) != "AND heart_rate.sample_time.physical_time <" {
+		http.Error(w, "bad filter "+r.URL.Query().Get("filter"), 400)
+		return
+	}
+	from, err1 := time.Parse(time.RFC3339, parts[1])
+	to, err2 := time.Parse(time.RFC3339, parts[3])
+	if err1 != nil || err2 != nil {
+		http.Error(w, "bad filter times", 400)
+		return
+	}
+	var pts []string
+	// Newest first, like the API.
+	for i := len(f.samples) - 1; i >= 0; i-- {
+		ts := f.samples[i]
+		if ts.Before(from) || !ts.Before(to) {
+			continue
+		}
+		pts = append(pts, fmt.Sprintf(`{"heartRate":{"sampleTime":{"physicalTime":%q,"utcOffset":"3600s"},"beatsPerMinute":"%d"}}`, ts.UTC().Format(time.RFC3339), 100+i))
+	}
+	fmt.Fprintf(w, `{"dataPoints":[%s]}`, strings.Join(pts, ","))
+}
 
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
+// every returns one sample per step from start for n samples.
+func every(start time.Time, step time.Duration, n int) []time.Time {
+	out := make([]time.Time, n)
+	for i := range out {
+		out[i] = start.Add(time.Duration(i) * step)
+	}
+	return out
+}
 
-	user := &user.Record{
+func (f *fakeHealth) provider() *FitBitHeartRate {
+	p := NewFitBitHeartRate()
+	p.Service = &bootstrap.Service{}
+	p.baseURL = f.srv.URL
+	return p
+}
+
+func ghUser() *user.Record {
+	return &user.Record{
 		UserProfile: &pbuser.UserProfile{UserId: "test-user"},
 		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{Enabled: true, AccessToken: "test-token"},
+			Googlehealth: &pbuser.GoogleHealthIntegration{Enabled: true, AccessToken: "t"},
 		},
 	}
+}
 
-	// Shared, stale top-level start (07:00) across both activities.
-	staleTopLevel := timestamppb.New(time.Date(2026, 8, 3, 7, 0, 52, 0, time.UTC))
-
-	// First class: session actually starts at 07:00.
-	slowFlow := &pbactivity.StandardizedActivity{
-		StartTime: staleTopLevel,
-		Sessions: []*pbactivity.Session{
-			{
-				StartTime:        timestamppb.New(time.Date(2026, 8, 3, 7, 0, 52, 0, time.UTC)),
-				TotalElapsedTime: 3120, // ~52 min
-			},
-		},
+func act(start time.Time, durationSec float64) *pbactivity.StandardizedActivity {
+	return &pbactivity.StandardizedActivity{
+		StartTime: timestamppb.New(start),
+		Sessions:  []*pbactivity.Session{{StartTime: timestamppb.New(start), TotalElapsedTime: durationSec}},
 	}
+}
 
-	// Second class: session actually starts at 08:00, but the top-level start is still the stale 07:00.
-	tower := &pbactivity.StandardizedActivity{
-		StartTime: staleTopLevel,
-		Sessions: []*pbactivity.Session{
-			{
-				StartTime:        timestamppb.New(time.Date(2026, 8, 3, 8, 0, 43, 0, time.UTC)),
-				TotalElapsedTime: 3120, // ~52 min
-			},
-		},
+func enrich(t *testing.T, f *fakeHealth, a *pbactivity.StandardizedActivity, u *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
+	t.Helper()
+	return f.provider().EnrichWithClient(context.Background(), slog.Default(), a, u, inputs, f.srv.Client(), doNotRetry)
+}
+
+func TestIdentity(t *testing.T) {
+	p := NewFitBitHeartRate()
+	if p.Name() != "fitbit-heart-rate" {
+		t.Errorf("Name() = %q: the stored pipeline identifier must not change", p.Name())
 	}
+	if p.ProviderType() != pbplugin.EnricherProviderType_ENRICHER_PROVIDER_FITBIT_HEART_RATE {
+		t.Errorf("ProviderType() = %v", p.ProviderType())
+	}
+	if p.IsIdempotent() {
+		t.Error("must be non-idempotent so resume replays the journalled stream")
+	}
+	svc := &bootstrap.Service{}
+	p.SetService(svc)
+	if p.Service != svc {
+		t.Error("SetService")
+	}
+}
 
-	res1, err := provider.EnrichWithClient(context.Background(), slog.Default(), slowFlow, user, nil, newClient(), true)
+func TestEnrich_ReadsGoogleHealthForTheActivityWindow(t *testing.T) {
+	f := newFakeHealth(t)
+	start := time.Date(2025, 12, 25, 10, 0, 0, 0, time.UTC)
+	f.samples = every(start, 30*time.Second, 120) // full hour at 30 s
+	f.samples = append([]time.Time{start.Add(-10 * time.Minute)}, f.samples...)
+
+	res, err := enrich(t, f, act(start, 3600), ghUser(), nil, false)
 	if err != nil {
-		t.Fatalf("Enrich (slow flow) failed: %v", err)
+		t.Fatal(err)
 	}
-	res2, err := provider.EnrichWithClient(context.Background(), slog.Default(), tower, user, nil, newClient(), true)
-	if err != nil {
-		t.Fatalf("Enrich (tower) failed: %v", err)
+	if res.Metadata["hr_source"] != "googlehealth" || res.Metadata["status_detail"] != "Success" {
+		t.Errorf("metadata = %v", res.Metadata)
 	}
-
-	if res1.Metadata["query_start"] != "07:00" {
-		t.Errorf("Expected first activity to query its own 07:00 window, got %s", res1.Metadata["query_start"])
+	if res.Metadata["query_start"] != "2025-12-25T10:00:00Z" || res.Metadata["query_end"] != "2025-12-25T11:00:00Z" {
+		t.Errorf("window = %s..%s", res.Metadata["query_start"], res.Metadata["query_end"])
 	}
-	if res2.Metadata["query_start"] != "08:00" {
-		t.Errorf("Expected second activity to query its own 08:00 session window, got %s — the HR window was sliced from the shared top-level StartTime instead of the per-session start", res2.Metadata["query_start"])
+	if res.Metadata["points_found"] != "120" {
+		t.Errorf("points_found = %s (the pre-start sample must be filtered out)", res.Metadata["points_found"])
 	}
-	if res1.Metadata["query_start"] == res2.Metadata["query_start"] {
-		t.Errorf("Two same-morning activities queried the SAME Fitbit window (%s) — cross-activity HR duplication bug", res1.Metadata["query_start"])
-	}
-}
-
-func TestFitBitHeartRate_Enrich_IntegrationDisabled(t *testing.T) {
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(time.Now()),
-	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-		},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{
-				Enabled: false,
-			},
-		},
-	}
-
-	_, err := provider.Enrich(context.Background(), slog.Default(), activity, user, nil, false)
-	if err == nil {
-		t.Error("Expected error when Fitbit integration is disabled")
-	}
-}
-
-func TestFitBitHeartRate_Enrich_APIError(t *testing.T) {
-	mockHTTPClient := &http.Client{
-		Transport: &mockTransport{
-			DoFunc: func(req *http.Request) (*http.Response, error) {
-				if strings.Contains(req.URL.Path, "/profile.json") {
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-					}, nil
-				}
-				return &http.Response{
-					StatusCode: 401,
-					Body:       io.NopCloser(bytes.NewBufferString(`{"errors":[{"errorType":"invalid_token"}]}`)),
-				}, nil
-			},
-		},
-	}
-
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(time.Now()),
-		Sessions:  []*pbactivity.Session{{TotalElapsedTime: 3600}},
-	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-		},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{
-				Enabled:     true,
-				AccessToken: "invalid-token",
-			},
-		},
-	}
-
-	_, err := provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, nil, mockHTTPClient, false)
-	if err == nil {
-		t.Error("Expected error when API returns 401")
-	}
-}
-
-// mockTransport implements http.RoundTripper
-type mockTransport struct {
-	DoFunc func(req *http.Request) (*http.Response, error)
-}
-
-func (m *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if m.DoFunc != nil {
-		return m.DoFunc(req)
-	}
-	if strings.Contains(req.URL.Path, "/profile.json") {
-		return &http.Response{
-			StatusCode: 200,
-			Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-		}, nil
-	}
-	return &http.Response{
-		StatusCode: 200,
-		Body:       io.NopCloser(bytes.NewBufferString(`{"activities-heart-intraday":{"dataset":[]}}`)),
-	}, nil
-}
-
-func TestFitBitHeartRate_Enrich_LagDetected(t *testing.T) {
-	mockHTTPClient := &http.Client{
-		Transport: &mockTransport{
-			DoFunc: func(req *http.Request) (*http.Response, error) {
-				if strings.Contains(req.URL.Path, "/profile.json") {
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-					}, nil
-				}
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewBufferString(`{"activities-heart-intraday":{"dataset":[]}}`)),
-				}, nil
-			},
-		},
-	}
-
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	// Activity ended 5 minutes ago (Recent -> Should Retry)
-	endTime := time.Now().Add(-5 * time.Minute)
-	startTime := endTime.Add(-1 * time.Hour)
-
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(startTime),
-		Sessions:  []*pbactivity.Session{{TotalElapsedTime: 3600}},
-	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-		},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{Enabled: true, AccessToken: "t"},
-		},
-	}
-
-	_, err := provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, nil, mockHTTPClient, false)
-	if err == nil {
-		t.Fatal("Expected error for recent missing data")
-	}
-
-	if retryErr, ok := err.(*providers.RetryableError); !ok {
-		t.Errorf("Expected RetryableError, got %T: %v", err, err)
-	} else {
-		if retryErr.RetryAfter == 0 {
-			t.Error("Expected non-zero RetryAfter")
-		}
-	}
-}
-
-func TestFitBitHeartRate_Enrich_LagExpired(t *testing.T) {
-	mockHTTPClient := &http.Client{
-		Transport: &mockTransport{
-			DoFunc: func(req *http.Request) (*http.Response, error) {
-				if strings.Contains(req.URL.Path, "/profile.json") {
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-					}, nil
-				}
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewBufferString(`{"activities-heart-intraday":{"dataset":[]}}`)),
-				}, nil
-			},
-		},
-	}
-
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	// Activity ended 2 hours ago (Old -> Should Accept Empty)
-	endTime := time.Now().Add(-2 * time.Hour)
-	startTime := endTime.Add(-1 * time.Hour)
-
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(startTime),
-		Sessions:  []*pbactivity.Session{{TotalElapsedTime: 3600}},
-	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-		},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{Enabled: true, AccessToken: "t"},
-		},
-	}
-
-	res, err := provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, nil, mockHTTPClient, false)
-	if err != nil {
-		t.Fatalf("Expected success for old missing data, got: %v", err)
+	if res.Metadata["utc_offset"] != "1h0m0s" {
+		t.Errorf("utc_offset = %s", res.Metadata["utc_offset"])
 	}
 	if len(res.HeartRateStream) != 3600 {
-		t.Errorf("Expected stream length 3600, got %d", len(res.HeartRateStream))
+		t.Fatalf("stream len = %d", len(res.HeartRateStream))
+	}
+	// Sample i lands at second 30*i with bpm 100+i+1 (index 0 is the pre-start sample).
+	if res.HeartRateStream[0] != 101 || res.HeartRateStream[30] != 102 || res.HeartRateStream[45] != 102 {
+		t.Errorf("stream[0,30,45] = %d,%d,%d", res.HeartRateStream[0], res.HeartRateStream[30], res.HeartRateStream[45])
+	}
+	q := f.requests[0].URL.Query()
+	if q.Get("dataSourceFamily") != "users/me/dataSourceFamilies/google-wearables" {
+		t.Errorf("dataSourceFamily = %q", q.Get("dataSourceFamily"))
+	}
+	if !strings.Contains(q.Get("filter"), `>= "2025-12-25T10:00:00Z"`) || !strings.Contains(q.Get("filter"), `< "2025-12-25T11:00:01Z"`) {
+		t.Errorf("filter = %q", q.Get("filter"))
 	}
 }
 
-func TestFitBitHeartRate_Enrich_LagReArmedOnResume(t *testing.T) {
-	// An old activity (not "recent") with incomplete Fitbit data would normally be accepted as
-	// partial. But when resolving a pending input (is_resume=true) we re-arm the lag retry so
-	// Fitbit gets time to finish syncing rather than committing to partial coverage.
-	mockHTTPClient := &http.Client{
-		Transport: &mockTransport{
-			DoFunc: func(req *http.Request) (*http.Response, error) {
-				if strings.Contains(req.URL.Path, "/profile.json") {
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-					}, nil
+// TestEnrich_LocalTimezoneIsIrrelevant: a BST activity (06:00 UTC = 07:00
+// local) queries 06:00Z — physical time, no profile lookup — and only the one
+// request is made.
+func TestEnrich_LocalTimezoneIsIrrelevant(t *testing.T) {
+	f := newFakeHealth(t)
+	london, _ := time.LoadLocation("Europe/London")
+	start := time.Date(2026, 7, 4, 7, 0, 0, 0, london)
+	f.samples = every(start, time.Second, 600)
+	res, err := enrich(t, f, act(start, 600), ghUser(), nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Metadata["query_start"] != "2026-07-04T06:00:00Z" {
+		t.Errorf("query_start = %s", res.Metadata["query_start"])
+	}
+	if len(f.requests) != 1 {
+		t.Errorf("requests = %d, want 1 (no profile/timezone call)", len(f.requests))
+	}
+	if res.HeartRateStream[0] != 100 || res.HeartRateStream[599] != 699 {
+		t.Errorf("stream ends = %d, %d", res.HeartRateStream[0], res.HeartRateStream[599])
+	}
+}
+
+func TestEnrich_SpansMidnightIsOneQuery(t *testing.T) {
+	f := newFakeHealth(t)
+	start := time.Date(2026, 1, 1, 23, 58, 0, 0, time.UTC)
+	f.samples = every(start, time.Second, 720)
+	res, err := enrich(t, f, act(start, 720), ghUser(), nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.requests) != 1 || res.Metadata["points_found"] != "720" || len(res.HeartRateStream) != 720 {
+		t.Errorf("requests=%d points=%s len=%d", len(f.requests), res.Metadata["points_found"], len(res.HeartRateStream))
+	}
+}
+
+// TestEnrich_PerSessionWindow is the regression test for the cross-activity HR
+// duplication bug: two classes sharing a stale top-level start each query
+// their own session window.
+func TestEnrich_PerSessionWindow(t *testing.T) {
+	f := newFakeHealth(t)
+	stale := timestamppb.New(time.Date(2026, 8, 3, 7, 0, 52, 0, time.UTC))
+	mk := func(s time.Time) *pbactivity.StandardizedActivity {
+		return &pbactivity.StandardizedActivity{StartTime: stale, Sessions: []*pbactivity.Session{{StartTime: timestamppb.New(s), TotalElapsedTime: 3120}}}
+	}
+	r1, err := enrich(t, f, mk(time.Date(2026, 8, 3, 7, 0, 52, 0, time.UTC)), ghUser(), nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r2, err := enrich(t, f, mk(time.Date(2026, 8, 3, 8, 0, 43, 0, time.UTC)), ghUser(), nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r1.Metadata["query_start"] != "2026-08-03T07:00:52Z" || r2.Metadata["query_start"] != "2026-08-03T08:00:43Z" {
+		t.Errorf("windows = %s, %s", r1.Metadata["query_start"], r2.Metadata["query_start"])
+	}
+}
+
+func TestEnrich_TopLevelStartFallback(t *testing.T) {
+	f := newFakeHealth(t)
+	start := time.Date(2025, 6, 1, 9, 0, 0, 0, time.UTC)
+	a := &pbactivity.StandardizedActivity{StartTime: timestamppb.New(start), Sessions: []*pbactivity.Session{{TotalElapsedTime: 60}}}
+	res, err := enrich(t, f, a, ghUser(), nil, false)
+	if err != nil || res.Metadata["query_start"] != "2025-06-01T09:00:00Z" {
+		t.Errorf("res=%v err=%v", res, err)
+	}
+	if _, err := enrich(t, f, &pbactivity.StandardizedActivity{}, ghUser(), nil, false); err == nil {
+		t.Error("no start time should error")
+	}
+}
+
+func TestEnrich_NotConnected(t *testing.T) {
+	f := newFakeHealth(t)
+	start := time.Date(2025, 6, 1, 9, 0, 0, 0, time.UTC)
+	for name, u := range map[string]*user.Record{
+		"no integrations": {UserProfile: &pbuser.UserProfile{UserId: "u"}},
+		"disabled":        {Integrations: &pbuser.UserIntegrations{Googlehealth: &pbuser.GoogleHealthIntegration{Enabled: false}}},
+		// Only the legacy Fitbit grant: Fitbit is never called any more.
+		"fitbit only": {Integrations: &pbuser.UserIntegrations{Fitbit: &pbuser.FitbitIntegration{Enabled: true, AccessToken: "x"}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := enrich(t, f, act(start, 60), u, nil, false)
+			if err == nil || !strings.Contains(err.Error(), "fitgluectl connect googlehealth") {
+				t.Errorf("err = %v", err)
+			}
+		})
+	}
+	if len(f.requests) != 0 {
+		t.Errorf("made %d requests without a grant", len(f.requests))
+	}
+}
+
+func TestEnrich_SkipIfExistingHR_UnlessForced(t *testing.T) {
+	f := newFakeHealth(t)
+	start := time.Date(2025, 6, 1, 9, 0, 0, 0, time.UTC)
+	f.samples = every(start, time.Second, 60)
+	a := act(start, 60)
+	a.Sessions[0].Laps = []*pbactivity.Lap{{Records: []*pbactivity.Record{{Timestamp: timestamppb.New(start), HeartRate: 140}}}}
+
+	res, err := enrich(t, f, a, ghUser(), nil, false)
+	if err != nil || !res.Skipped || res.Metadata["hr_source"] != "skipped" {
+		t.Fatalf("res=%+v err=%v", res, err)
+	}
+	if len(f.requests) != 0 {
+		t.Error("skipped enrichment must not call the API")
+	}
+	res, err = enrich(t, f, a, ghUser(), map[string]string{"force": "true"}, false)
+	if err != nil || res.Skipped || res.Metadata["hr_source"] != "googlehealth" {
+		t.Fatalf("forced: res=%+v err=%v", res, err)
+	}
+}
+
+func TestEnrich_LagRetryWhileDataHasNotLanded(t *testing.T) {
+	f := newFakeHealth(t)
+	start := time.Now().Add(-20 * time.Minute).Truncate(time.Second)
+	f.samples = every(start, time.Second, 300) // only the first 5 of 15 minutes synced
+
+	_, err := enrich(t, f, act(start, 900), ghUser(), nil, false)
+	var re *providers.RetryableError
+	if !errors.As(err, &re) {
+		t.Fatalf("recent + partial should be retryable, got %v", err)
+	}
+
+	// Lag exhausted: accept the partial stream, gaps left as zero (no stretching).
+	res, err := enrich(t, f, act(start, 900), ghUser(), nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.HeartRateStream[299] == 0 || res.HeartRateStream[300] != 0 || res.HeartRateStream[899] != 0 {
+		t.Errorf("tail must stay a gap: [299]=%d [300]=%d [899]=%d", res.HeartRateStream[299], res.HeartRateStream[300], res.HeartRateStream[899])
+	}
+
+	// Nothing synced yet for a recent activity: retry too.
+	f.samples = nil
+	if _, err := enrich(t, f, act(start, 900), ghUser(), nil, false); !errors.As(err, &re) {
+		t.Errorf("recent + empty should be retryable, got %v", err)
+	}
+}
+
+func TestEnrich_OldActivityAcceptsWhatThereIs(t *testing.T) {
+	f := newFakeHealth(t)
+	start := time.Date(2025, 6, 1, 9, 0, 0, 0, time.UTC)
+	f.samples = every(start, time.Second, 300)
+	res, err := enrich(t, f, act(start, 900), ghUser(), nil, false)
+	if err != nil || res.Metadata["points_found"] != "300" {
+		t.Fatalf("res=%v err=%v", res, err)
+	}
+	f.samples = nil
+	res, err = enrich(t, f, act(start, 900), ghUser(), nil, false)
+	if err != nil || res.Metadata["points_found"] != "0" {
+		t.Fatalf("empty old: res=%v err=%v", res, err)
+	}
+}
+
+func TestEnrich_LagReArmedOnResume(t *testing.T) {
+	f := newFakeHealth(t)
+	start := time.Date(2025, 6, 1, 9, 0, 0, 0, time.UTC)
+	f.samples = every(start, time.Second, 300)
+	_, err := enrich(t, f, act(start, 900), ghUser(), map[string]string{"is_resume": "true"}, false)
+	var re *providers.RetryableError
+	if !errors.As(err, &re) {
+		t.Fatalf("resume + partial should be retryable, got %v", err)
+	}
+}
+
+func TestEnrich_APIErrors(t *testing.T) {
+	start := time.Date(2025, 6, 1, 9, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name      string
+		status    int
+		body      string
+		retryHdr  string
+		retryable bool
+		wantAfter time.Duration
+		contains  string
+	}{
+		{"429 is retryable with Retry-After", 429, `{"error":{"status":"RESOURCE_EXHAUSTED"}}`, "42", true, 42 * time.Second, "429"},
+		{"503 is retryable", 503, `unavailable`, "", true, 0, "503"},
+		{"account not linked is terminal", 400, `{"error":{"code":400,"status":"FAILED_PRECONDITION","message":"link the app","details":[{"reason":"ACCOUNT_NOT_LINKED"}]}}`, "", false, 0, "ACCOUNT_NOT_LINKED"},
+		{"missing scope is terminal", 403, `{"error":{"code":403,"status":"PERMISSION_DENIED","details":[{"reason":"MISSING_OAUTH_SCOPE"}]}}`, "", false, 0, "MISSING_OAUTH_SCOPE"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFakeHealth(t)
+			f.status, f.body = tc.status, tc.body
+			if tc.retryHdr != "" {
+				f.header = http.Header{"Retry-After": {tc.retryHdr}}
+			}
+			_, err := enrich(t, f, act(start, 600), ghUser(), nil, false)
+			if err == nil || !strings.Contains(err.Error(), tc.contains) {
+				t.Fatalf("err = %v", err)
+			}
+			var re *providers.RetryableError
+			if errors.As(err, &re) != tc.retryable {
+				t.Fatalf("retryable = %v, want %v (%v)", !tc.retryable, tc.retryable, err)
+			}
+			if tc.retryable {
+				if re.RetryAfter != tc.wantAfter {
+					t.Errorf("RetryAfter = %v, want %v", re.RetryAfter, tc.wantAfter)
 				}
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewBufferString(`{"activities-heart-intraday":{"dataset":[]}}`)),
-				}, nil
-			},
-		},
-	}
-
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	// Activity ended 2 hours ago — not recent — but we are resuming.
-	endTime := time.Now().Add(-2 * time.Hour)
-	startTime := endTime.Add(-1 * time.Hour)
-
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(startTime),
-		Sessions:  []*pbactivity.Session{{TotalElapsedTime: 3600}},
-	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{UserId: "test-user"},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{Enabled: true, AccessToken: "t"},
-		},
-	}
-
-	inputs := map[string]string{"is_resume": "true"}
-	_, err := provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, inputs, mockHTTPClient, false)
-	if err == nil {
-		t.Fatal("Expected RetryableError when resuming with incomplete data")
-	}
-	if _, ok := err.(*providers.RetryableError); !ok {
-		t.Errorf("Expected RetryableError, got %T: %v", err, err)
-	}
-
-	// Sanity: without the resume flag, the same old activity is accepted as partial (no retry).
-	_, err = provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, nil, mockHTTPClient, false)
-	if err != nil {
-		t.Fatalf("Expected success for old activity without resume, got: %v", err)
-	}
-}
-
-func TestFitBitHeartRate_Name(t *testing.T) {
-	provider := NewFitBitHeartRate()
-	expected := "fitbit-heart-rate"
-	if provider.Name() != expected {
-		t.Errorf("Expected provider name %q, got %q", expected, provider.Name())
-	}
-}
-
-// TestFitBitHeartRate_IsIdempotent is a regression test: the fetched stream depends on
-// Fitbit's own sync lag at query time, so re-running on resume can silently commit a
-// less-complete stream than the one already applied to the activity. The provider must
-// report itself as non-idempotent so the orchestrator replays the journaled stream on
-// resume instead of re-querying Fitbit.
-func TestFitBitHeartRate_IsIdempotent(t *testing.T) {
-	provider := NewFitBitHeartRate()
-	if provider.IsIdempotent() {
-		t.Error("Expected IsIdempotent() to return false so resume replays the journaled stream instead of re-fetching")
-	}
-}
-
-func TestFitBitHeartRate_Enrich_LagExhausted(t *testing.T) {
-	mockHTTPClient := &http.Client{
-		Transport: &mockTransport{
-			DoFunc: func(req *http.Request) (*http.Response, error) {
-				if strings.Contains(req.URL.Path, "/profile.json") {
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-					}, nil
+				// Lag exhausted: complete without HR instead of failing.
+				res, err := enrich(t, f, act(start, 600), ghUser(), nil, true)
+				if err != nil || res.Metadata["hr_source"] != "skipped" {
+					t.Errorf("lag exhausted: res=%v err=%v", res, err)
 				}
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewBufferString(`{"activities-heart-intraday":{"dataset":[]}}`)),
-				}, nil
-			},
-		},
-	}
-
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	// Activity ended 5 minutes ago (Recent -> Should Normally Retry)
-	endTime := time.Now().Add(-5 * time.Minute)
-	startTime := endTime.Add(-1 * time.Hour)
-
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(startTime),
-		Sessions:  []*pbactivity.Session{{TotalElapsedTime: 3600}},
-	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-		},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{Enabled: true, AccessToken: "t"},
-		},
-	}
-
-	// Should not return error despite missing data (doNotRetry=true)
-	_, err := provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, nil, mockHTTPClient, true)
-	if err != nil {
-		t.Fatalf("Expected success when doNotRetry is set, got error: %v", err)
-	}
-
-}
-
-func TestFitBitHeartRate_Enrich_SkipIfExistingHRData(t *testing.T) {
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	// Create activity WITH existing heart rate data
-	startTime := time.Date(2025, 12, 25, 10, 0, 0, 0, time.UTC)
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(startTime),
-		Sessions: []*pbactivity.Session{
-			{
-				TotalElapsedTime: 3600,
-				Laps: []*pbactivity.Lap{
-					{
-						Records: []*pbactivity.Record{
-							{HeartRate: 120}, // Existing HR data
-							{HeartRate: 130},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-		},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{
-				Enabled:     true,
-				AccessToken: "test-token",
-			},
-		},
-	}
-
-	// Without force=true, should skip
-	result, err := provider.Enrich(context.Background(), slog.Default(), activity, user, nil, false)
-	if err != nil {
-		t.Fatalf("Expected no error, got: %v", err)
-	}
-
-	if result.Metadata["hr_source"] != "skipped" {
-		t.Errorf("Expected hr_source=skipped, got %s", result.Metadata["hr_source"])
-	}
-	if result.Metadata["force"] != "false" {
-		t.Errorf("Expected force=false in metadata, got %s", result.Metadata["force"])
+			}
+		})
 	}
 }
 
-// TestFitBitHeartRate_Enrich_BSTTimezone is a regression test for the UTC/BST bug.
-// Fitbit's intraday API uses the user's profile timezone, not UTC. When a user in BST
-// (UTC+1) does a workout at 10:00 BST (= 09:00 UTC), sending "09:00" to Fitbit causes
-// it to fetch data for 09:00 BST (= 08:00 UTC) — one full hour too early. This means
-// pre-workout resting HR (Zone 1) gets mapped onto the activity instead of real data.
-func TestFitBitHeartRate_Enrich_BSTTimezone(t *testing.T) {
-	var capturedURL string
-	mockHTTPClient := &http.Client{
-		Transport: &mockTransport{
-			DoFunc: func(req *http.Request) (*http.Response, error) {
-				if strings.Contains(req.URL.Path, "/profile.json") {
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(`{"user":{"timezone":"Europe/London"}}`)),
-					}, nil
-				}
-				capturedURL = req.URL.String()
-				// Fitbit returns times in local (BST) format
-				mockResponse := `{
-					"activities-heart-intraday": {
-						"dataset": [
-							{"time": "10:00:00", "value": 150},
-							{"time": "10:01:00", "value": 155},
-							{"time": "10:02:00", "value": 160}
-						]
-					}
-				}`
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewBufferString(mockResponse)),
-				}, nil
-			},
-		},
+func TestEnrich_TransportErrorIsRetryable(t *testing.T) {
+	f := newFakeHealth(t)
+	f.srv.Close()
+	start := time.Date(2025, 6, 1, 9, 0, 0, 0, time.UTC)
+	_, err := enrich(t, f, act(start, 600), ghUser(), nil, false)
+	var re *providers.RetryableError
+	if !errors.As(err, &re) {
+		t.Fatalf("transport error should be retryable, got %v", err)
 	}
-
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	// Activity at 09:00 UTC on a past summer date = 10:00 BST
-	startTime := time.Date(2025, 6, 15, 9, 0, 0, 0, time.UTC)
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(startTime),
-		Sessions:  []*pbactivity.Session{{TotalElapsedTime: 3600}},
-	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{UserId: "test-user"},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{Enabled: true, AccessToken: "test-token"},
-		},
-	}
-
-	result, err := provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, nil, mockHTTPClient, false)
-	if err != nil {
-		t.Fatalf("Enrich failed: %v", err)
-	}
-
-	// The query must use local BST time "10:00", not UTC "09:00"
-	if result.Metadata["query_start"] != "10:00" {
-		t.Errorf("Expected query_start=10:00 (BST local time), got %s — UTC was sent instead of local time", result.Metadata["query_start"])
-	}
-	if !strings.Contains(capturedURL, "10:00") {
-		t.Errorf("Expected Fitbit API URL to contain local time 10:00, got: %s", capturedURL)
-	}
-
-	// The HR stream should contain the elevated heart rate data (not Zone 1 resting HR)
-	if result.HeartRateStream[0] == 0 {
-		t.Error("Expected populated heart rate stream at start, got zero")
+	res, err := enrich(t, f, act(start, 600), ghUser(), nil, true)
+	if err != nil || res.Metadata["hr_source"] != "skipped" {
+		t.Errorf("lag exhausted: res=%v err=%v", res, err)
 	}
 }
 
-func TestFitBitHeartRate_Enrich_ForceOverwrite(t *testing.T) {
-	mockHTTPClient := &http.Client{
-		Transport: &mockTransport{
-			DoFunc: func(req *http.Request) (*http.Response, error) {
-				if strings.Contains(req.URL.Path, "/profile.json") {
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-					}, nil
-				}
-				mockResponse := `{
-					"activities-heart-intraday": {
-						"dataset": [
-							{"time": "10:00:00", "value": 120}
-						]
-					}
-				}`
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewBufferString(mockResponse)),
-				}, nil
-			},
-		},
+func TestEnrich_GPSAlignment(t *testing.T) {
+	f := newFakeHealth(t)
+	start := time.Date(2025, 6, 15, 10, 0, 0, 0, time.UTC)
+	f.samples = every(start, 10*time.Second, 60)
+	records := make([]*pbactivity.Record, 0, 600)
+	for i := 0; i < 600; i++ {
+		records = append(records, &pbactivity.Record{
+			Timestamp:    timestamppb.New(start.Add(time.Duration(i) * time.Second)),
+			PositionLat:  51.5 + float64(i)*0.00001,
+			PositionLong: -0.12,
+		})
 	}
-
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	// Create activity WITH existing heart rate data
-	startTime := time.Date(2025, 12, 25, 10, 0, 0, 0, time.UTC)
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(startTime),
-		Sessions: []*pbactivity.Session{
-			{
-				TotalElapsedTime: 3600,
-				Laps: []*pbactivity.Lap{
-					{
-						Records: []*pbactivity.Record{
-							{HeartRate: 120}, // Existing HR data
-						},
-					},
-				},
-			},
-		},
-	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-		},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{
-				Enabled:     true,
-				AccessToken: "test-token",
-			},
-		},
-	}
-
-	// With force=true, should proceed to fetch from Fitbit
-	result, err := provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, map[string]string{"force": "true"}, mockHTTPClient, false)
+	a := act(start, 600)
+	a.Sessions[0].Laps = []*pbactivity.Lap{{Records: records}}
+	res, err := enrich(t, f, a, ghUser(), nil, false)
 	if err != nil {
-		t.Fatalf("Expected no error with force=true, got: %v", err)
+		t.Fatal(err)
+	}
+	if res.Metadata["alignment_status"] == "skipped_no_gps" || res.Metadata["alignment_status"] == "" {
+		t.Errorf("alignment_status = %q", res.Metadata["alignment_status"])
+	}
+	if len(res.HeartRateStream) != 600 || res.HeartRateStream[0] != 100 || res.HeartRateStream[100] == 0 {
+		t.Errorf("aligned stream len=%d [0]=%d [100]=%d", len(res.HeartRateStream), res.HeartRateStream[0], res.HeartRateStream[100])
 	}
 
-	if result.Metadata["hr_source"] != "fitbit" {
-		t.Errorf("Expected hr_source=fitbit with force=true, got %s", result.Metadata["hr_source"])
+	// GPS present but no HR samples: index-based fallback, all gaps.
+	f.samples = nil
+	res, err = enrich(t, f, a, ghUser(), nil, false)
+	if err != nil || len(res.HeartRateStream) != 600 || res.HeartRateStream[0] != 0 {
+		t.Errorf("empty: res=%v err=%v", res, err)
 	}
 }
 
-func TestFitBitHeartRate_Enrich_SpansMidnight(t *testing.T) {
-	var capturedURL string
-	mockHTTPClient := &http.Client{
-		Transport: &mockTransport{
-			DoFunc: func(req *http.Request) (*http.Response, error) {
-				if strings.Contains(req.URL.Path, "/profile.json") {
-					return &http.Response{
-						StatusCode: 200,
-						Body:       io.NopCloser(bytes.NewBufferString(mockProfileUTC)),
-					}, nil
-				}
-				capturedURL = req.URL.String()
-				mockResponse := `{
-					"activities-heart-intraday": {
-						"dataset": [
-							{"time": "23:58:00", "value": 120},
-							{"time": "23:59:00", "value": 125},
-							{"time": "00:00:00", "value": 130},
-							{"time": "00:05:00", "value": 135},
-							{"time": "00:10:00", "value": 140}
-						]
-					}
-				}`
-				return &http.Response{
-					StatusCode: 200,
-					Body:       io.NopCloser(bytes.NewBufferString(mockResponse)),
-				}, nil
-			},
-		},
+func TestBuildStreamIndexBased(t *testing.T) {
+	start := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	s := []providers.TimedSample{
+		{Timestamp: start.Add(-time.Second), Value: 1}, // before start: dropped
+		{Timestamp: start.Add(2 * time.Second), Value: 120},
+		{Timestamp: start.Add(5 * time.Second), Value: 130},
+		{Timestamp: start.Add(20 * time.Second), Value: 9}, // past the end: dropped
 	}
-
-	provider := NewFitBitHeartRate()
-	provider.Service = &bootstrap.Service{}
-
-	// Activity starts at 23:58 on Jan 1 and ends at 00:10 on Jan 2 (12 minutes spanning midnight)
-	startTime := time.Date(2026, 1, 1, 23, 58, 0, 0, time.UTC)
-	activity := &pbactivity.StandardizedActivity{
-		StartTime: timestamppb.New(startTime),
-		Sessions: []*pbactivity.Session{
-			{TotalElapsedTime: 720}, // 12 minutes
-		},
+	got := buildStreamIndexBased(s, start, 8)
+	want := []int{0, 0, 120, 120, 120, 130, 0, 0}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Errorf("got %v want %v", got, want)
 	}
-
-	user := &user.Record{
-		UserProfile: &pbuser.UserProfile{
-			UserId: "test-user",
-		},
-		Integrations: &pbuser.UserIntegrations{
-			Fitbit: &pbuser.FitbitIntegration{
-				Enabled:     true,
-				AccessToken: "test-token",
-			},
-		},
-	}
-
-	result, err := provider.EnrichWithClient(context.Background(), slog.Default(), activity, user, nil, mockHTTPClient, false)
-	if err != nil {
-		t.Fatalf("Enrich failed for midnight-spanning activity: %v", err)
-	}
-
-	// Verify the date range API was called (URL should contain both dates)
-	if !bytes.Contains([]byte(capturedURL), []byte("2026-01-01")) {
-		t.Errorf("Expected URL to contain start date 2026-01-01, got: %s", capturedURL)
-	}
-	if !bytes.Contains([]byte(capturedURL), []byte("2026-01-02")) {
-		t.Errorf("Expected URL to contain end date 2026-01-02, got: %s", capturedURL)
-	}
-
-	// Verify metadata indicates this spanned midnight
-	if result.Metadata["spans_midnight"] != "true" {
-		t.Errorf("Expected spans_midnight=true, got %s", result.Metadata["spans_midnight"])
-	}
-	if result.Metadata["query_date"] != "2026-01-01" {
-		t.Errorf("Expected query_date=2026-01-01, got %s", result.Metadata["query_date"])
-	}
-	if result.Metadata["query_end_date"] != "2026-01-02" {
-		t.Errorf("Expected query_end_date=2026-01-02, got %s", result.Metadata["query_end_date"])
-	}
-
-	// Verify heart rate stream has data
-	if len(result.HeartRateStream) != 720 {
-		t.Errorf("Expected heart rate stream of 720 seconds, got %d", len(result.HeartRateStream))
+	if len(buildStreamIndexBased(nil, start, -1)) != 0 {
+		t.Error("negative duration")
 	}
 }

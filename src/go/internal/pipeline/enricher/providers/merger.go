@@ -123,8 +123,8 @@ func AlignTimeSeries(gpsTimestamps []time.Time, hrSamples []TimedSample, config 
 	// skips them rather than holding a stale or stretched value.
 	//
 	// This relies on both series sharing one real-time frame: GPS record timestamps are UTC and
-	// the Fitbit samples must be built in the Fitbit profile timezone (see ConvertHRResponseToSamples
-	// callers) so the instants line up. Slow clock drift between devices is tolerated — HR varies
+	// the HR samples must be absolute instants too (Google Health returns physical time; a FIT
+	// file carries its own timestamps) so the instants line up. Slow clock drift between devices is tolerated — HR varies
 	// slowly, so a few seconds of skew is immaterial compared to the distortion of stretching.
 	tolerance := config.TargetAccuracy
 	coverageStart := hrStart.Add(-tolerance)
@@ -226,36 +226,4 @@ func findSampleBefore(samples []TimedSample, targetTime time.Time) int {
 	}
 
 	return left
-}
-
-// ConvertHRResponseToSamples converts the Fitbit API response format to TimedSamples.
-// The baseDate is the date of the activity (used to construct full timestamps).
-func ConvertHRResponseToSamples(dataset []struct {
-	Time  string `json:"time"`
-	Value int    `json:"value"`
-}, baseDate time.Time) []TimedSample {
-	samples := make([]TimedSample, 0, len(dataset))
-
-	for _, point := range dataset {
-		// Parse time in "15:04:05" format
-		ptTime, err := time.Parse("15:04:05", point.Time)
-		if err != nil {
-			// Skip invalid timestamps silently - not critical for functionality
-			continue
-		}
-
-		// Combine with base date
-		fullTime := time.Date(
-			baseDate.Year(), baseDate.Month(), baseDate.Day(),
-			ptTime.Hour(), ptTime.Minute(), ptTime.Second(), 0,
-			baseDate.Location(),
-		)
-
-		samples = append(samples, TimedSample{
-			Timestamp: fullTime,
-			Value:     point.Value,
-		})
-	}
-
-	return samples
 }

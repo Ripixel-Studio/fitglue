@@ -1,5 +1,11 @@
 # Fitbit Integration Setup Guide
 
+> **Legacy.** Google turns the Fitbit Web API and Fitbit OAuth endpoints off on
+> 2 Nov 2026. Heart rate now comes from the Google Health API
+> (`connect-sources.md` § Google Health); this guide only describes the Fitbit
+> activity source, which is kept until it is confirmed unused and then deleted
+> (the list is in `connect-sources.md` § Fitbit).
+
 This guide walks you through the complete setup to enable Fitbit activity syncing, including Webhook configuration and user subscriptions.
 
 ## 1. Prerequisites

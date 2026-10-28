@@ -47,6 +47,15 @@ const StateTTL = 10 * time.Minute
 // name is appended, then "/callback".
 const CallbackPathPrefix = "/api/v2/oauth/"
 
+// GoogleHealthScopes are the scopes `connect googlehealth` asks for, as the
+// full URLs Google's authorise endpoint expects.
+var GoogleHealthScopes = []string{
+	"https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
+	"https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly",
+	"https://www.googleapis.com/auth/googlehealth.sleep.readonly",
+	"https://www.googleapis.com/auth/googlehealth.nutrition.readonly",
+}
+
 // ProviderConfig is one provider's OAuth 2.0 endpoints and app credentials.
 type ProviderConfig struct {
 	AuthURL      string
@@ -79,6 +88,26 @@ func Provider(name string) *ProviderConfig {
 			ClientSecret: os.Getenv("FITBIT_CLIENT_SECRET"),
 			Scopes:       []string{"activity", "profile", "heartrate"},
 		}
+	case "googlehealth":
+		// Google Health API (health.googleapis.com/v4), the replacement for the
+		// Fitbit Web API (turned off 2 Nov 2026). access_type=offline is what
+		// makes Google return a refresh token; prompt=consent makes it return
+		// one on a re-connect too (Google omits it once a grant exists) and
+		// re-shows the scope checkboxes. Both ride on AuthURL because
+		// AuthorizeURL keeps an auth URL's existing query.
+		//
+		// Read-only scopes for heart rate (health_metrics_and_measurements:
+		// heart-rate, resting HR, HRV, weight), exercise sessions
+		// (activity_and_fitness), sleep and nutrition, so L0.1b's sleep, body
+		// and food routes need no re-consent. Google Health scopes are
+		// restricted; an unverified app is fine for one user (<100).
+		return &ProviderConfig{
+			AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&prompt=consent",
+			TokenURL:     "https://oauth2.googleapis.com/token",
+			ClientID:     os.Getenv("GOOGLEHEALTH_CLIENT_ID"),
+			ClientSecret: os.Getenv("GOOGLEHEALTH_CLIENT_SECRET"),
+			Scopes:       GoogleHealthScopes,
+		}
 	case "spotify":
 		return &ProviderConfig{
 			AuthURL:      "https://accounts.spotify.com/authorize",
@@ -101,7 +130,7 @@ func Provider(name string) *ProviderConfig {
 
 // Providers lists the OAuth provider names Provider accepts, sorted.
 func Providers() []string {
-	names := []string{"fitbit", "github", "spotify", "strava"}
+	names := []string{"fitbit", "github", "googlehealth", "spotify", "strava"}
 	sort.Strings(names)
 	return names
 }

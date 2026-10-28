@@ -34,6 +34,11 @@ Keys the example lists and the values written on 2026-10-25:
 - **Not copied**: `google-client-id` / `google-client-secret` (no reader left;
   the Google Sheets destination is gone), `showcase-view-salt` (F1.5a),
   `email-app-password` (F1.7), Stripe (F1.1), Oura/Polar/Wahoo (F1.6).
+- **Added by hand** (L0.1a, 2026-10-28; not in Secret Manager):
+  `GOOGLEHEALTH_CLIENT_ID`, `GOOGLEHEALTH_CLIENT_SECRET` — the Google Health
+  API OAuth client James creates in `fitglue-server-prod`
+  (`connect-sources.md` § Google Health). Read by api-client (callback token
+  exchange), pipeline (token refresh) and `fitgluectl connect googlehealth`.
 - **Fixed values**: `PUBSUB_PUSH_AUDIENCE=https://jarvis.tail3065f7.ts.net/fg/pubsub`
   (F3.4 sets the same audience on each push subscription),
   `FITGLUE_PUBLIC_BASE_URL=https://jarvis.tail3065f7.ts.net/fg` (see below),

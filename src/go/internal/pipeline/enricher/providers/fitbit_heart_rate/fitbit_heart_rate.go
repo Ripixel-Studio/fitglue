@@ -1,14 +1,21 @@
-// nolint:proto-json
+// Package fitbit_heart_rate is the heart-rate enricher: it fills an activity's
+// heart-rate stream from the wearable's own samples for the activity's
+// interval.
+//
+// The samples come from the Google Health API (health.googleapis.com/v4,
+// integration "googlehealth"), which replaced the Fitbit Web API when Google
+// turned the latter off on 2 Nov 2026. The package, Name() and the
+// ENRICHER_PROVIDER_FITBIT_HEART_RATE enum keep their Fitbit names on purpose:
+// they are the identifiers stored in pipeline configs and run journals, and
+// the watch is still a Fitbit/Google wearable.
 package fitbit_heart_rate
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/fitglue/server/src/go/pkg/domain/user"
@@ -17,16 +24,21 @@ import (
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
-
-	fitbit "github.com/fitglue/server/src/go/pkg/integrations/fitbit"
+	"github.com/fitglue/server/src/go/pkg/integrations/googlehealth"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 )
 
+// provider is the integration (Firestore key, oauthflow and token-source
+// name) the samples are read with.
+const provider = "googlehealth"
+
 type FitBitHeartRate struct {
 	Service *bootstrap.Service
+	// baseURL overrides the Google Health origin (tests).
+	baseURL string
 }
 
 func init() {
@@ -49,10 +61,10 @@ func (p *FitBitHeartRate) ProviderType() pbplugin.EnricherProviderType {
 	return pbplugin.EnricherProviderType_ENRICHER_PROVIDER_FITBIT_HEART_RATE
 }
 
-// IsIdempotent returns false: the fetched stream depends on Fitbit's own sync lag at
+// IsIdempotent returns false: the fetched stream depends on the watch's own sync lag at
 // query time, so re-running on resume can silently commit a less-complete stream than
 // the one already applied. Marking this non-idempotent makes the orchestrator replay
-// the previously-fetched stream from the journal instead of re-querying Fitbit.
+// the previously-fetched stream from the journal instead of re-querying.
 func (p *FitBitHeartRate) IsIdempotent() bool { return false }
 
 func (p *FitBitHeartRate) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
@@ -64,7 +76,7 @@ func (p *FitBitHeartRate) EnrichWithClient(ctx context.Context, logger *slog.Log
 	// 0. Check force option - skip if activity already has heartrate data and force is not set
 	forceOverwrite := inputs["force"] == "true"
 	if !forceOverwrite && hasExistingHeartRateData(activity) {
-		logger.Info("Skipping Fitbit HR enrichment: activity already has heartrate data and force=false")
+		logger.Info("Skipping HR enrichment: activity already has heartrate data and force=false")
 		return &providers.EnrichmentResult{
 			Skipped:    true,
 			SkipReason: "Activity already has heartrate data",
@@ -77,15 +89,15 @@ func (p *FitBitHeartRate) EnrichWithClient(ctx context.Context, logger *slog.Log
 	}
 
 	// 1. Check Credentials
-	if user.Integrations == nil || user.Integrations.Fitbit == nil || !user.Integrations.Fitbit.Enabled {
-		return nil, fmt.Errorf("fitbit integration not enabled")
+	if user.Integrations == nil || user.Integrations.Googlehealth == nil || !user.Integrations.Googlehealth.Enabled {
+		return nil, fmt.Errorf("googlehealth integration not enabled (run `fitgluectl connect googlehealth`)")
 	}
 
 	// 2. Parse Activity Times.
 	// Slice the HR query window off the FIRST SESSION's start time, not the top-level
 	// activity.StartTime. The top-level field can be stale or shared across two same-day
 	// activities from the same source (e.g. both left at the day's / first activity's start),
-	// which would make both enrich against the identical Fitbit window and inherit the SAME
+	// which would make both enrich against the identical window and inherit the SAME
 	// heart-rate stream — the cross-activity duplication bug. The session start is
 	// per-activity accurate and is what the rest of the pipeline (FIT generation at
 	// file_generators/fit.go, stream alignment in the orchestrator) already treats as
@@ -104,119 +116,76 @@ func (p *FitBitHeartRate) EnrichWithClient(ctx context.Context, logger *slog.Log
 		// No usable per-session start — fall back to the top-level activity start.
 		startTime = activity.StartTime.AsTime()
 	}
-	if startTime.IsZero() {
+	if startTime.IsZero() || startTime.Unix() <= 0 {
 		return nil, fmt.Errorf("invalid start time: zero")
 	}
-
-	// Calculate end time
+	startTime = startTime.UTC()
 	endTime := startTime.Add(time.Duration(durationSec) * time.Second)
+
+	// Timezones: the Fitbit intraday API took wall-clock times in the Fitbit profile's
+	// timezone, so the old enricher had to look the zone up (BST vs GMT) and split
+	// queries that crossed midnight. Google Health filters on physical (UTC) time and
+	// returns each sample's physical instant, so the activity's UTC start/end are used
+	// as they are: no profile lookup, no local-time conversion, no midnight case.
 
 	// 3. Initialize OAuth HTTP Client if not provided (for testing)
 	if httpClient == nil {
-		tokenSource := oauth.NewFirestoreTokenSource(p.Service, user.UserId, "fitbit")
-		httpClient = oauth.NewClientWithUsageTracking(tokenSource, p.Service, user.UserId, "fitbit", infra.WrapSlogLogger(logger))
+		tokenSource := oauth.NewFirestoreTokenSource(p.Service, user.UserId, provider)
+		httpClient = oauth.NewClientWithUsageTracking(tokenSource, p.Service, user.UserId, provider, infra.WrapSlogLogger(logger))
 	}
+	base := p.baseURL
+	if base == "" {
+		base = googlehealth.BaseURL
+	}
+	client := googlehealth.NewWithBaseURL(base, httpClient)
 
-	// 4. Create Fitbit Client with OAuth transport
-	client, err := fitbit.NewClient("https://api.fitbit.com", fitbit.WithHTTPClient(httpClient))
+	// 4. Request the samples for [start, end] (end inclusive to the second).
+	samples, err := client.HeartRate(ctx, startTime, endTime.Add(time.Second))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create fitbit client: %w", err)
-	}
-
-	// 4a. Fetch user's Fitbit profile timezone so we query with local time.
-	// Fitbit's intraday API interprets all date/time parameters in the user's profile timezone,
-	// not UTC. Sending UTC times causes the wrong hour's data to be fetched (e.g. BST = UTC+1
-	// means we'd retrieve pre-workout resting HR instead of the actual session).
-	loc := fetchFitbitTimezone(ctx, client)
-	if loc != time.UTC {
-		logger.Info("Using Fitbit profile timezone for HR query", "timezone", loc.String())
-	}
-
-	// Format for Fitbit API using local timezone
-	startTimeLocal := startTime.In(loc)
-	endTimeLocal := endTime.In(loc)
-	startTimeStr := startTimeLocal.Format("15:04")
-	endTimeStr := endTimeLocal.Format("15:04")
-	startDate := startTimeLocal.Format("2006-01-02")
-	endDate := endTimeLocal.Format("2006-01-02")
-
-	// Check if activity spans midnight (crosses day boundary)
-	spansMidnight := startDate != endDate
-
-	// 5. Request Data (Intraday HR)
-	// Use date range API when activity spans midnight to avoid "start time after end time" error
-	var resp *http.Response
-	if spansMidnight {
-		logger.Info(fmt.Sprintf("Activity spans midnight, using date range API: %s %s to %s %s", startDate, startTimeStr, endDate, endTimeStr))
-		resp, err = client.GetHeartByDateRangeTimestampIntraday(ctx, startDate, endDate, "1sec", startTimeStr, endTimeStr)
-	} else {
-		resp, err = client.GetHeartByDateTimestampIntraday(ctx, startDate, "1sec", startTimeStr, endTimeStr)
-	}
-	if err != nil {
+		var apiErr *googlehealth.APIError
+		if errors.As(err, &apiErr) {
+			// 429 (300 requests/min/user) and 5xx are transient. Client errors are
+			// permanent: ACCOUNT_NOT_LINKED (the Google account is not signed in to the
+			// Google Health app), MISSING_OAUTH_SCOPE (heart rate unticked at consent),
+			// 401 after a refresh (grant revoked — reconnect).
+			if apiErr.Transient() {
+				if doNotRetry {
+					logger.Warn("Google Health transient error and lag exhausted, skipping HR enrichment", "status", apiErr.StatusCode)
+					return transientSkipResult(fmt.Sprintf("Google Health API returned status %d (lag exhausted)", apiErr.StatusCode)), nil
+				}
+				return nil, providers.NewRetryableError(err, apiErr.RetryAfter, fmt.Sprintf("google health api transient error %d", apiErr.StatusCode))
+			}
+			return nil, err
+		}
 		// Transport-level failures (DNS, TLS, OAuth refresh hiccups) are transient:
 		// retry via the lag mechanism instead of failing the pipeline permanently.
 		if doNotRetry {
-			logger.Warn("Fitbit API request failed and lag exhausted, skipping HR enrichment", "error", err)
-			return transientSkipResult(fmt.Sprintf("Fitbit API request failed (lag exhausted): %v", err)), nil
+			logger.Warn("Google Health request failed and lag exhausted, skipping HR enrichment", "error", err)
+			return transientSkipResult(fmt.Sprintf("Google Health API request failed (lag exhausted): %v", err)), nil
 		}
-		return nil, providers.NewRetryableError(fmt.Errorf("fitbit api request failed: %w", err), 0, "fitbit api request failed (transport)")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		// 429 (intraday limit: 150 req/hour/user) and 5xx are transient — Fitbit
-		// recovers on its own. Only client errors (400/401/403/404) are permanent.
-		if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
-			if doNotRetry {
-				logger.Warn("Fitbit API transient error and lag exhausted, skipping HR enrichment", "status", resp.StatusCode)
-				return transientSkipResult(fmt.Sprintf("Fitbit API returned status %d (lag exhausted)", resp.StatusCode)), nil
-			}
-			retryAfter := parseRetryAfterHeader(resp)
-			return nil, providers.NewRetryableError(
-				fmt.Errorf("fitbit api error %d: %s", resp.StatusCode, string(body)),
-				retryAfter,
-				fmt.Sprintf("fitbit api transient error %d", resp.StatusCode),
-			)
-		}
-		return nil, fmt.Errorf("fitbit api error %d: %s", resp.StatusCode, string(body))
+		return nil, providers.NewRetryableError(fmt.Errorf("google health api request failed: %w", err), 0, "google health api request failed (transport)")
 	}
 
-	// 6. Parse Response
-	var hrResponse struct {
-		ActivitiesHeartIntraday struct {
-			Dataset []struct {
-				Time  string `json:"time"`
-				Value int    `json:"value"`
-			} `json:"dataset"`
-		} `json:"activities-heart-intraday"`
+	hrSamples := make([]providers.TimedSample, 0, len(samples))
+	for _, s := range samples {
+		hrSamples = append(hrSamples, providers.TimedSample{Timestamp: s.Time, Value: s.BPM})
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&hrResponse); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	// 7. Build Stream - Check if GPS data exists for alignment
+	// 5. Build Stream - Check if GPS data exists for alignment
 	var stream []int
 	alignmentMetadata := make(map[string]string)
 
 	if hasGPSData(activity) {
-		// Align HR to GPS by absolute timestamp (see providers.AlignTimeSeries).
+		// Align HR to GPS by absolute timestamp (see providers.AlignTimeSeries). Both
+		// series are physical instants, so they share one real-time line.
 		logger.Info("GPS data detected, applying absolute-timestamp HR alignment")
-
-		// Convert HR response to timed samples. Use the start time in the Fitbit profile
-		// timezone (the frame Fitbit returns clock times in) so the samples land on the same
-		// real-time line as the UTC GPS timestamps — absolute-timestamp alignment depends on it.
-		hrSamples := providers.ConvertHRResponseToSamples(hrResponse.ActivitiesHeartIntraday.Dataset, startTimeLocal)
-
-		// Extract GPS timestamps from activity records
 		gpsTimestamps := extractGPSTimestamps(activity)
 
 		if len(gpsTimestamps) > 0 && len(hrSamples) > 0 {
 			alignResult, err := providers.AlignTimeSeries(gpsTimestamps, hrSamples, providers.DefaultAlignmentConfig, logger)
 			if err != nil {
 				logger.Warn("HR alignment failed, falling back to index-based mapping", "error", err)
-				stream = buildStreamIndexBased(hrResponse.ActivitiesHeartIntraday.Dataset, startTimeStr, durationSec)
+				stream = buildStreamIndexBased(hrSamples, startTime, durationSec)
 			} else {
 				stream = alignResult.AlignedHR
 				for k, v := range alignResult.Metadata {
@@ -228,36 +197,25 @@ func (p *FitBitHeartRate) EnrichWithClient(ctx context.Context, logger *slog.Log
 			}
 		} else {
 			// Fallback if no meaningful data
-			stream = buildStreamIndexBased(hrResponse.ActivitiesHeartIntraday.Dataset, startTimeStr, durationSec)
+			stream = buildStreamIndexBased(hrSamples, startTime, durationSec)
 		}
 	} else {
-		// No GPS data - use original index-based mapping
-		stream = buildStreamIndexBased(hrResponse.ActivitiesHeartIntraday.Dataset, startTimeStr, durationSec)
+		// No GPS data - index-based mapping (one slot per second from the start)
+		stream = buildStreamIndexBased(hrSamples, startTime, durationSec)
 		alignmentMetadata["alignment_status"] = "skipped_no_gps"
 	}
 
-	pointsFound := len(hrResponse.ActivitiesHeartIntraday.Dataset)
-	logger.Info(fmt.Sprintf("Retrieved Fitbit HR points=%d duration=%d start_time=%s", pointsFound, durationSec, startTimeStr))
+	pointsFound := len(hrSamples)
 
 	// Lag Detection (Start/End Coverage)
 	hasStart := false
 	hasEnd := false
-	startThreshold := 120 // 2 minutes (or 10% logic)
+	startThreshold := 120 // 2 minutes
 	endThreshold := durationSec - 120
 
 	if pointsFound > 0 {
-		// Calculate coverage
-		// Sort just in case? API returns sorted usually.
-		firstPt := hrResponse.ActivitiesHeartIntraday.Dataset[0]
-		lastPt := hrResponse.ActivitiesHeartIntraday.Dataset[pointsFound-1]
-
-		t1, _ := time.Parse("15:04:05", firstPt.Time)
-		t2, _ := time.Parse("15:04:05", lastPt.Time)
-		startBase, _ := time.Parse("15:04", startTimeStr)
-
-		offset1 := int(t1.Sub(startBase).Seconds())
-		offset2 := int(t2.Sub(startBase).Seconds())
-
+		offset1 := int(hrSamples[0].Timestamp.Sub(startTime).Seconds())
+		offset2 := int(hrSamples[pointsFound-1].Timestamp.Sub(startTime).Seconds())
 		if offset1 <= startThreshold {
 			hasStart = true
 		}
@@ -265,7 +223,7 @@ func (p *FitBitHeartRate) EnrichWithClient(ctx context.Context, logger *slog.Log
 			hasEnd = true
 		}
 	}
-	logger.Info(fmt.Sprintf("Retrieved Fitbit HR points=%d duration=%d start_time=%s has_start=%v has_end=%v", pointsFound, durationSec, startTimeStr, hasStart, hasEnd))
+	logger.Info(fmt.Sprintf("Retrieved Google Health HR points=%d duration=%d start=%s has_start=%v has_end=%v", pointsFound, durationSec, startTime.Format(time.RFC3339), hasStart, hasEnd))
 
 	// Decision logic
 	timeSinceEnd := time.Since(endTime)
@@ -273,77 +231,46 @@ func (p *FitBitHeartRate) EnrichWithClient(ctx context.Context, logger *slog.Log
 
 	// On resume the activity is usually no longer "recent" (it sat paused as a pending input),
 	// so the recency gate below would normally skip the lag retry and accept whatever partial
-	// data Fitbit has synced so far — which then gets aligned with gaps (no stretching) but
-	// still misses HR Fitbit simply hadn't delivered yet. Re-arm the retry on resume so the lag
-	// queue gives Fitbit time to finish syncing before we commit to partial coverage.
+	// data has synced so far — which then gets aligned with gaps (no stretching) but still
+	// misses HR the watch simply hadn't delivered yet. Re-arm the retry on resume so the lag
+	// queue gives the watch time to finish syncing before we commit to partial coverage.
 	isResume := inputs["is_resume"] == "true"
 	requireCoverage := isRecent || isResume
 
-	var lagErr error
 	if (!hasStart || !hasEnd) && requireCoverage {
 		reason := fmt.Sprintf("incomplete data (start:%v end:%v, recent:%v resume:%v) %v after end", hasStart, hasEnd, isRecent, isResume, timeSinceEnd.Round(time.Second))
 
-		// Check if we exhausted retries
 		if doNotRetry {
 			logger.Warn("Incomplete data detected but forced to continue: " + reason)
 			// DO NOT return error, accept whatever data we have
 		} else {
 			logger.Warn("Incomplete data detected: " + reason)
-			// Return RetryableError to trigger lag mechanism
-			lagErr = providers.NewRetryableError(fmt.Errorf("incomplete data"), 1*time.Minute, reason)
-			// Logic: If it's a RetryableError, the system will discard this result anyway.
-			return nil, lagErr
+			// RetryableError triggers the lag mechanism; this result is discarded.
+			return nil, providers.NewRetryableError(fmt.Errorf("incomplete data"), 1*time.Minute, reason)
 		}
 	} else if pointsFound == 0 && !isRecent {
 		// If old and empty, likely no data ever. Just return empty.
-		logger.Warn(fmt.Sprintf("No heart rate data points found in Fitbit response start_time=%s end_time=%s", startTimeStr, endTimeStr))
+		logger.Warn(fmt.Sprintf("No heart rate data points found in Google Health start=%s end=%s", startTime.Format(time.RFC3339), endTime.Format(time.RFC3339)))
+	}
+
+	utcOffset := ""
+	if len(samples) > 0 {
+		utcOffset = samples[0].UTCOffset.String()
 	}
 
 	return &providers.EnrichmentResult{
 		Name:            "", // Don't wipe name
 		HeartRateStream: stream,
 		Metadata: mergeMetadata(map[string]string{
-			"hr_source":      "fitbit",
-			"query_date":     startDate,
-			"query_end_date": endDate,
-			"query_start":    startTimeStr,
-			"query_end":      endTimeStr,
-			"spans_midnight": fmt.Sprintf("%v", spansMidnight),
-			"points_found":   fmt.Sprintf("%d", pointsFound),
-			"status_detail":  "Success",
-			"do_not_retry":   fmt.Sprintf("%v", doNotRetry),
+			"hr_source":     "googlehealth",
+			"query_start":   startTime.Format(time.RFC3339),
+			"query_end":     endTime.Format(time.RFC3339),
+			"utc_offset":    utcOffset,
+			"points_found":  fmt.Sprintf("%d", pointsFound),
+			"status_detail": "Success",
+			"do_not_retry":  fmt.Sprintf("%v", doNotRetry),
 		}, alignmentMetadata),
 	}, nil
-}
-
-// fetchFitbitTimezone retrieves the IANA timezone from the user's Fitbit profile.
-// Falls back to UTC on any error so enrichment still proceeds.
-func fetchFitbitTimezone(ctx context.Context, client *fitbit.Client) *time.Location {
-	resp, err := client.GetProfile(ctx)
-	if err != nil {
-		return time.UTC
-	}
-	defer resp.Body.Close()
-
-	var profileResp struct {
-		User *struct {
-			Timezone *string `json:"timezone,omitempty"`
-		} `json:"user,omitempty"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&profileResp); err != nil {
-		return time.UTC
-	}
-
-	if profileResp.User == nil || profileResp.User.Timezone == nil || *profileResp.User.Timezone == "" {
-		return time.UTC
-	}
-
-	loc, err := time.LoadLocation(*profileResp.User.Timezone)
-	if err != nil {
-		return time.UTC
-	}
-
-	return loc
 }
 
 // hasGPSData checks if any record in the activity has GPS coordinates
@@ -375,25 +302,22 @@ func extractGPSTimestamps(activity *pbactivity.StandardizedActivity) []time.Time
 	return timestamps
 }
 
-// buildStreamIndexBased creates HR stream using original index-based mapping
-func buildStreamIndexBased(dataset []struct {
-	Time  string `json:"time"`
-	Value int    `json:"value"`
-}, startTimeStr string, durationSec int) []int {
+// buildStreamIndexBased creates a per-second HR stream from the activity start: slot i is
+// start+i seconds.
+func buildStreamIndexBased(samples []providers.TimedSample, start time.Time, durationSec int) []int {
+	if durationSec < 0 {
+		durationSec = 0
+	}
 	stream := make([]int, durationSec)
 
-	for _, dataPoint := range dataset {
-		ptTime, _ := time.Parse("15:04:05", dataPoint.Time)
-		startDayTime, _ := time.Parse("15:04", startTimeStr)
-
-		offset := int(ptTime.Sub(startDayTime).Seconds())
-
+	for _, s := range samples {
+		offset := int(s.Timestamp.Sub(start).Seconds())
 		if offset >= 0 && offset < durationSec {
-			stream[offset] = dataPoint.Value
+			stream[offset] = s.Value
 		}
 	}
 
-	// Forward-fill internal gaps only, up to the last point Fitbit actually returned. The tail
+	// Forward-fill internal gaps only, up to the last point actually returned. The tail
 	// after the last real sample (e.g. a partial pull that stopped early) is left as gaps (0)
 	// rather than holding the last value across the rest of the session — that hold is the
 	// non-GPS equivalent of stretching. Leading entries before the first sample also stay 0.
@@ -417,8 +341,7 @@ func buildStreamIndexBased(dataset []struct {
 	return stream
 }
 
-// hasExistingHeartRateData checks if the activity already has heart rate data in its records
-// transientSkipResult is the graceful-degradation result when a transient Fitbit
+// transientSkipResult is the graceful-degradation result when a transient
 // failure outlives the lag retry budget: complete the pipeline without HR data
 // rather than failing it.
 func transientSkipResult(detail string) *providers.EnrichmentResult {
@@ -430,21 +353,7 @@ func transientSkipResult(detail string) *providers.EnrichmentResult {
 	}
 }
 
-// parseRetryAfterHeader reads a Retry-After header expressed in seconds (what
-// Fitbit sends on 429). Returns 0 if absent or unparseable, letting the lag
-// queue fall back to its default backoff.
-func parseRetryAfterHeader(resp *http.Response) time.Duration {
-	v := resp.Header.Get("Retry-After")
-	if v == "" {
-		return 0
-	}
-	secs, err := strconv.Atoi(v)
-	if err != nil || secs <= 0 {
-		return 0
-	}
-	return time.Duration(secs) * time.Second
-}
-
+// hasExistingHeartRateData checks if the activity already has heart rate data in its records
 func hasExistingHeartRateData(activity *pbactivity.StandardizedActivity) bool {
 	for _, session := range activity.Sessions {
 		for _, lap := range session.Laps {

@@ -96,6 +96,8 @@ func TestProviderScopesAndEndpoints(t *testing.T) {
 	t.Setenv("FITBIT_CLIENT_ID", "fitbit-id")
 	t.Setenv("GITHUB_CLIENT_ID", "github-id")
 	t.Setenv("SPOTIFY_CLIENT_ID", "spotify-id")
+	t.Setenv("GOOGLEHEALTH_CLIENT_ID", "gh-id")
+	t.Setenv("GOOGLEHEALTH_CLIENT_SECRET", "gh-secret")
 
 	want := map[string]struct {
 		auth, token, clientID string
@@ -105,8 +107,10 @@ func TestProviderScopesAndEndpoints(t *testing.T) {
 		"fitbit":  {"https://www.fitbit.com/oauth2/authorize", "https://api.fitbit.com/oauth2/token", "fitbit-id", "activity profile heartrate"},
 		"github":  {"https://github.com/login/oauth/authorize", "https://github.com/login/oauth/access_token", "github-id", "read:user"},
 		"spotify": {"https://accounts.spotify.com/authorize", "https://accounts.spotify.com/api/token", "spotify-id", "user-read-recently-played user-read-playback-state"},
+		"googlehealth": {"https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&prompt=consent", "https://oauth2.googleapis.com/token", "gh-id",
+			"https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly https://www.googleapis.com/auth/googlehealth.sleep.readonly https://www.googleapis.com/auth/googlehealth.nutrition.readonly"},
 	}
-	if got := Providers(); strings.Join(got, ",") != "fitbit,github,spotify,strava" {
+	if got := Providers(); strings.Join(got, ",") != "fitbit,github,googlehealth,spotify,strava" {
 		t.Errorf("Providers() = %v", got)
 	}
 	for name, w := range want {
@@ -120,6 +124,9 @@ func TestProviderScopesAndEndpoints(t *testing.T) {
 		if got := strings.Join(cfg.Scopes, ScopeSeparator(name)); got != w.scope {
 			t.Errorf("%s: scope = %q, want %q", name, got, w.scope)
 		}
+	}
+	if Provider("googlehealth").ClientSecret != "gh-secret" {
+		t.Error("googlehealth client secret not read from env")
 	}
 	if Provider("strava").ClientSecret != "strava-secret" {
 		t.Error("strava client secret not read from env")
@@ -212,5 +219,49 @@ func TestConnectEndToEnd(t *testing.T) {
 	t.Setenv(LegacyBaseURLEnv, "")
 	if _, err := Connect("fitbit", "owner", secret, now); err == nil {
 		t.Error("expected error without a base URL")
+	}
+}
+
+// TestConnectGoogleHealth pins the authorise URL `fitgluectl connect
+// googlehealth` prints on the box: Google's endpoint, offline access, a forced
+// consent screen (so a re-connect returns a refresh token), the four read-only
+// scopes, and the redirect_uri that must be registered on the Google OAuth
+// client byte for byte.
+func TestConnectGoogleHealth(t *testing.T) {
+	t.Setenv(PublicBaseURLEnv, "https://jarvis.tail3065f7.ts.net/fg")
+	t.Setenv("GOOGLEHEALTH_CLIENT_ID", "gh.apps.googleusercontent.com")
+	now := time.Unix(1_700_000_000, 0)
+	got, err := Connect("googlehealth", "owner", secret, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, err := url.Parse(got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := u.Query()
+	if u.Scheme+"://"+u.Host+u.Path != "https://accounts.google.com/o/oauth2/v2/auth" {
+		t.Errorf("auth endpoint = %s", got)
+	}
+	checks := map[string]string{
+		"client_id":     "gh.apps.googleusercontent.com",
+		"response_type": "code",
+		"access_type":   "offline",
+		"prompt":        "consent",
+		"redirect_uri":  "https://jarvis.tail3065f7.ts.net/fg/api/v2/oauth/googlehealth/callback",
+		"scope":         strings.Join(GoogleHealthScopes, " "),
+	}
+	for k, want := range checks {
+		if q.Get(k) != want {
+			t.Errorf("%s = %q, want %q", k, q.Get(k), want)
+		}
+	}
+	for _, s := range GoogleHealthScopes {
+		if !strings.HasPrefix(s, "https://www.googleapis.com/auth/googlehealth.") || !strings.HasSuffix(s, ".readonly") {
+			t.Errorf("scope %q is not a read-only Google Health scope", s)
+		}
+	}
+	if uid, err := VerifyState(secret, q.Get("state"), now.Add(time.Minute)); err != nil || uid != "owner" {
+		t.Errorf("state round trip: %q, %v", uid, err)
 	}
 }
