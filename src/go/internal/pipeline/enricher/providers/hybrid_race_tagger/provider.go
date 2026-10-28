@@ -13,6 +13,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/user_input"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
+	"github.com/fitglue/server/src/go/pkg/hyrox"
 
 	pendinginput "github.com/fitglue/server/src/go/pkg/pending_input"
 
@@ -202,7 +203,7 @@ func lowerHaystacks(activity *pbactivity.StandardizedActivity) []string {
 	for _, tag := range activity.Tags {
 		haystacks = append(haystacks, strings.ToLower(tag))
 	}
-	if division := officialDivision(activity.Description); division != "" {
+	if division := hyrox.OfficialDivision(activity.Description); division != "" {
 		haystacks = append(haystacks, strings.ToLower(division))
 	}
 	return haystacks
@@ -220,6 +221,25 @@ func containsAny(haystacks, keywords []string) bool {
 	return false
 }
 
+// officialPreset returns the preset for the division a race-timing app wrote into the
+// description ("🏆 Division: Doubles Men"). The official line beats auto_preset_map: a
+// keyword map is ordered substring matching, so "Pro Doubles Men" would hit "doubles"
+// before "pro" and get the Open weights.
+func officialPreset(activity *pbactivity.StandardizedActivity) (string, bool) {
+	line := hyrox.OfficialDivision(activity.Description)
+	if line == "" {
+		return "", false
+	}
+	div, ok := hyrox.ParseDivision(line)
+	if !ok {
+		return "", false
+	}
+	if _, known := GetPreset(div.PresetID); !known {
+		return "", false
+	}
+	return div.PresetID, true
+}
+
 // autoSelection returns the preset ID to apply without asking. The bool is false when
 // nothing matched or nothing is configured, so the pending-input path runs as before.
 //
@@ -227,8 +247,9 @@ func containsAny(haystacks, keywords []string) bool {
 // contains one of auto_keywords.
 //
 // With auto_preset_map: the activity must first be recognised as a hybrid race, either
-// by an auto_keywords hit or by looksLikeHybridRace; then the first map pair whose
-// keyword matches wins, else auto_preset when set, else nothing.
+// by an auto_keywords hit or by looksLikeHybridRace; then an official Division line wins,
+// then the first map pair whose keyword matches, else auto_preset when set, else nothing.
+// Without a map, an official Division line also beats auto_preset.
 func autoSelection(logger *slog.Logger, activity *pbactivity.StandardizedActivity, inputs map[string]string) (string, bool) {
 	fallback := strings.TrimSpace(inputs[configAutoPreset])
 	if fallback != "" {
@@ -258,6 +279,9 @@ func autoSelection(logger *slog.Logger, activity *pbactivity.StandardizedActivit
 
 	if len(rules) == 0 {
 		if keywordHit {
+			if presetID, ok := officialPreset(activity); ok {
+				return presetID, true
+			}
 			return fallback, true
 		}
 		return "", false
@@ -265,6 +289,9 @@ func autoSelection(logger *slog.Logger, activity *pbactivity.StandardizedActivit
 
 	if !keywordHit && !looksLikeHybridRace(activity) {
 		return "", false
+	}
+	if presetID, ok := officialPreset(activity); ok {
+		return presetID, true
 	}
 	for _, rule := range rules {
 		if containsAny(haystacks, []string{rule.keyword}) {
