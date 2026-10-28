@@ -25,8 +25,10 @@ over.
   samples by physical-time filter, wearables only, paginated).
 - **Breaking:** the `fitbit-heart-rate` enricher (name and enum unchanged, so
   pipelines need no edit) reads Google Health and never calls Fitbit. It needs
-  the `googlehealth` integration; without it the step errors as it did
-  without Fitbit. Lag retry, the skip-if-HR-present check, `force`, the
+  the `googlehealth` integration; without it the step now lag-retries (5 min,
+  ~30 min budget) and then completes without HR, instead of failing the whole
+  pipeline as a missing Fitbit grant did — so an activity recorded between the
+  deploy and `connect googlehealth` still reaches Strava. Lag retry, the skip-if-HR-present check, `force`, the
   per-session window and GPS alignment are unchanged; the Fitbit profile
   timezone lookup and the midnight split are gone (physical time needs
   neither). Metadata: `hr_source=googlehealth`, `query_start`/`query_end` are

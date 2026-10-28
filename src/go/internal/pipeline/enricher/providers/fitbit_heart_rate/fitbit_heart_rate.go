@@ -88,9 +88,18 @@ func (p *FitBitHeartRate) EnrichWithClient(ctx context.Context, logger *slog.Log
 		}, nil
 	}
 
-	// 1. Check Credentials
+	// 1. Check Credentials. Not connected is a lag retry, then a skip, rather than a
+	// pipeline failure (which would stop the activity reaching its destinations): the
+	// Fitbit→Google Health cut-over has a window between deploying this and running
+	// `fitgluectl connect googlehealth`, and an activity recorded in it should wait for
+	// the grant (lag budget ~30 min), then go through without HR, not be dropped.
 	if user.Integrations == nil || user.Integrations.Googlehealth == nil || !user.Integrations.Googlehealth.Enabled {
-		return nil, fmt.Errorf("googlehealth integration not enabled (run `fitgluectl connect googlehealth`)")
+		const detail = "googlehealth integration not connected (run `fitgluectl connect googlehealth`)"
+		if doNotRetry {
+			logger.Warn("Skipping HR enrichment: " + detail)
+			return transientSkipResult(detail), nil
+		}
+		return nil, providers.NewRetryableError(errors.New(detail), 5*time.Minute, detail)
 	}
 
 	// 2. Parse Activity Times.

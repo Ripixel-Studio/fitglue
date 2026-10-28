@@ -255,9 +255,16 @@ func TestEnrich_NotConnected(t *testing.T) {
 		"fitbit only": {Integrations: &pbuser.UserIntegrations{Fitbit: &pbuser.FitbitIntegration{Enabled: true, AccessToken: "x"}}},
 	} {
 		t.Run(name, func(t *testing.T) {
+			// Lag budget left: wait for the grant.
 			_, err := enrich(t, f, act(start, 60), u, nil, false)
-			if err == nil || !strings.Contains(err.Error(), "fitgluectl connect googlehealth") {
-				t.Errorf("err = %v", err)
+			var re *providers.RetryableError
+			if !errors.As(err, &re) || !strings.Contains(err.Error(), "fitgluectl connect googlehealth") {
+				t.Errorf("err = %v, want a retryable not-connected error", err)
+			}
+			// Lag exhausted: let the activity through without HR instead of failing it.
+			res, err := enrich(t, f, act(start, 60), u, nil, true)
+			if err != nil || res.Metadata["hr_source"] != "skipped" || !strings.Contains(res.Metadata["status_detail"], "not connected") {
+				t.Errorf("lag exhausted: res=%v err=%v", res, err)
 			}
 		})
 	}
