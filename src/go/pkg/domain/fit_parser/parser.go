@@ -123,6 +123,12 @@ func ParseFitFile(data []byte) (*pbactivity.StandardizedActivity, error) {
 					v := int32(sessionMsg.MinHeartRate)
 					si.minHeartRate = &v
 				}
+				// The device's calories (Garmin works them out from HR and the wearer's
+				// profile): pkg/calories prefers them over FitGlue's MET estimate.
+				if sessionMsg.TotalCalories != 0xFFFF && sessionMsg.TotalCalories > 0 {
+					v := float64(sessionMsg.TotalCalories)
+					si.totalCalories = &v
+				}
 				sessionInfos = append(sessionInfos, si)
 
 				// Set activity type from first session
@@ -265,6 +271,7 @@ type sessionInfo struct {
 	avgHeartRate     *int32
 	maxHeartRate     *int32
 	minHeartRate     *int32
+	totalCalories    *float64 // the device's own figure (kcal); nil when the file has none
 }
 
 type setInfo struct {
@@ -318,6 +325,7 @@ func buildSessions(records []*pbactivity.Record, lapInfos []lapInfo, sessionInfo
 			StartTime:        timestamppb.New(session.startTime),
 			TotalElapsedTime: session.totalElapsedTime,
 			TotalDistance:    session.totalDistance,
+			TotalCalories:    session.totalCalories,
 			Laps:             []*pbactivity.Lap{lap},
 		}}
 	}
@@ -385,6 +393,7 @@ func buildSessions(records []*pbactivity.Record, lapInfos []lapInfo, sessionInfo
 			AvgHeartRate:     si.avgHeartRate,
 			MaxHeartRate:     si.maxHeartRate,
 			MinHeartRate:     si.minHeartRate,
+			TotalCalories:    si.totalCalories,
 		}
 	}
 
@@ -679,6 +688,10 @@ func MergeSessions(sessions []*pbactivity.Session) *pbactivity.Session {
 	for _, session := range sessions {
 		merged.TotalElapsedTime += session.TotalElapsedTime
 		merged.TotalDistance += session.TotalDistance
+		if c := session.GetTotalCalories(); c > 0 {
+			sum := merged.GetTotalCalories() + c
+			merged.TotalCalories = &sum
+		}
 		merged.Laps = append(merged.Laps, session.Laps...)
 		merged.StrengthSets = append(merged.StrengthSets, session.StrengthSets...)
 	}
