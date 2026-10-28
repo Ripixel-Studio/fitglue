@@ -3,7 +3,7 @@
 //	fitgluectl export-site --slug james [--all | --since <RFC3339>] [--bucket B] [--prefix site/james]
 //	fitgluectl export-site --slug james --dry-run --out <dir>
 //	fitgluectl fix-calories --slug james [--apply]          store Strava's calories on the entries
-//	fitgluectl connect strava|fitbit|github|spotify        prints the authorise URL
+//	fitgluectl connect googlehealth|strava|github|spotify  prints the authorise URL (fitbit: legacy, dead 2 Nov 2026)
 //	fitgluectl connect hevy --api-key-stdin                 stores the key + mints the webhook ingress key
 //	fitgluectl connect intervals --api-key-stdin --athlete-id i12345
 //	fitgluectl connections [--json]                         what is connected, token expiry

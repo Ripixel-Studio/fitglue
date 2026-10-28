@@ -30,7 +30,7 @@ func canceledCtx() context.Context {
 // each supported provider. Both secrets are present, so execution reaches the
 // HTTP exchange, which fails fast on the canceled context.
 func TestRefreshToken_PerProviderRequestBuilding(t *testing.T) {
-	providers := []string{"strava", "fitbit", "trainingpeaks", "google", "github", "spotify"}
+	providers := []string{"strava", "fitbit", "trainingpeaks", "google", "googlehealth", "github", "spotify"}
 	for _, p := range providers {
 		t.Run(p, func(t *testing.T) {
 			up := upper(p)
@@ -159,6 +159,7 @@ func TestToken_PerProviderSwitchCases(t *testing.T) {
 		{"trainingpeaks", &pbuser.UserIntegrations{Trainingpeaks: &pbuser.TrainingPeaksIntegration{Enabled: true, AccessToken: "a", RefreshToken: "r", ExpiresAt: future}}},
 		{"google", &pbuser.UserIntegrations{Google: &pbuser.GoogleIntegration{Enabled: true, AccessToken: "a", RefreshToken: "r", ExpiresAt: future}}},
 		{"spotify", &pbuser.UserIntegrations{Spotify: &pbuser.SpotifyIntegration{Enabled: true, AccessToken: "a", RefreshToken: "r", ExpiresAt: future}}},
+		{"googlehealth", &pbuser.UserIntegrations{Googlehealth: &pbuser.GoogleHealthIntegration{Enabled: true, AccessToken: "a", RefreshToken: "r", ExpiresAt: future}}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.provider, func(t *testing.T) {
@@ -188,6 +189,7 @@ func TestForceRefresh_PerProviderSwitchCases(t *testing.T) {
 		{"trainingpeaks", &pbuser.UserIntegrations{Trainingpeaks: &pbuser.TrainingPeaksIntegration{Enabled: true, RefreshToken: "r"}}, "TRAININGPEAKS_CLIENT_ID"},
 		{"google", &pbuser.UserIntegrations{Google: &pbuser.GoogleIntegration{Enabled: true, RefreshToken: "r"}}, "GOOGLE_CLIENT_ID"},
 		{"spotify", &pbuser.UserIntegrations{Spotify: &pbuser.SpotifyIntegration{Enabled: true, RefreshToken: "r"}}, "SPOTIFY_CLIENT_ID"},
+		{"googlehealth", &pbuser.UserIntegrations{Googlehealth: &pbuser.GoogleHealthIntegration{Enabled: true, RefreshToken: "r"}}, "GOOGLEHEALTH_CLIENT_ID"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.provider, func(t *testing.T) {

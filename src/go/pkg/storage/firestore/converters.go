@@ -164,6 +164,18 @@ func UserToFirestore(u *user.Record) map[string]interface{} {
 				"last_used_at":   u.Integrations.Google.LastUsedAt.AsTime(),
 			}
 		}
+		if u.Integrations.Googlehealth != nil {
+			integrations["googlehealth"] = map[string]interface{}{
+				"enabled":        u.Integrations.Googlehealth.Enabled,
+				"access_token":   u.Integrations.Googlehealth.AccessToken,
+				"refresh_token":  u.Integrations.Googlehealth.RefreshToken,
+				"expires_at":     u.Integrations.Googlehealth.ExpiresAt.AsTime(),
+				"health_user_id": u.Integrations.Googlehealth.HealthUserId,
+				"scope":          u.Integrations.Googlehealth.Scope,
+				"created_at":     u.Integrations.Googlehealth.CreatedAt.AsTime(),
+				"last_used_at":   u.Integrations.Googlehealth.LastUsedAt.AsTime(),
+			}
+		}
 		if u.Integrations.Github != nil {
 			integrations["github"] = map[string]interface{}{
 				"enabled":         u.Integrations.Github.Enabled,
@@ -287,6 +299,18 @@ func FirestoreToUser(m map[string]interface{}) *user.Record {
 				AthleteId:  getString(ivMap, "athlete_id"),
 				CreatedAt:  getTime(ivMap, "created_at"),
 				LastUsedAt: getTime(ivMap, "last_used_at"),
+			}
+		}
+		if ghMap, ok := iMap["googlehealth"].(map[string]interface{}); ok {
+			u.Integrations.Googlehealth = &pbuser.GoogleHealthIntegration{
+				Enabled:      getBool(ghMap, "enabled"),
+				AccessToken:  getString(ghMap, "access_token"),
+				RefreshToken: getString(ghMap, "refresh_token"),
+				ExpiresAt:    getTime(ghMap, "expires_at"),
+				HealthUserId: getString(ghMap, "health_user_id"),
+				Scope:        getString(ghMap, "scope"),
+				CreatedAt:    getTime(ghMap, "created_at"),
+				LastUsedAt:   getTime(ghMap, "last_used_at"),
 			}
 		}
 		if gMap, ok := iMap["google"].(map[string]interface{}); ok {

@@ -20,7 +20,7 @@ Enrichers transform and enhance standardized activities before they are sent to 
 | **Muscle Heatmap** | Muscle activation visualization | `StrengthSets` present | Description (emoji chart) |
 | **Virtual GPS** | Synthetic GPS routes | `TotalDistance > 0` AND no GPS | Lat/Long streams |
 | **Source Link** | Links back to source | `ExternalId` present | Description (URL) |
-| **Fitbit Heart Rate** | HR data from Fitbit | Fitbit integration enabled | Heart rate stream |
+| **Fitbit Heart Rate** (`fitbit-heart-rate`) | HR samples from the Google Health API (the Fitbit Web API is off from 2 Nov 2026) | `googlehealth` integration enabled | Heart rate stream |
 | **Type Mapper** | Remaps activity types | Title keyword match | Activity type |
 | **Parkrun** | Detects Parkrun events | Location/time match | Title, tags |
 | **Logic Gate** | Rule-based pipeline control | Configurable rules | Continue/Halt |
@@ -202,12 +202,12 @@ Validate Fitbit HR provider fetches and merges heart rate data.
 # 1. Trigger workout
 # 2. Check enricher logs
 ./fitglue-admin executions:get <execution-id>
-# Look for: "Retrieved Fitbit HR points=<N> duration=<seconds>"
+# Look for: "Retrieved Google Health HR points=<N> duration=<seconds>"
 
 # 3. Verify provider execution
 # - provider_name: "fitbit-heart-rate"
 # - status: "SUCCESS"
-# - metadata.hr_source: "fitbit"
+# - metadata.hr_source: "googlehealth"
 # - metadata.hr_points: <count>
 
 # 4. Download FIT file

@@ -5,6 +5,41 @@ Hand-written since F1.8 of the single-user conversion; entries below
 
 ## Unreleased
 
+### feat!: heart rate from the Google Health API; `googlehealth` OAuth provider (L0.1a)
+
+Google turns off the Fitbit Web API and Fitbit OAuth endpoints on 2 Nov 2026
+(<https://developers.google.com/health/migration>); Fitbit tokens do not carry
+over.
+
+- New OAuth provider `googlehealth` (`internal/oauthflow`): Google's authorise
+  endpoint with `access_type=offline&prompt=consent`, token endpoint
+  `oauth2.googleapis.com/token`, read-only scopes
+  `googlehealth.{activity_and_fitness,health_metrics_and_measurements,sleep,nutrition}.readonly`,
+  env `GOOGLEHEALTH_CLIENT_ID` / `GOOGLEHEALTH_CLIENT_SECRET`.
+  `fitgluectl connect googlehealth` prints its URL; the callback checks
+  `GET /v4/users/me/identity` and stores `health_user_id` (or redirects with
+  `error=googlehealth_account_not_linked`). Token refresh in
+  `pkg/infrastructure/oauth`; `GoogleHealthIntegration` (`integrations.googlehealth`)
+  in the user proto and Firestore converters.
+- New hand-written client `pkg/integrations/googlehealth` (identity, heart-rate
+  samples by physical-time filter, wearables only, paginated).
+- **Breaking:** the `fitbit-heart-rate` enricher (name and enum unchanged, so
+  pipelines need no edit) reads Google Health and never calls Fitbit. It needs
+  the `googlehealth` integration; without it the step now lag-retries (5 min,
+  ~30 min budget) and then completes without HR, instead of failing the whole
+  pipeline as a missing Fitbit grant did — so an activity recorded between the
+  deploy and `connect googlehealth` still reaches Strava. Lag retry, the skip-if-HR-present check, `force`, the
+  per-session window and GPS alignment are unchanged; the Fitbit profile
+  timezone lookup and the midnight split are gone (physical time needs
+  neither). Metadata: `hr_source=googlehealth`, `query_start`/`query_end` are
+  RFC 3339 UTC, `utc_offset` added; `query_date`, `query_end_date`,
+  `spans_midnight` removed.
+- Removed `providers.ConvertHRResponseToSamples` (Fitbit intraday format, no
+  caller left). `pkg/integrations/fitbit` is now unused but kept with the rest
+  of the Fitbit source until Q1 is answered; `docs/guides/connect-sources.md`
+  § Fitbit lists the one-change deletion.
+- `terraform/apis.tf`: `health.googleapis.com`.
+
 ### feat!: re-point Pub/Sub, schedulers, webhooks and the parkrun agent at the box (rethink F3.4)
 
 The inputs now arrive on the box through Funnel (`docs/guides/box-cutover.md`,

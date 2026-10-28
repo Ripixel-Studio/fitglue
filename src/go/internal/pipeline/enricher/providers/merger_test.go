@@ -498,43 +498,6 @@ func TestFindSampleBefore(t *testing.T) {
 	}
 }
 
-func TestConvertHRResponseToSamples(t *testing.T) {
-	baseDate := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
-
-	dataset := []struct {
-		Time  string `json:"time"`
-		Value int    `json:"value"`
-	}{
-		{Time: "10:00:00", Value: 120},
-		{Time: "10:00:30", Value: 125},
-		{Time: "10:01:00", Value: 130},
-	}
-
-	samples := ConvertHRResponseToSamples(dataset, baseDate)
-
-	if len(samples) != 3 {
-		t.Fatalf("Expected 3 samples, got %d", len(samples))
-	}
-
-	// Check first sample
-	expected := time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC)
-	if !samples[0].Timestamp.Equal(expected) {
-		t.Errorf("Expected timestamp %v, got %v", expected, samples[0].Timestamp)
-	}
-	if samples[0].Value != 120 {
-		t.Errorf("Expected value 120, got %d", samples[0].Value)
-	}
-
-	// Check second sample
-	expected = time.Date(2026, 1, 15, 10, 0, 30, 0, time.UTC)
-	if !samples[1].Timestamp.Equal(expected) {
-		t.Errorf("Expected timestamp %v, got %v", expected, samples[1].Timestamp)
-	}
-	if samples[1].Value != 125 {
-		t.Errorf("Expected value 125, got %d", samples[1].Value)
-	}
-}
-
 func TestAlignTimeSeries_RealWorldDrift(t *testing.T) {
 	// Simulate realistic scenario: 45-minute run
 	// Phone GPS started 3 seconds before Fitbit HR (common with device startup times)
