@@ -22,6 +22,10 @@ message UserIntegrations {
   GitHubIntegration github = 13;
   AppleHealthIntegration apple_health = 14;
   HealthConnectIntegration health_connect = 15;
+  // Google Health API (health.googleapis.com/v4), the replacement for the
+  // Fitbit Web API. The field name is the Firestore key and the oauthflow
+  // provider name: integrations.googlehealth.
+  GoogleHealthIntegration googlehealth = 16;
 }
 
 message MockIntegration {
@@ -127,4 +131,17 @@ message HealthConnectIntegration {
     bool enabled = 1;
     google.protobuf.Timestamp created_at = 2;
     google.protobuf.Timestamp last_used_at = 3;
+}
+
+message GoogleHealthIntegration {
+    bool enabled = 1;
+    string access_token = 2;
+    string refresh_token = 3;
+    google.protobuf.Timestamp expires_at = 4;
+    // healthUserId from GET /v4/users/me/identity, set by the OAuth callback.
+    string health_user_id = 5;
+    // Space-separated scopes Google actually granted (the user can untick some).
+    string scope = 6;
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp last_used_at = 8;
 }

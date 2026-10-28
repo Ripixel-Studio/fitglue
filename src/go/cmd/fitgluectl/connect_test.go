@@ -448,3 +448,37 @@ func TestConnectionsCommand(t *testing.T) {
 		t.Error("unknown flag should error")
 	}
 }
+
+func TestConnectGoogleHealthAndListIt(t *testing.T) {
+	t.Setenv(ownerUIDEnv, "owner-uid")
+	t.Setenv(oauthflow.StateSecretEnv, "shared-secret")
+	t.Setenv(oauthflow.PublicBaseURLEnv, "https://jarvis.tail3065f7.ts.net/fg")
+	t.Setenv("GOOGLEHEALTH_CLIENT_ID", "gh.apps.googleusercontent.com")
+
+	var stdout, stderr bytes.Buffer
+	if err := connectCommand(context.Background(), []string{"googlehealth"}, strings.NewReader(""), &stdout, &stderr, noStore(t)); err != nil {
+		t.Fatal(err)
+	}
+	u, err := url.Parse(strings.TrimSpace(stdout.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := u.Query()
+	if u.Host != "accounts.google.com" || q.Get("access_type") != "offline" || q.Get("prompt") != "consent" ||
+		q.Get("redirect_uri") != "https://jarvis.tail3065f7.ts.net/fg/api/v2/oauth/googlehealth/callback" {
+		t.Errorf("url = %s", u)
+	}
+
+	t.Setenv("GOOGLEHEALTH_CLIENT_ID", "")
+	if err := connectCommand(context.Background(), []string{"googlehealth"}, strings.NewReader(""), &stdout, &stderr, noStore(t)); err == nil {
+		t.Error("expected an error without GOOGLEHEALTH_CLIENT_ID")
+	}
+
+	created := timestamppb.New(time.Date(2026, 10, 28, 12, 0, 0, 0, time.UTC))
+	rows := listConnections(&pbuser.UserIntegrations{
+		Googlehealth: &pbuser.GoogleHealthIntegration{Enabled: true, AccessToken: "secret", RefreshToken: "r", HealthUserId: "hu-1", CreatedAt: created},
+	})
+	if len(rows) != 1 || rows[0].Provider != "googlehealth" || !rows[0].Enabled || rows[0].ExternalID != "hu-1" || !rows[0].HasKey || rows[0].ConnectedAt != "2026-10-28T12:00:00Z" {
+		t.Errorf("rows = %+v", rows)
+	}
+}

@@ -109,6 +109,11 @@ func (s *FirestoreTokenSource) ForceRefresh(ctx context.Context) (*Token, error)
 			return nil, fmt.Errorf("spotify not linked/enabled")
 		}
 		refreshToken = userData.Integrations.Spotify.RefreshToken
+	case "googlehealth":
+		if userData.Integrations.Googlehealth == nil || !userData.Integrations.Googlehealth.Enabled {
+			return nil, fmt.Errorf("googlehealth not linked/enabled")
+		}
+		refreshToken = userData.Integrations.Googlehealth.RefreshToken
 	default:
 		return nil, fmt.Errorf("unknown provider %s", s.provider)
 	}
@@ -193,6 +198,15 @@ func (s *FirestoreTokenSource) Token(ctx context.Context) (*Token, error) {
 		if userData.Integrations.Spotify.ExpiresAt != nil {
 			expiry = userData.Integrations.Spotify.ExpiresAt.AsTime()
 		}
+	case "googlehealth":
+		if userData.Integrations.Googlehealth == nil || !userData.Integrations.Googlehealth.Enabled {
+			return nil, fmt.Errorf("googlehealth not linked/enabled")
+		}
+		accessToken = userData.Integrations.Googlehealth.AccessToken
+		refreshToken = userData.Integrations.Googlehealth.RefreshToken
+		if userData.Integrations.Googlehealth.ExpiresAt != nil {
+			expiry = userData.Integrations.Googlehealth.ExpiresAt.AsTime()
+		}
 	default:
 		return nil, fmt.Errorf("unknown provider %s", s.provider)
 	}
@@ -247,7 +261,7 @@ func (s *FirestoreTokenSource) refreshToken(ctx context.Context, refreshToken st
 		tokenURL = "https://api.fitbit.com/oauth2/token"
 	case "trainingpeaks":
 		tokenURL = "https://oauth.trainingpeaks.com/token"
-	case "google":
+	case "google", "googlehealth":
 		tokenURL = "https://oauth2.googleapis.com/token"
 	case "github":
 		tokenURL = "https://github.com/login/oauth/access_token"

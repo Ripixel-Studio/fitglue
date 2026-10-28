@@ -133,6 +133,7 @@ func TestUserRoundTrip(t *testing.T) {
 			Trainingpeaks: &pbuser.TrainingPeaksIntegration{Enabled: true, AccessToken: "ta", RefreshToken: "tr", ExpiresAt: now, AthleteId: "tp", CreatedAt: now, LastUsedAt: now},
 			Intervals:     &pbuser.IntervalsIntegration{Enabled: true, ApiKey: "ik", AthleteId: "ia", CreatedAt: now, LastUsedAt: now},
 			Google:        &pbuser.GoogleIntegration{Enabled: true, AccessToken: "ga", RefreshToken: "gr", ExpiresAt: now, GoogleUserId: "gu", CreatedAt: now, LastUsedAt: now},
+			Googlehealth:  &pbuser.GoogleHealthIntegration{Enabled: true, AccessToken: "gha2", RefreshToken: "ghr2", ExpiresAt: now, HealthUserId: "hu", Scope: "s1 s2", CreatedAt: now, LastUsedAt: now},
 			Github:        &pbuser.GitHubIntegration{Enabled: true, AccessToken: "gha", RefreshToken: "ghr", ExpiresAt: now, GithubUserId: "ghu", GithubUsername: "ghn", Scope: "repo", CreatedAt: now, LastUsedAt: now},
 			AppleHealth:   &pbuser.AppleHealthIntegration{Enabled: true, CreatedAt: now, LastUsedAt: now},
 			HealthConnect: &pbuser.HealthConnectIntegration{Enabled: true, CreatedAt: now, LastUsedAt: now},
@@ -175,6 +176,9 @@ func TestUserRoundTrip(t *testing.T) {
 	}
 	if in.Intervals == nil || in.Intervals.ApiKey != "ik" {
 		t.Error("intervals lost")
+	}
+	if in.Googlehealth == nil || in.Googlehealth.HealthUserId != "hu" || in.Googlehealth.RefreshToken != "ghr2" || in.Googlehealth.Scope != "s1 s2" || !in.Googlehealth.Enabled {
+		t.Errorf("googlehealth lost: %v", in.Googlehealth)
 	}
 	if in.Google == nil || in.Google.GoogleUserId != "gu" {
 		t.Error("google lost")

@@ -25,7 +25,7 @@ Slack):
 | `FITGLUE_OWNER_UID` | `connect`, `connections` | the owner's `users/{uid}` document id (F2.1). `--uid` overrides. |
 | `OAUTH_STATE_SECRET` | `connect <oauth provider>` | **must be the value api-client runs with** — the callback verifies the state with it; a mismatch redirects with `error=invalid_state_signature`. |
 | `FITGLUE_PUBLIC_BASE_URL` | `connect` | public origin of api-client, no trailing slash. Falls back to `API_URL` (the Cloud Run name). The callback is `<base>/api/v2/oauth/<provider>/callback`; it must match what the provider's developer app has registered. On the box the base is `https://jarvis.tail3065f7.ts.net/fg`, so register `https://jarvis.tail3065f7.ts.net/fg/api/v2/oauth/<provider>/callback`. |
-| `STRAVA_CLIENT_ID`, `FITBIT_CLIENT_ID`, `GITHUB_CLIENT_ID`, `SPOTIFY_CLIENT_ID` | `connect <that provider>` | only the id is needed to print a URL; the secret is used by the callback's token exchange, on the server side. |
+| `GOOGLEHEALTH_CLIENT_ID`, `STRAVA_CLIENT_ID`, `FITBIT_CLIENT_ID`, `GITHUB_CLIENT_ID`, `SPOTIFY_CLIENT_ID` | `connect <that provider>` | only the id is needed to print a URL; the secret is used by the callback's token exchange, on the server side. |
 | `PROJECT_ID` | `connect hevy/intervals`, `connections` | Firestore project; defaults to `fitglue-server-prod`. `--project` overrides. |
 
 Firestore access uses Application Default Credentials (`gcloud auth
@@ -47,7 +47,7 @@ user id, ...). Tokens and keys are never printed. Rows come straight from the
 `integrations` map on the owner's user document — the same read the `user`
 service's `ListIntegrations` does.
 
-## OAuth providers: Strava, Fitbit, GitHub, Spotify
+## OAuth providers: Google Health, Strava, GitHub, Spotify (and legacy Fitbit)
 
 ```bash
 fitgluectl connect strava
@@ -97,7 +97,95 @@ is the same command; the callback overwrites the integration document.
   verify token; `api-webhook` must already be serving at the new URL or the
   create fails.
 
-### Fitbit
+### Google Health (heart rate; sleep, body and food next)
+
+The Google Health API (`health.googleapis.com/v4`) replaced the Fitbit Web API,
+which Google turns off on **2 Nov 2026** (support ended 30 Sep;
+<https://developers.google.com/health/migration>). Fitbit tokens do not carry
+over: this is a fresh Google OAuth consent. The heart-rate enricher
+(`fitbit-heart-rate`, the name pipelines store) reads it; nothing calls the
+Fitbit API for heart rate any more.
+
+- Endpoints: authorise `https://accounts.google.com/o/oauth2/v2/auth` with
+  `access_type=offline` (refresh token) and `prompt=consent` (a refresh token
+  on a re-connect too, and the scope checkboxes again); token
+  `https://oauth2.googleapis.com/token`, client id/secret in the form body.
+- Scopes (read-only, all four asked for now so the sleep/body/food routes
+  need no re-consent):
+  `https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly`
+  (heart rate, resting HR, HRV, weight — **the one heart rate needs**),
+  `…/googlehealth.activity_and_fitness.readonly` (exercise sessions, steps),
+  `…/googlehealth.sleep.readonly`, `…/googlehealth.nutrition.readonly`.
+  Untick heart rate at consent and every enrichment fails with
+  `MISSING_OAUTH_SCOPE`; reconnect.
+- Google Cloud: project `fitglue-server-prod` (FitGlue's own; it already has
+  the Google consent screen from the old Sheets destination). Enable *Google
+  Health API* (`health.googleapis.com`, also in `terraform/apis.tf`), add the
+  four scopes on the consent screen's *Data Access* page, keep *Audience* at
+  **In production** (Testing expires refresh tokens after 7 days), and create
+  a **Web application** OAuth client whose *Authorized redirect URI* is
+  exactly `https://jarvis.tail3065f7.ts.net/fg/api/v2/oauth/googlehealth/callback`
+  — what `oauthflow` builds from `FITGLUE_PUBLIC_BASE_URL`. The `/fg/oauth/…`
+  Caddy alias reaches the same handler, but Google compares the redirect URI
+  byte for byte with the one in the authorise request, so register the
+  `/fg/api/v2/oauth/…` form (adding both does no harm). The app stays
+  unverified: fine under 100 users, with the "Google hasn't verified this
+  app" interstitial (Advanced → Go to …).
+- Env: `GOOGLEHEALTH_CLIENT_ID`, `GOOGLEHEALTH_CLIENT_SECRET` in
+  `~/.jarvis/fitglue.env` (api-client exchanges the code; pipeline refreshes;
+  the CLI prints the URL).
+- Precondition: the Google account is signed in to the **Google Health app**
+  on the phone (the Fitbit account migrated). Otherwise every call answers
+  `400 ACCOUNT_NOT_LINKED`. The callback calls `GET /v4/users/me/identity`
+  straight after the token exchange: on success it stores `health_user_id`
+  (shown by `fitgluectl connections`); on failure the tokens are still stored
+  but the browser lands on `…/connections?error=googlehealth_account_not_linked`
+  (or `googlehealth_identity_<status>`) — fix the link and connect again.
+- Reads: heart rate is `GET /v4/users/me/dataTypes/heart-rate/dataPoints`
+  with `filter=heart_rate.sample_time.physical_time >= "<start>" AND
+  heart_rate.sample_time.physical_time < "<end>"` (RFC 3339 UTC),
+  `dataSourceFamily=users/me/dataSourceFamilies/google-wearables` (Google and
+  Fitbit trackers, no manual entries) and `pageSize=10000`, following
+  `nextPageToken`. Physical time means no profile timezone lookup and no
+  midnight split, which the Fitbit intraday API needed. Limit: 300
+  requests/min/user.
+
+```bash
+fitgluectl connect googlehealth     # open the URL, tick every box
+fitgluectl connections              # googlehealth row, external id = health user id
+```
+
+### Fitbit (legacy — turned off 2 Nov 2026)
+
+The Fitbit Web API and Fitbit OAuth endpoints stop working on 2 Nov 2026.
+Heart rate has moved to Google Health (above). What remains on Fitbit is the
+activity **source** (webhook + history sync), kept until James confirms
+whether he still records activities on Fitbit (life-companion spec Q1). When
+it goes, it goes as one change — delete:
+
+- the webhook source: `src/go/services/api-webhook/internal/webhook/sources/fitbit/`,
+  its registration and `FITBIT_SUBSCRIBER_VERIFICATION_TOKEN` read in
+  `services/api-webhook/main.go`, `registerFitbitRoutes` in
+  `services/api-webhook/internal/server/server.go`, `FitbitVerification` /
+  `FitbitEvent` in `src/proto/gateway/webhook.proto` (`make generate`)
+- the history-sync source: `src/go/pkg/sourceplugins/fitbit.go` and its
+  generated client `src/go/pkg/api/fitbit/`
+- the old heart-rate client `src/go/pkg/integrations/fitbit/` (+ `src/openapi/fitbit/`)
+  — **already unused**; nothing imports it since the enricher moved
+- the `fitbit` cases in `internal/oauthflow` (+ its test),
+  `pkg/infrastructure/oauth/token_source.go` (+ Basic auth),
+  `services/api-client/internal/server/oauth.go` (Basic auth, `fitbit_user_id`),
+  `internal/user/firestore_store.go` (`FindUserByIntegration`),
+  `pkg.TopicFitbitUpdates` (no reader)
+- env `FITBIT_CLIENT_ID`, `FITBIT_CLIENT_SECRET`, `FITBIT_OAUTH_CLIENT_SECRET`,
+  `FITBIT_SUBSCRIBER_VERIFICATION_TOKEN` (`deploy/box/fitglue.env.example`,
+  `~/.jarvis/fitglue.env`, `terraform/secrets.tf`, `terraform/cloud_run.tf`),
+  `scripts/configure_fitbit_verification.sh`, `docs/guides/fitbit-setup.md`,
+  this section
+- keep `FitbitIntegration` in the proto (reserve the field when removing it)
+  and `SOURCE_FITBIT` (stored on old activities)
+
+The rest of this section describes it as it was.
 
 - Scopes: `activity profile heartrate`.
 - Developer app: <https://dev.fitbit.com/apps>, OAuth 2.0 application type

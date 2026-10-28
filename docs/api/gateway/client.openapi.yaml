@@ -2555,6 +2555,30 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/GoalEntry'
+        GoogleHealthIntegration:
+            type: object
+            properties:
+                enabled:
+                    type: boolean
+                accessToken:
+                    type: string
+                refreshToken:
+                    type: string
+                expiresAt:
+                    type: string
+                    format: date-time
+                healthUserId:
+                    type: string
+                    description: healthUserId from GET /v4/users/me/identity, set by the OAuth callback.
+                scope:
+                    type: string
+                    description: Space-separated scopes Google actually granted (the user can untick some).
+                createdAt:
+                    type: string
+                    format: date-time
+                lastUsedAt:
+                    type: string
+                    format: date-time
         GoogleIntegration:
             type: object
             properties:
@@ -4988,6 +5012,13 @@ components:
                     $ref: '#/components/schemas/AppleHealthIntegration'
                 healthConnect:
                     $ref: '#/components/schemas/HealthConnectIntegration'
+                googlehealth:
+                    allOf:
+                        - $ref: '#/components/schemas/GoogleHealthIntegration'
+                    description: |-
+                        Google Health API (health.googleapis.com/v4), the replacement for the
+                         Fitbit Web API. The field name is the Firestore key and the oauthflow
+                         provider name: integrations.googlehealth.
             description: UserIntegrations represents all connected third-party providers.
         UserProfile:
             type: object

@@ -43,7 +43,7 @@ make plugin-destination name=<name>   # Scaffold new destination uploader
 make bootstrap-owner UID=<owner uid> EMAIL=<email> [DISPLAY_NAME=...]
 
 # Connect sources from the box (the web app's connect flow, as a CLI)
-bin/fitgluectl connect strava|fitbit|github|spotify     # prints the authorise URL; approve in any browser
+bin/fitgluectl connect googlehealth|strava|github|spotify  # prints the authorise URL; approve in any browser (fitbit: legacy, off 2 Nov 2026)
 bin/fitgluectl connect hevy --api-key-stdin             # stores the key, prints the webhook ingress key once
 bin/fitgluectl connect intervals --api-key-stdin --athlete-id i12345
 bin/fitgluectl connections [--json]                     # what is connected, token expiry
@@ -168,7 +168,7 @@ Three categories of plugins, each following the same provider interface pattern:
 - Interface: `EnricherProvider` (runs in sequence, can modify `StandardizedActivity`)
 - Registered via `init()` in each provider package
 - Scaffold: `make plugin-enricher name=<name>`
-- 45+ enrichers: Fitbit HR, Spotify, Weather, Parkrun Detector, Personal Records, AI Companion, etc.
+- 45+ enrichers: heart rate (Google Health; `fitbit-heart-rate`), Spotify, Weather, Parkrun Detector, Personal Records, AI Companion, etc.
 
 ### Destinations (uploaders)
 - Location: `services/destination/internal/destination/uploaders/{name}/`

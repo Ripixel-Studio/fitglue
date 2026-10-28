@@ -1,14 +1,18 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/fitglue/server/src/go/internal/oauthflow"
+	"github.com/fitglue/server/src/go/pkg/integrations/googlehealth"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"github.com/go-chi/chi/v5"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -158,6 +162,7 @@ func (s *APIServer) handleOAuthCallback(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Provider specific mapping for user IDs
+	identityErr := ""
 	if provider == "strava" {
 		if athlete, ok := tokenResp["athlete"].(map[string]interface{}); ok {
 			if idFloat, ok := athlete["id"].(float64); ok {
@@ -167,6 +172,15 @@ func (s *APIServer) handleOAuthCallback(w http.ResponseWriter, r *http.Request) 
 	} else if provider == "fitbit" {
 		if uid, ok := tokenResp["user_id"].(string); ok {
 			tokenResp["fitbit_user_id"] = uid
+		}
+	} else if provider == "googlehealth" {
+		// Google's token response has no user id. GET /v4/users/me/identity both
+		// supplies one and proves the account is linked to the Google Health app;
+		// store the tokens either way (they are valid) but send the browser to an
+		// error naming the reason, so a missing link is seen at connect time and
+		// not on the next activity.
+		if errCode := googleHealthIdentity(r.Context(), tokenResp); errCode != "" {
+			identityErr = errCode
 		}
 	}
 
@@ -184,5 +198,49 @@ func (s *APIServer) handleOAuthCallback(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	if identityErr != "" {
+		s.logger.Warn(r.Context(), "integration saved but identity check failed", "provider", provider, "error", identityErr)
+		http.Redirect(w, r, webURL()+"/connections?error="+url.QueryEscape(identityErr), http.StatusFound)
+		return
+	}
+
 	http.Redirect(w, r, webURL()+"/connections/"+provider+"/success", http.StatusFound)
+}
+
+// googleHealthBaseURL is the Google Health API origin the callback checks the
+// new grant against (overridden in tests).
+var googleHealthBaseURL = googlehealth.BaseURL
+
+// googleHealthIdentity calls GET /v4/users/me/identity with the freshly
+// issued access token and records healthUserId on tokenResp. It returns ""
+// on success, else the error code for the callback redirect:
+// googlehealth_account_not_linked (sign in to the Google Health app with this
+// Google account, then connect again) or googlehealth_identity_<status|error>.
+func googleHealthIdentity(ctx context.Context, tokenResp map[string]interface{}) string {
+	token, _ := tokenResp["access_token"].(string)
+	if token == "" {
+		return "googlehealth_no_access_token"
+	}
+	httpClient := &http.Client{Timeout: 15 * time.Second, Transport: bearerTransport{token: token}}
+	id, err := googlehealth.NewWithBaseURL(googleHealthBaseURL, httpClient).Identity(ctx)
+	if err != nil {
+		var apiErr *googlehealth.APIError
+		if errors.As(err, &apiErr) {
+			if apiErr.Reason == "ACCOUNT_NOT_LINKED" {
+				return "googlehealth_account_not_linked"
+			}
+			return "googlehealth_identity_" + strconv.Itoa(apiErr.StatusCode)
+		}
+		return "googlehealth_identity_error"
+	}
+	tokenResp["health_user_id"] = id.HealthUserID
+	return ""
+}
+
+type bearerTransport struct{ token string }
+
+func (b bearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	r := req.Clone(req.Context())
+	r.Header.Set("Authorization", "Bearer "+b.token)
+	return http.DefaultTransport.RoundTrip(r)
 }
