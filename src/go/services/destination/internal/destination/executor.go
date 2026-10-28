@@ -347,7 +347,7 @@ destinations:
 			// is suppressed even if it arrives before the response returns.
 			if loopprevention.DestinationHasSource(destEnum) {
 				if existID := existingExternalID(destEnum, pr, metadata, activityPayload); existID != "" {
-					e.storeBouncebackRecord(ctx, payload.UserId, payload.Source, activityPayload, destEnum, existID)
+					e.storeBouncebackRecord(ctx, payload.UserId, payload.Source, activityPayload, destEnum, existID, "")
 				}
 			}
 			uploadErr = uploader.Update(ctx, activityPayload, userRecord, pr)
@@ -375,12 +375,13 @@ destinations:
 			// real destination ID is unknown until the API responds.
 			if loopprevention.DestinationHasSource(destEnum) && activityPayload.Timestamp != nil {
 				pendingID := fmt.Sprintf("pending:%d", activityPayload.Timestamp.AsTime().Unix())
-				e.storeBouncebackRecord(ctx, payload.UserId, payload.Source, activityPayload, destEnum, pendingID)
+				e.storeBouncebackRecord(ctx, payload.UserId, payload.Source, activityPayload, destEnum, pendingID, "")
 			}
 			externalId, uploadErr = uploader.Create(ctx, activityPayload, userRecord)
-			// Write the real record now that we have the destination ID.
+			// Write the real record now that we have the destination ID. The activity was
+			// created with FitGlue's name, so that is the title FitGlue last wrote.
 			if uploadErr == nil && externalId != "" && loopprevention.DestinationHasSource(destEnum) {
-				e.storeBouncebackRecord(ctx, payload.UserId, payload.Source, activityPayload, destEnum, externalId)
+				e.storeBouncebackRecord(ctx, payload.UserId, payload.Source, activityPayload, destEnum, externalId, activityPayload.GetMetadata()["activity_name"])
 			}
 		}
 
@@ -449,6 +450,9 @@ func (e *UploadExecutor) writeFailureForTargetedDestinations(ctx context.Context
 
 // storeBouncebackRecord writes an UploadedActivityRecord to Firestore so the webhook
 // processor can recognise this activity as a bounceback and skip re-ingestion.
+// writtenTitle is the title this write gives the activity (a Create's name); "" keeps
+// the title the record already holds, which an Update's uploader replaces only when it
+// actually sets one (the Strava uploader, after a same-source title decision).
 // Errors are logged but never fatal — a missing record causes a duplicate, not a data loss.
 func (e *UploadExecutor) storeBouncebackRecord(
 	ctx context.Context,
@@ -457,7 +461,13 @@ func (e *UploadExecutor) storeBouncebackRecord(
 	payload *pbevents.ActivityPayload,
 	dest pbplugin.DestinationType,
 	destinationID string,
+	writtenTitle string,
 ) {
+	if writtenTitle == "" {
+		if prev, err := e.db.GetUploadedActivity(ctx, userID, dest, destinationID); err == nil && prev != nil {
+			writtenTitle = prev.WrittenTitle
+		}
+	}
 	record := &pbactivitymodel.UploadedActivityRecord{
 		Id:            loopprevention.BuildUploadedActivityID(dest, destinationID),
 		UserId:        userID,
@@ -467,6 +477,7 @@ func (e *UploadExecutor) storeBouncebackRecord(
 		Destination:   dest,
 		DestinationId: destinationID,
 		UploadedAt:    timestamppb.Now(),
+		WrittenTitle:  writtenTitle,
 	}
 	if err := e.db.SetUploadedActivity(ctx, userID, record); err != nil {
 		e.logger.Warn(ctx, "Failed to store bounceback record", "destination", dest.String(), "destination_id", destinationID, "error", err)

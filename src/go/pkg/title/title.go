@@ -30,34 +30,85 @@ const (
 	ReasonNoOverlap    = "no_meaningful_overlap"
 	ReasonLessDetailed = "existing_less_descriptive"
 	ReasonMoreDetailed = "existing_matches_and_more_descriptive"
+	// ReasonRestoreSource: the title on the activity is FitGlue's own earlier name, and
+	// the source's original title (ROXFIT's) beats the proposal, so it goes back.
+	ReasonRestoreSource = "restore_source_title"
 )
 
-// Choose decides between the existing title and FitGlue's proposed one.
-// fitglueWrote reports that FitGlue has already written to this activity, in which case
-// the existing title is FitGlue's own previous name and is always replaced.
+// MetadataSourceTitle is the enrichment-metadata key carrying the source activity's
+// title as it was ingested, before any booster renamed it (ROXFIT's "HYROX -
+// Birmingham - 01:15:29"). A repost replays the original payload, so it carries the
+// same title every time.
+const MetadataSourceTitle = "source_title"
+
+// Input is what a same-source update knows about an activity's title.
+type Input struct {
+	Existing    string // the title on the activity now
+	Proposed    string // FitGlue's proposal for this pass
+	Source      string // the source's own title as ingested (MetadataSourceTitle)
+	LastWritten string // the title FitGlue last wrote to it (UploadedActivityRecord.written_title); "" when none
+	// FitGlueWrote: FitGlue has written to the activity before (any field). Only used
+	// for records that predate LastWritten.
+	FitGlueWrote bool
+}
+
+// Choose decides the title for a same-source update.
 //
-//   - Replace when the existing title is empty, FitGlue's own, or a platform default
-//     ("Morning Run", "Evening Weight Training", "<Place> Running", "Workout", …).
+// The existing title is FitGlue's own only when it equals the title FitGlue last wrote
+// (or, for records written before that was stored, when FitGlue has written to the
+// activity and its title is FitGlue's proposal while the source said something
+// else). Having written to the activity at all is not enough: FitGlue may have kept a
+// ROXFIT title and written only the description, and a repost must not then replace it.
+//
+//   - Existing title FitGlue's own: weigh the source's original title against the
+//     proposal as for a first write (so ROXFIT's title comes back); with no source
+//     title, take the proposal.
+//   - Otherwise, a first write: see decide.
+func Choose(in Input) Decision {
+	existing := strings.TrimSpace(in.Existing)
+	proposed := strings.TrimSpace(in.Proposed)
+	source := strings.TrimSpace(in.Source)
+	lastWritten := strings.TrimSpace(in.LastWritten)
+
+	if proposed == "" {
+		return Decision{Title: existing, Keep: true, Reason: ReasonNoProposal}
+	}
+	own := existing != "" && lastWritten != "" && existing == lastWritten
+	if lastWritten == "" && in.FitGlueWrote && existing == proposed && source != "" && source != existing {
+		own = true // a pre-written_title record: FitGlue's proposal sits where the source title was
+	}
+	if !own {
+		return decide(existing, proposed)
+	}
+	if source == "" {
+		return Decision{Title: proposed, Reason: ReasonFitGlueOwn}
+	}
+	// Includes the case where what FitGlue last wrote was the restored source title:
+	// it is weighed against the proposal again, and stays.
+	if d := decide(source, proposed); d.Keep {
+		return Decision{Title: source, Keep: source == existing, Reason: ReasonRestoreSource}
+	}
+	return Decision{Title: proposed, Reason: ReasonFitGlueOwn}
+}
+
+// decide is the first-write rule between a title someone else wrote and FitGlue's
+// proposal:
+//
+//   - Replace when the existing title is empty or a platform default ("Morning Run",
+//     "Evening Weight Training", "<Place> Running", "Workout", …).
 //   - Keep when it matches the proposal (at least half of its significant words appear
 //     in the proposal, ignoring case, punctuation, stopwords and numbers) AND it is at
 //     least as descriptive: it has a significant word, or a number/time, that the
 //     proposal lacks.
 //   - Replace otherwise.
-func Choose(existing, proposed string, fitglueWrote bool) Decision {
-	existing = strings.TrimSpace(existing)
-	proposed = strings.TrimSpace(proposed)
+func decide(existing, proposed string) Decision {
 	replace := func(reason string) Decision { return Decision{Title: proposed, Reason: reason} }
 	keep := func(reason string) Decision { return Decision{Title: existing, Keep: true, Reason: reason} }
-
 	switch {
-	case proposed == "":
-		return keep(ReasonNoProposal)
 	case existing == proposed:
 		return keep(ReasonIdentical)
 	case existing == "":
 		return replace(ReasonEmpty)
-	case fitglueWrote:
-		return replace(ReasonFitGlueOwn)
 	case IsGeneric(existing):
 		return replace(ReasonGeneric)
 	}

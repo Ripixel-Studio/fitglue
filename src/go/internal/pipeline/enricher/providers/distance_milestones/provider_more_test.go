@@ -6,7 +6,11 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
+	"time"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	"github.com/fitglue/server/src/go/pkg/testing/mocks"
@@ -105,29 +109,51 @@ func TestDistanceMilestones_Enrich_MilestoneCrossed(t *testing.T) {
 	}
 }
 
-func TestDistanceMilestones_Enrich_SameSourceDedup(t *testing.T) {
+// A repost reads the lifetime total as of its start and does not add itself again;
+// with a ledger the total is exact, with a legacy running total it is that total
+// minus the activity.
+func TestDistanceMilestones_Enrich_RepostIsAsOfStart(t *testing.T) {
+	written := time.Date(2026, 10, 28, 10, 0, 0, 0, time.UTC)
+	store := map[string]interface{}{"lifetime_distance": float64(120), "last_external_id": "ext-9", "last_updated": written}
 	mockDB := &mocks.MockDatabase{
 		GetBoosterDataFunc: func(ctx context.Context, userId, boosterId string) (map[string]interface{}, error) {
-			return map[string]interface{}{
-				"lifetime_distance":       float64(120),
-				"last_external_id":        "ext-9",
-				"last_result_description": "cached desc",
-				"last_result_metadata":    map[string]interface{}{"lifetime_distance": "120.0"},
-			}, nil
+			return store, nil
+		},
+		SetBoosterDataFunc: func(ctx context.Context, userId, boosterId string, data map[string]interface{}) error {
+			for k, v := range data {
+				store[k] = v
+			}
+			return nil
 		},
 	}
 	p := NewDistanceMilestones()
 	p.SetService(&bootstrap.Service{DB: mockDB})
-
 	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1"}}
-	res, err := p.Enrich(context.Background(), discardLogger(), runActivity(5000), u, map[string]string{"external_id": "ext-9"}, false)
-	if err != nil {
-		t.Fatalf("Enrich error: %v", err)
+	run := func(id string, day int, m float64, repost bool) map[string]string {
+		t.Helper()
+		act := runActivity(m)
+		act.StartTime = timestamppb.New(time.Date(2026, 10, day, 8, 0, 0, 0, time.UTC))
+		in := map[string]string{"external_id": id}
+		if repost {
+			in["is_repost"] = "true"
+		}
+		res, err := p.Enrich(context.Background(), discardLogger(), act, u, in, false)
+		if err != nil {
+			t.Fatalf("Enrich error: %v", err)
+		}
+		return res.Metadata
 	}
-	if res.Description != "cached desc" {
-		t.Errorf("expected cached description, got %q", res.Description)
+
+	if got := run("ext-9", 28, 5000, true)["lifetime_distance"]; got != "120.0" {
+		t.Errorf("repost of the activity inside the legacy total: %s, want 120.0", got)
 	}
-	if res.Metadata["dedup"] != "true" {
-		t.Errorf("expected dedup flag, got %v", res.Metadata)
+	if got := run("ext-10", 29, 10000, false)["lifetime_distance"]; got != "130.0" {
+		t.Errorf("next activity: %s, want 130.0", got)
+	}
+	if got := run("ext-10", 29, 10000, true)["lifetime_distance"]; got != "130.0" {
+		t.Errorf("repost of a ledger activity: %s, want 130.0", got)
+	}
+	if got := providers.ToFloat64(store["lifetime_distance"]); got != 130 {
+		t.Errorf("stored lifetime %v, want 130", got)
 	}
 }

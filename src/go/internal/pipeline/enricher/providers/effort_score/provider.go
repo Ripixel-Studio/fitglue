@@ -8,6 +8,7 @@ import (
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	"log/slog"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -22,7 +23,8 @@ import (
 const (
 	boosterID       = "effort_score"
 	historyKey      = "activities"
-	maxHistory      = 14
+	maxHistory      = 14 // activities averaged: the 14 before this one
+	maxStored       = 60 // kept, so a repost of an older activity still has its 14
 	minHistory      = 3
 	weightHR        = 0.35
 	weightPace      = 0.25
@@ -33,12 +35,14 @@ const (
 
 // activitySnapshot stores the metrics for a single activity in the rolling history.
 type activitySnapshot struct {
-	Date     string  `json:"date"`
-	AvgHR    float64 `json:"avg_hr"`
-	AvgPace  float64 `json:"avg_pace"`  // min/km (0 if no pace data)
-	Duration float64 `json:"duration"`  // minutes
-	ElevGain float64 `json:"elev_gain"` // meters
-	TRIMP    float64 `json:"trimp"`
+	ID       string    `json:"id"`    // external id; "" on entries written before as-of history
+	Start    time.Time `json:"start"` // start time; legacy entries: midnight of Date
+	Date     string    `json:"date"`
+	AvgHR    float64   `json:"avg_hr"`
+	AvgPace  float64   `json:"avg_pace"`  // min/km (0 if no pace data)
+	Duration float64   `json:"duration"`  // minutes
+	ElevGain float64   `json:"elev_gain"` // meters
+	TRIMP    float64   `json:"trimp"`
 }
 
 // EffortScore computes a relative difficulty score 0-100 against the user's rolling history.
@@ -81,64 +85,29 @@ func (p *EffortScore) Enrich(ctx context.Context, logger *slog.Logger, activity 
 		"trimp", current.TRIMP,
 	)
 
-	// 2. Fetch rolling history from booster_data
-	var history []activitySnapshot
-	var lastExternalId string
-	var cachedDescription string
-	var cachedMetadata map[string]string
-
+	// 2. History as of this activity's start: the activities before it (a repost or a
+	// late upload compares against what came before, not after, and never against itself).
+	externalId := inputs["external_id"]
+	var stored []activitySnapshot
 	if p.Service != nil && p.Service.DB != nil {
 		data, err := p.Service.DB.GetBoosterData(ctx, user.UserId, boosterID)
 		if err != nil {
 			logger.Warn("effort_score: failed to fetch history", "error", err)
 		} else if data != nil {
-			history = parseHistory(data)
-			if v, ok := data["last_external_id"].(string); ok {
-				lastExternalId = v
-			}
-			if v, ok := data["last_result_description"].(string); ok {
-				cachedDescription = v
-			}
-			if v, ok := data["last_result_metadata"].(map[string]interface{}); ok {
-				cachedMetadata = make(map[string]string)
-				for k, val := range v {
-					if s, ok := val.(string); ok {
-						cachedMetadata[k] = s
-					}
-				}
-			}
+			stored = parseHistory(data)
 		}
 	}
+	current.ID = externalId
+	history := historyBefore(stored, current)
 
 	logger.Debug("effort_score: history loaded", "count", len(history))
-
-	// Same-source dedup: return cached result without re-appending to history
-	externalId := inputs["external_id"]
-	if externalId != "" && lastExternalId == externalId && cachedDescription != "" {
-		logger.Info("effort_score: returning cached result for same-source activity",
-			"external_id", externalId)
-		if cachedMetadata == nil {
-			cachedMetadata = map[string]string{}
-		}
-		cachedMetadata["dedup"] = "true"
-		return &providers.EnrichmentResult{
-			Description: cachedDescription,
-			Metadata:    cachedMetadata,
-		}, nil
-	}
 
 	// 3. Check minimum history
 	if len(history) < minHistory {
 		logger.Debug("effort_score: insufficient history, skipping", "count", len(history))
 
-		// Persist the current activity to build history. Write last_external_id so that a
-		// re-run of this bootstrap-phase activity is detected by the dedup guard above and
-		// doesn't append a duplicate entry to the history array.
-		bootstrapExtra := map[string]interface{}{}
-		if externalId != "" {
-			bootstrapExtra["last_external_id"] = externalId
-		}
-		p.persistHistory(ctx, logger, user.UserId, history, current, bootstrapExtra)
+		// Persist the current activity to build history (a re-run replaces its entry).
+		p.persistHistory(ctx, logger, user.UserId, stored, current)
 
 		return &providers.EnrichmentResult{
 			Metadata: map[string]string{
@@ -160,7 +129,7 @@ func (p *EffortScore) Enrich(ctx context.Context, logger *slog.Logger, activity 
 		"label", label,
 	)
 
-	// 6. Build output before persisting so we can cache the description for dedup
+	// 6. Build output
 	description := buildDescription(score, label, factors)
 
 	resultMetadata := map[string]string{
@@ -168,17 +137,8 @@ func (p *EffortScore) Enrich(ctx context.Context, logger *slog.Logger, activity 
 		"score":  fmt.Sprintf("%.0f", score),
 		"label":  label,
 	}
-	metadataMap := make(map[string]interface{})
-	for k, v := range resultMetadata {
-		metadataMap[k] = v
-	}
-
-	// 7. Persist updated history + dedup fields
-	p.persistHistory(ctx, logger, user.UserId, history, current, map[string]interface{}{
-		"last_external_id":        externalId,
-		"last_result_description": description,
-		"last_result_metadata":    metadataMap,
-	})
+	// 7. Persist updated history
+	p.persistHistory(ctx, logger, user.UserId, stored, current)
 
 	return &providers.EnrichmentResult{
 		Description: description,
@@ -234,7 +194,12 @@ func extractMetrics(activity *pbactivity.StandardizedActivity) activitySnapshot 
 		activityDate = activity.StartTime.AsTime().Format("2006-01-02")
 	}
 
+	start := time.Now()
+	if activity.StartTime != nil {
+		start = activity.StartTime.AsTime()
+	}
 	snap := activitySnapshot{
+		Start:    start,
 		Date:     activityDate,
 		Duration: durationMinutes,
 		ElevGain: elevGain,
@@ -268,6 +233,32 @@ func extractMetrics(activity *pbactivity.StandardizedActivity) activitySnapshot 
 	}
 
 	return snap
+}
+
+// historyBefore is the stored history as of current's start: the maxHistory entries
+// that started before it, other than current itself.
+func historyBefore(stored []activitySnapshot, current activitySnapshot) []activitySnapshot {
+	var out []activitySnapshot
+	for _, h := range stored {
+		if isSelf(h, current) || !h.Start.Before(current.Start) {
+			continue
+		}
+		out = append(out, h)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Start.Before(out[j].Start) })
+	if len(out) > maxHistory {
+		out = out[len(out)-maxHistory:]
+	}
+	return out
+}
+
+// isSelf reports whether a stored entry is current's own: the same external id, or —
+// for entries written before they carried one — the same day and duration.
+func isSelf(h, current activitySnapshot) bool {
+	if h.ID != "" {
+		return h.ID == current.ID
+	}
+	return h.Date == current.Date && math.Abs(h.Duration-current.Duration) < 0.01
 }
 
 // parseHistory deserializes the activity history from Firestore data.
@@ -305,6 +296,13 @@ func parseHistory(data map[string]interface{}) []activitySnapshot {
 		}
 		if d, ok := m["date"].(string); ok {
 			snap.Date = d
+		}
+		snap.ID, _ = m["id"].(string)
+		if st, ok := m["start"].(string); ok {
+			snap.Start, _ = time.Parse(time.RFC3339, st)
+		}
+		if snap.Start.IsZero() {
+			snap.Start, _ = time.Parse("2006-01-02", snap.Date)
 		}
 		result = append(result, snap)
 	}
@@ -480,21 +478,30 @@ func buildDescription(score float64, label string, factors []factorDetail) strin
 
 // persistHistory saves the updated activity history to booster_data.
 // extraFields is merged into the saved document (used for dedup fields when a score was computed).
-func (p *EffortScore) persistHistory(ctx context.Context, logger *slog.Logger, userID string, history []activitySnapshot, current activitySnapshot, extraFields map[string]interface{}) {
+func (p *EffortScore) persistHistory(ctx context.Context, logger *slog.Logger, userID string, stored []activitySnapshot, current activitySnapshot) {
 	if p.Service == nil || p.Service.DB == nil {
 		return
 	}
 
-	// Append current and trim to max entries
+	// Replace this activity's entry (a repost or re-run), keep start order, trim.
+	history := make([]activitySnapshot, 0, len(stored)+1)
+	for _, h := range stored {
+		if !isSelf(h, current) {
+			history = append(history, h)
+		}
+	}
 	history = append(history, current)
-	if len(history) > maxHistory {
-		history = history[len(history)-maxHistory:]
+	sort.SliceStable(history, func(i, j int) bool { return history[i].Start.Before(history[j].Start) })
+	if len(history) > maxStored {
+		history = history[len(history)-maxStored:]
 	}
 
 	// Serialize history for Firestore storage
 	historyData := make([]interface{}, len(history))
 	for i, h := range history {
 		historyData[i] = map[string]interface{}{
+			"id":        h.ID,
+			"start":     h.Start.UTC().Format(time.RFC3339),
 			"date":      h.Date,
 			"avg_hr":    h.AvgHR,
 			"avg_pace":  h.AvgPace,
@@ -506,9 +513,6 @@ func (p *EffortScore) persistHistory(ctx context.Context, logger *slog.Logger, u
 
 	updateData := map[string]interface{}{
 		historyKey: historyData,
-	}
-	for k, v := range extraFields {
-		updateData[k] = v
 	}
 
 	if err := p.Service.DB.SetBoosterData(ctx, userID, boosterID, updateData); err != nil {

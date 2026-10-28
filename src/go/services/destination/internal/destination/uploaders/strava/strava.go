@@ -20,10 +20,13 @@ import (
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	httputil "github.com/fitglue/server/src/go/pkg/infrastructure/http"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
+	"github.com/fitglue/server/src/go/pkg/loopprevention"
 	"github.com/fitglue/server/src/go/pkg/title"
+	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // stravaAPIBase is the Strava REST API base URL.
@@ -250,18 +253,9 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 	}
 
 	updateBody := map[string]interface{}{}
-	if isSameSource && activityName != "" && activityName != existingActivity.Name {
-		// Keep a title someone else wrote (e.g. ROXFIT's "HYROX - Birmingham - 01:15:29")
-		// when it is about the same thing as FitGlue's and says more; replace defaults.
-		decision := title.Choose(existingActivity.Name, activityName, fitglueWrote)
-		slog.Default().Info("Strava same-source title decision",
-			"strava_id", stravaIDStr,
-			"existing", existingActivity.Name,
-			"proposed", activityName,
-			"keep_existing", decision.Keep,
-			"reason", decision.Reason)
-		if decision.Title != existingActivity.Name {
-			updateBody["name"] = decision.Title
+	if isSameSource && activityName != "" {
+		if name := u.sameSourceTitle(ctx, payload, stravaIDStr, existingActivity.Name, fitglueWrote); name != existingActivity.Name {
+			updateBody["name"] = name
 		}
 	}
 	if mergedDescription != existingActivity.Description {
@@ -294,7 +288,79 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 		return httputil.WrapResponseError(putResp, "Strava PUT failed")
 	}
 
+	if name, ok := updateBody["name"].(string); ok {
+		u.recordWrittenTitle(ctx, payload, stravaIDStr, name)
+	}
 	return nil
+}
+
+// sameSourceTitle decides the title for a same-source update. It keeps a title
+// someone else wrote (e.g. ROXFIT's "HYROX - Birmingham - 01:15:29") when it is about
+// the same thing as FitGlue's and says more, and replaces defaults. The title on
+// Strava counts as FitGlue's own only when it is the one FitGlue last wrote there (the
+// loop-prevention record keeps it), so a repost of an activity whose description
+// FitGlue wrote does not take the title too — and a title an earlier repost took is
+// given back.
+func (u *Uploader) sameSourceTitle(ctx context.Context, payload *pbevents.ActivityPayload, stravaID, existing string, fitglueWrote bool) string {
+	lastWritten := ""
+	if rec := u.uploadedRecord(ctx, payload.UserId, stravaID); rec != nil {
+		lastWritten = rec.WrittenTitle
+	}
+	proposed := payload.Metadata["activity_name"]
+	decision := title.Choose(title.Input{
+		Existing:     existing,
+		Proposed:     proposed,
+		Source:       payload.Metadata[title.MetadataSourceTitle],
+		LastWritten:  lastWritten,
+		FitGlueWrote: fitglueWrote,
+	})
+	slog.Default().Info("Strava same-source title decision",
+		"strava_id", stravaID,
+		"existing", existing,
+		"proposed", proposed,
+		"last_written", lastWritten,
+		"title", decision.Title,
+		"keep_existing", decision.Keep,
+		"reason", decision.Reason)
+	return decision.Title
+}
+
+// uploadedRecord is the loop-prevention record for strava:<id>, or nil.
+func (u *Uploader) uploadedRecord(ctx context.Context, userID, stravaID string) *pbactivity.UploadedActivityRecord {
+	if u.svc == nil || u.svc.DB == nil {
+		return nil
+	}
+	rec, err := u.svc.DB.GetUploadedActivity(ctx, userID, pbplugin.DestinationType_DESTINATION_STRAVA, stravaID)
+	if err != nil {
+		slog.Default().Warn("Strava uploaded-activity lookup failed", "strava_id", stravaID, "error", err)
+		return nil
+	}
+	return rec
+}
+
+// recordWrittenTitle stores the title this update set on the loop-prevention record,
+// so the next same-source update knows which title is FitGlue's own.
+func (u *Uploader) recordWrittenTitle(ctx context.Context, payload *pbevents.ActivityPayload, stravaID, name string) {
+	if u.svc == nil || u.svc.DB == nil {
+		return
+	}
+	rec := u.uploadedRecord(ctx, payload.UserId, stravaID)
+	if rec == nil {
+		rec = &pbactivity.UploadedActivityRecord{
+			Id:            loopprevention.BuildUploadedActivityID(pbplugin.DestinationType_DESTINATION_STRAVA, stravaID),
+			UserId:        payload.UserId,
+			Source:        payload.Source,
+			ExternalId:    payload.StandardizedActivity.GetExternalId(),
+			StartTime:     payload.Timestamp,
+			Destination:   pbplugin.DestinationType_DESTINATION_STRAVA,
+			DestinationId: stravaID,
+			UploadedAt:    timestamppb.Now(),
+		}
+	}
+	rec.WrittenTitle = name
+	if err := u.svc.DB.SetUploadedActivity(ctx, payload.UserId, rec); err != nil {
+		slog.Default().Warn("Failed to record the title written to Strava", "strava_id", stravaID, "error", err)
+	}
 }
 
 // fitglueWroteActivity reports whether the description on a same-source Strava activity

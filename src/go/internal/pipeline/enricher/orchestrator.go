@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fitglue/server/src/go/pkg/description"
+	"github.com/fitglue/server/src/go/pkg/title"
 	formatters "github.com/fitglue/server/src/go/pkg/types/formatters"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 
@@ -920,6 +921,11 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 	// uploader keep a description it finds there rather than overwrite it.
 	if sourceWriteChecked {
 		finalEvent.EnrichmentMetadata[description.MetadataSourceWrittenByFitGlue] = strconv.FormatBool(sourceWritten)
+	}
+	// The source's own title, before any booster renamed it: a same-source update can
+	// give it back when an earlier pass replaced it (pkg/title.Choose).
+	if originalName != "" {
+		finalEvent.EnrichmentMetadata[title.MetadataSourceTitle] = originalName
 	}
 
 	// Same-Source Detection: When the activity's source platform matches a destination,

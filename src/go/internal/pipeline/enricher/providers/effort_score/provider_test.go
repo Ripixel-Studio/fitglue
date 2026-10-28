@@ -1,6 +1,10 @@
 package effort_score
 
 import (
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"time"
+
 	user "github.com/fitglue/server/src/go/pkg/domain/user"
 
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
@@ -202,8 +206,8 @@ func TestEffortScore_NoHRFallback(t *testing.T) {
 }
 
 func TestEffortScore_HistoryTrimming(t *testing.T) {
-	// Start with 14 entries (max)
-	historyEntries := makeHistoryData(14, 140, 5.0, 30, 50, 60)
+	// Start with the most the document keeps
+	historyEntries := makeHistoryData(maxStored, 140, 5.0, 30, 50, 60)
 
 	var savedData map[string]interface{}
 	mockDB := &mocks.MockDatabase{
@@ -229,13 +233,13 @@ func TestEffortScore_HistoryTrimming(t *testing.T) {
 		t.Fatalf("Enrich failed: %v", err)
 	}
 
-	// After adding 1 to 14, should still be 14 (trimmed)
+	// After adding one, still maxStored (trimmed)
 	activities, ok := savedData["activities"].([]interface{})
 	if !ok {
 		t.Fatal("Expected activities array")
 	}
-	if len(activities) != 14 {
-		t.Errorf("Expected 14 entries after trimming, got %d", len(activities))
+	if len(activities) != maxStored {
+		t.Errorf("Expected %d entries after trimming, got %d", maxStored, len(activities))
 	}
 }
 
@@ -302,46 +306,46 @@ func TestComputeEffortScore_HarderEffort(t *testing.T) {
 	}
 }
 
-func TestEffortScore_SameSourceDedup(t *testing.T) {
-	historyEntries := makeHistoryData(5, 140, 5.0, 30, 50, 60)
-
-	var saveCount int
+// A repost compares the activity with the ones before it — not the ones after it,
+// not itself — and replaces its own entry instead of appending another.
+func TestEffortScore_RepostIsAsOfStart(t *testing.T) {
+	store := map[string]interface{}{"activities": makeHistoryData(5, 140, 5.0, 30, 50, 60)}
 	mockDB := &mocks.MockDatabase{
 		GetBoosterDataFunc: func(ctx context.Context, userId string, boosterId string) (map[string]interface{}, error) {
-			return map[string]interface{}{
-				"activities":              historyEntries,
-				"last_external_id":        "activity-abc",
-				"last_result_description": "💥 Effort Score: 50/100 (Moderate)\n• ➡️ Typical effort",
-				"last_result_metadata": map[string]interface{}{
-					"status": "success",
-					"score":  "50",
-					"label":  "Moderate",
-				},
-			}, nil
+			return store, nil
 		},
 		SetBoosterDataFunc: func(ctx context.Context, userId string, boosterId string, data map[string]interface{}) error {
-			saveCount++
+			for k, v := range data {
+				store[k] = v
+			}
 			return nil
 		},
 	}
-
 	provider := NewEffortScore()
 	provider.Service = &bootstrap.Service{DB: mockDB}
-
-	activity := makeActivity(30, 140, 3.33, 100)
 	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "test-user"}}
-	inputs := map[string]string{"external_id": "activity-abc"}
+	at := func(a *pbactivity.StandardizedActivity, day int) *pbactivity.StandardizedActivity {
+		a.StartTime = timestamppb.New(time.Date(2026, 10, day, 9, 0, 0, 0, time.UTC))
+		return a
+	}
 
-	result, err := provider.Enrich(context.Background(), slog.Default(), activity, u, inputs, false)
+	first, err := provider.Enrich(context.Background(), slog.Default(), at(makeActivity(60, 160, 3.33, 100), 27), u, map[string]string{"external_id": "doubles"}, false)
 	if err != nil {
-		t.Fatalf("Enrich failed: %v", err)
+		t.Fatal(err)
 	}
-
-	if result.Metadata["dedup"] != "true" {
-		t.Error("Expected dedup=true for same-source activity")
+	// The next day: a much harder session, which must not move the earlier one's score.
+	if _, err := provider.Enrich(context.Background(), slog.Default(), at(makeActivity(90, 180, 3.33, 100), 28), u, map[string]string{"external_id": "solo"}, false); err != nil {
+		t.Fatal(err)
 	}
-	if saveCount != 0 {
-		t.Errorf("Expected no Firestore writes on dedup, got %d", saveCount)
+	again, err := provider.Enrich(context.Background(), slog.Default(), at(makeActivity(60, 160, 3.33, 100), 27), u, map[string]string{"external_id": "doubles", "is_repost": "true"}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Metadata["score"] != first.Metadata["score"] {
+		t.Errorf("repost score %s, first run %s: should be computed as of the activity's start", again.Metadata["score"], first.Metadata["score"])
+	}
+	if n := len(store["activities"].([]interface{})); n != 7 {
+		t.Errorf("history has %d entries, want 7 (5 + doubles + solo, the repost replaced its own)", n)
 	}
 }
 

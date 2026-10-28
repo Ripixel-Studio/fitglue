@@ -74,56 +74,26 @@ func (p *GoalTracker) Enrich(ctx context.Context, logger *slog.Logger, activity 
 
 	// Get current metric value from this activity
 	activityValue := getMetricValue(activity, metric)
+	externalId := inputs["external_id"]
 
-	// Fetch accumulated progress from booster_data
-	var accumulatedProgress float64
+	// Progress is computed as of this activity's start: the period's activities that
+	// started before it, plus this one (providers.Ledger). A repost, a same-source
+	// update or a late upload of an earlier activity reads the same total it read the
+	// first time, instead of a running total that already holds the activities after it.
 	boosterId := fmt.Sprintf("goal_tracker_%s_%s", period, metric)
-
-	var lastExternalId string
-	var cachedDescription string
-	var cachedMetadata map[string]string
-
+	var ledger providers.Ledger
+	var legacyLastID string
 	if p.Service != nil && p.Service.DB != nil {
 		data, err := p.Service.DB.GetBoosterData(ctx, user.UserId, boosterId)
 		if err != nil {
 			logger.Warn("Failed to fetch goal progress", "error", err)
 		} else if data != nil {
-			// Only load accumulated if the stored period matches this activity's period.
-			// A mismatch means either a new period started (reset) or the activity is backdated.
-			if storedPeriod, ok := data["period_key"].(string); ok && storedPeriod == activityPeriod {
-				accumulatedProgress = providers.ToFloat64(data["accumulated"])
-			}
-			if v, ok := data["last_external_id"].(string); ok {
-				lastExternalId = v
-			}
-			if v, ok := data["last_result_description"].(string); ok {
-				cachedDescription = v
-			}
-			if v, ok := data["last_result_metadata"].(map[string]interface{}); ok {
-				cachedMetadata = make(map[string]string)
-				for k, val := range v {
-					if s, ok := val.(string); ok {
-						cachedMetadata[k] = s
-					}
-				}
-			}
+			ledger = ledgerOf(data)
+			legacyLastID, _ = data["last_external_id"].(string)
 		}
 	}
-
-	// Same-source dedup: if this activity was already processed, return cached result
-	externalId := inputs["external_id"]
-	if externalId != "" && lastExternalId == externalId && cachedDescription != "" {
-		logger.Info("goal_tracker: returning cached result for same-source activity",
-			"external_id", externalId)
-		if cachedMetadata == nil {
-			cachedMetadata = map[string]string{}
-		}
-		cachedMetadata["dedup"] = "true"
-		return &providers.EnrichmentResult{
-			Description: cachedDescription,
-			Metadata:    cachedMetadata,
-		}, nil
-	}
+	inPeriod := func(e providers.LedgerEntry) bool { return entryPeriod(period, e) == activityPeriod }
+	accumulatedProgress := ledger.Before(activityTime, externalId).Sum(inPeriod)
 
 	// Calculate new total
 	newTotal := accumulatedProgress + activityValue
@@ -180,19 +150,21 @@ func (p *GoalTracker) Enrich(ctx context.Context, logger *slog.Logger, activity 
 		"goal_metric":      metric,
 	}
 
-	// Only persist state for current-period activities, and never on a full-pipeline repost
-	// (the accumulated total was already written on the original run; re-adding would double-count).
-	if p.Service != nil && p.Service.DB != nil && activityValue > 0 && isCurrentPeriod && inputs["is_repost"] != "true" {
-		metadataMap := make(map[string]interface{})
-		for k, v := range resultMetadata {
-			metadataMap[k] = v
+	// Record this activity in the ledger (replacing its earlier entry on a repost), and
+	// keep the period total of the latest activity as "accumulated" for readers of the
+	// booster data.
+	alreadyCarried := inputs["is_repost"] == "true" || (externalId != "" && externalId == legacyLastID)
+	if p.Service != nil && p.Service.DB != nil && externalId != "" && !(alreadyCarried && carriedAfter(ledger, activityPeriod, activityTime)) {
+		ledger = ledger.Put(providers.LedgerEntry{ID: externalId, Start: activityTime, Value: activityValue}).Since(time.Now().AddDate(0, 0, -ledgerDays))
+		latestPeriod, latestTotal := activityPeriod, newTotal
+		if last, ok := ledger.Latest(); ok {
+			latestPeriod = entryPeriod(period, last)
+			latestTotal = ledger.Sum(func(e providers.LedgerEntry) bool { return entryPeriod(period, e) == latestPeriod })
 		}
 		updateData := map[string]interface{}{
-			"accumulated":             newTotal,
-			"period_key":              activityPeriod,
-			"last_external_id":        externalId,
-			"last_result_description": sb.String(),
-			"last_result_metadata":    metadataMap,
+			providers.LedgerField: ledger.ToFirestore(),
+			"accumulated":         latestTotal,
+			"period_key":          latestPeriod,
 		}
 		if err := p.Service.DB.SetBoosterData(ctx, user.UserId, boosterId, updateData); err != nil {
 			logger.Warn("Failed to save goal progress", "error", err)
@@ -224,6 +196,44 @@ func buildProgressBar(percentage float64) string {
 	empty := 10 - filled
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", empty)
 	return fmt.Sprintf("[%s] %.0f%%", bar, percentage)
+}
+
+// ledgerDays bounds the ledger: a year period needs the year so far.
+const ledgerDays = 400
+
+// ledgerOf reads the goal's ledger. A document written by the running-total code has
+// none: its total (accumulated in period_key) is carried over as one entry dated when
+// it was last written.
+func ledgerOf(data map[string]interface{}) providers.Ledger {
+	if l, ok := providers.ParseLedger(data); ok {
+		return l
+	}
+	key, _ := data["period_key"].(string)
+	total := providers.ToFloat64(data["accumulated"])
+	if key == "" || total <= 0 {
+		return nil
+	}
+	return providers.Ledger{{Start: providers.LastUpdated(data), Value: total, Period: key}}
+}
+
+// carriedAfter reports a carried-over legacy total in the activity's period that was
+// written after the activity started. A repost of such an activity is already inside
+// that total, so it is not added to the ledger a second time.
+func carriedAfter(l providers.Ledger, periodKey string, start time.Time) bool {
+	for _, e := range l {
+		if e.ID == "" && e.Period == periodKey && start.Before(e.Start) {
+			return true
+		}
+	}
+	return false
+}
+
+// entryPeriod is the period an entry counts toward.
+func entryPeriod(period string, e providers.LedgerEntry) string {
+	if e.Period != "" {
+		return e.Period
+	}
+	return getPeriodKey(period, e.Start)
 }
 
 func getMetricValue(activity *pbactivity.StandardizedActivity, metric string) float64 {

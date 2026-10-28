@@ -1354,6 +1354,9 @@ func UploadedActivityToFirestore(r *pbactivity.UploadedActivityRecord) map[strin
 	if r.UploadedAt != nil {
 		m["uploaded_at"] = r.UploadedAt.AsTime()
 	}
+	if r.WrittenTitle != "" {
+		m["written_title"] = r.WrittenTitle
+	}
 
 	return m
 }
@@ -1366,6 +1369,7 @@ func FirestoreToUploadedActivity(m map[string]interface{}) *pbactivity.UploadedA
 		DestinationId: getString(m, "destination_id"),
 		StartTime:     getTime(m, "start_time"),
 		UploadedAt:    getTime(m, "uploaded_at"),
+		WrittenTitle:  getString(m, "written_title"),
 	}
 
 	// Source

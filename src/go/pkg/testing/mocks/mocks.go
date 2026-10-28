@@ -37,7 +37,10 @@ type MockDatabase struct {
 	GetUserPipelinesFunc func(ctx context.Context, userId string) ([]*pbpipeline.PipelineConfig, error)
 
 	GetBoosterDataFunc func(ctx context.Context, userId string, boosterId string) (map[string]interface{}, error)
-	SetBoosterDataFunc func(ctx context.Context, userId string, boosterId string, data map[string]interface{}) error
+
+	SetUploadedActivityFunc func(ctx context.Context, userId string, record *pbactivity.UploadedActivityRecord) error
+	GetUploadedActivityFunc func(ctx context.Context, userId string, destination pbplugin.DestinationType, destinationId string) (*pbactivity.UploadedActivityRecord, error)
+	SetBoosterDataFunc      func(ctx context.Context, userId string, boosterId string, data map[string]interface{}) error
 
 	// Destination create claims. Override TryClaimDestinationCreateFunc for custom behaviour;
 	// otherwise the mock tracks claims in-memory: the first claim of a key wins, repeats lose
@@ -253,11 +256,17 @@ func (m *MockDatabase) SetPluginDefault(ctx context.Context, userId string, plug
 // --- Uploaded Activities (for loop prevention) ---
 
 func (m *MockDatabase) SetUploadedActivity(ctx context.Context, userId string, record *pbactivity.UploadedActivityRecord) error {
+	if m.SetUploadedActivityFunc != nil {
+		return m.SetUploadedActivityFunc(ctx, userId, record)
+	}
 	// No-op for tests by default
 	return nil
 }
 
 func (m *MockDatabase) GetUploadedActivity(ctx context.Context, userId string, destination pbplugin.DestinationType, destinationId string) (*pbactivity.UploadedActivityRecord, error) {
+	if m.GetUploadedActivityFunc != nil {
+		return m.GetUploadedActivityFunc(ctx, userId, destination, destinationId)
+	}
 	// No-op for tests by default - return nil (not found)
 	return nil, nil
 }
