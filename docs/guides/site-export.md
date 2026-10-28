@@ -61,6 +61,17 @@ Every file carries `schemaVersion` (currently 1).
 Activities whose showcase document is gone, or whose `expiresAt` has passed, are
 skipped and left out of the index.
 
+## Calories
+
+An activity's calories are the source platform's figure (the sessions'
+`total_calories`: Strava's, or a FIT file's own) and FitGlue's MET estimate only
+when there is none (`pkg/calories`). Older calories boosters always stored the
+estimate, so the export puts the platform figure on each activity file's
+`enrichments.calories` and index entry as it writes them, and
+`fitgluectl fix-calories --slug james [--apply]` corrects the stored profile
+entries (dry run by default; it also lists the roundups whose totals were built
+from the old figures).
+
 ## Running it
 
 ```bash
