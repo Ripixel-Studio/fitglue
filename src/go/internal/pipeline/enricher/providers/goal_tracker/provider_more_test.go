@@ -4,10 +4,12 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	"github.com/fitglue/server/src/go/pkg/testing/mocks"
@@ -102,37 +104,96 @@ func TestGoalTracker_Enrich_PastPeriod(t *testing.T) {
 	}
 }
 
-func TestGoalTracker_Enrich_SameSourceDedup(t *testing.T) {
-	now := time.Now()
-	periodKey := getPeriodKey("month", now)
-	mockDB := &mocks.MockDatabase{
+// fakeStore is booster_data for one booster, written the way SetBoosterData merges.
+type fakeStore struct{ data map[string]interface{} }
+
+func (f *fakeStore) db() *mocks.MockDatabase {
+	return &mocks.MockDatabase{
 		GetBoosterDataFunc: func(ctx context.Context, userId, boosterId string) (map[string]interface{}, error) {
-			return map[string]interface{}{
-				"period_key":              periodKey,
-				"accumulated":             float64(40),
-				"last_external_id":        "ext-3",
-				"last_result_description": "cached goal desc",
-				"last_result_metadata":    map[string]interface{}{"goal_status": "40%"},
-			}, nil
+			return f.data, nil
+		},
+		SetBoosterDataFunc: func(ctx context.Context, userId, boosterId string, data map[string]interface{}) error {
+			if f.data == nil {
+				f.data = map[string]interface{}{}
+			}
+			for k, v := range data {
+				f.data[k] = v
+			}
+			return nil
 		},
 	}
-	p := NewGoalTracker()
-	p.SetService(&bootstrap.Service{DB: mockDB})
+}
 
+func weekRun(t *testing.T, p *GoalTracker, id string, start time.Time, km float64, repost bool) *providers.EnrichmentResult {
+	t.Helper()
 	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1"}}
-	activity := &pbactivity.StandardizedActivity{
-		Type:      pbactivity.ActivityType_ACTIVITY_TYPE_RUN,
-		StartTime: timestamppb.New(now),
-		Sessions:  []*pbactivity.Session{{TotalDistance: 5000}},
+	act := &pbactivity.StandardizedActivity{
+		Type:      pbactivity.ActivityType_ACTIVITY_TYPE_CROSSFIT,
+		StartTime: timestamppb.New(start),
+		Sessions:  []*pbactivity.Session{{TotalDistance: km * 1000}},
 	}
-	res, err := p.Enrich(context.Background(), discardLogger(), activity, u, map[string]string{"external_id": "ext-3"}, false)
+	res, err := p.Enrich(context.Background(), discardLogger(), act, u, map[string]string{
+		"period": "week", "target": "20", "external_id": id, "is_repost": strconv.FormatBool(repost),
+	}, false)
 	if err != nil {
-		t.Fatalf("Enrich error: %v", err)
+		t.Fatalf("Enrich: %v", err)
 	}
-	if res.Description != "cached goal desc" {
-		t.Errorf("expected cached description, got %q", res.Description)
+	return res
+}
+
+// The Birmingham weekend: doubles on Tuesday (8.6 km of 20 → 43%), solo on Wednesday
+// (17.3 km → 87%). Reposting the doubles afterwards must read 43% again, not count the
+// solo that came after it (it read 100%, 26.1/20 km).
+func TestGoalTracker_Enrich_RepostIsAsOfStart(t *testing.T) {
+	store := &fakeStore{}
+	p := NewGoalTracker()
+	p.SetService(&bootstrap.Service{DB: store.db()})
+	doubles := time.Date(2026, 10, 27, 14, 0, 0, 0, time.UTC)
+	solo := time.Date(2026, 10, 28, 8, 20, 0, 0, time.UTC)
+
+	if got := weekRun(t, p, "doubles", doubles, 8.6, false).Metadata["goal_status"]; got != "43%" {
+		t.Fatalf("doubles first run: %s, want 43%%", got)
 	}
-	if res.Metadata["dedup"] != "true" {
-		t.Errorf("expected dedup flag, got %v", res.Metadata)
+	if got := weekRun(t, p, "solo", solo, 8.8, false).Metadata["goal_status"]; got != "87%" {
+		t.Fatalf("solo: %s, want 87%%", got)
+	}
+	res := weekRun(t, p, "doubles", doubles, 8.6, true)
+	if got := res.Metadata["goal_status"]; got != "43%" {
+		t.Errorf("doubles repost: %s, want 43%% (as of its start)", got)
+	}
+	if !strings.Contains(res.Description, "8.6/20 km") {
+		t.Errorf("doubles repost description: %q", res.Description)
+	}
+	// Processing an activity again replaces its entry; it is never counted twice.
+	if got := weekRun(t, p, "solo", solo, 8.8, true).Metadata["goal_accumulated"]; got != "17.40" {
+		t.Errorf("solo repost accumulated %s, want 17.40", got)
+	}
+	if got := providers.ToFloat64(store.data["accumulated"]); got < 17.39 || got > 17.41 {
+		t.Errorf("stored accumulated %v, want 17.4 (the latest period's total)", got)
+	}
+}
+
+// A document written by the running-total code: its total is carried over, dated when
+// it was last written, so a later activity adds to it and a repost of an earlier one
+// does not count it.
+func TestGoalTracker_Enrich_LegacyTotalCarriedOver(t *testing.T) {
+	written := time.Date(2026, 10, 28, 10, 0, 0, 0, time.UTC)
+	store := &fakeStore{data: map[string]interface{}{
+		"period_key":       "2026-W44",
+		"accumulated":      17.4,
+		"last_external_id": "solo",
+		"last_updated":     written,
+	}}
+	p := NewGoalTracker()
+	p.SetService(&bootstrap.Service{DB: store.db()})
+
+	if got := weekRun(t, p, "doubles", time.Date(2026, 10, 27, 14, 0, 0, 0, time.UTC), 8.6, true).Metadata["goal_status"]; got != "43%" {
+		t.Errorf("repost of an activity before the legacy total: %s, want 43%%", got)
+	}
+	if got := weekRun(t, p, "thursday", time.Date(2026, 10, 29, 7, 0, 0, 0, time.UTC), 2, false).Metadata["goal_accumulated"]; got != "19.40" {
+		t.Errorf("new activity after the legacy total: %s, want 19.40", got)
+	}
+	if got := weekRun(t, p, "next-week", time.Date(2026, 11, 2, 7, 0, 0, 0, time.UTC), 5, false).Metadata["goal_accumulated"]; got != "5.00" {
+		t.Errorf("next week starts from zero: %s", got)
 	}
 }

@@ -51,27 +51,6 @@ func TestGetMET_UnknownType(t *testing.T) {
 	}
 }
 
-// --- getFoodEquivalent ---
-
-func TestGetFoodEquivalent_ReasonableRatio(t *testing.T) {
-	// 300 calories -> should match some food (pizza is 285 kcal)
-	food := getFoodEquivalent(300.0)
-	if food.Name == "" {
-		t.Error("expected non-empty food name")
-	}
-	if food.Calories <= 0 {
-		t.Error("expected positive calories for food")
-	}
-}
-
-func TestGetFoodEquivalent_DefaultPizza(t *testing.T) {
-	// Very high calories -> no ratio in range -> default pizza
-	food := getFoodEquivalent(100000.0)
-	if food.Name != "slice of pizza" {
-		t.Errorf("expected default 'slice of pizza', got %q", food.Name)
-	}
-}
-
 // --- Enrich ---
 
 func TestCaloriesBurned_Enrich_NoDuration(t *testing.T) {
@@ -170,5 +149,40 @@ func TestCaloriesBurned_ProviderMetadata(t *testing.T) {
 	p := NewCaloriesBurned()
 	if p.Name() != "calories-burned" {
 		t.Errorf("expected 'calories-burned', got %q", p.Name())
+	}
+}
+
+// Birmingham solo: Strava has 1,346 kcal; the old booster estimated 523 (MET 5 for
+// "Workout", 70 kg, 1:29:42). The platform figure wins.
+func TestCaloriesBurned_Enrich_PrefersPlatformCalories(t *testing.T) {
+	p := NewCaloriesBurned()
+	strava := 1346.0
+	act := &pbactivity.StandardizedActivity{
+		Type:     pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT,
+		Sessions: []*pbactivity.Session{{TotalElapsedTime: 5382, TotalCalories: &strava}},
+	}
+	res, err := p.Enrich(context.Background(), slog.Default(), act, newUser(), map[string]string{"fun_mode": "true"}, false)
+	if err != nil {
+		t.Fatalf("Enrich: %v", err)
+	}
+	if res.Enrichments.Calories.Kcal != 1346 || res.Metadata["calories_source"] != "platform" {
+		t.Errorf("kcal %d source %q, want 1346 from the platform", res.Enrichments.Calories.Kcal, res.Metadata["calories_source"])
+	}
+	if !strings.HasPrefix(res.Description, "🔥 Calories: 1346 kcal ≈ 4.7 slice of pizza") {
+		t.Errorf("description %q", res.Description)
+	}
+	if _, ok := res.Metadata["met_value"]; ok {
+		t.Error("no MET when the platform gave calories")
+	}
+}
+
+func TestCaloriesBurned_Enrich_EstimatesWithoutPlatformCalories(t *testing.T) {
+	p := NewCaloriesBurned()
+	res, err := p.Enrich(context.Background(), slog.Default(), newTestActivity(pbactivity.ActivityType_ACTIVITY_TYPE_WEIGHT_TRAINING, 3600), newUser(), nil, false)
+	if err != nil {
+		t.Fatalf("Enrich: %v", err)
+	}
+	if res.Metadata["calories_source"] != "estimate" || res.Enrichments.Calories.Kcal != 350 {
+		t.Errorf("source %q kcal %d, want the MET estimate 5.0 × 70 × 1 = 350", res.Metadata["calories_source"], res.Enrichments.Calories.Kcal)
 	}
 }

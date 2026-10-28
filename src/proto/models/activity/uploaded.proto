@@ -22,6 +22,13 @@ message UploadedActivityRecord {
   string destination_id = 7;           
 
   google.protobuf.Timestamp uploaded_at = 8;
+
+  // The title FitGlue last wrote to the destination activity: the name it created it
+  // with, or the name a same-source update set. Empty when FitGlue never set the title
+  // (it kept a third-party one such as ROXFIT's) or the record predates this field.
+  // A same-source update treats the activity's current title as FitGlue's own only
+  // when it equals this.
+  string written_title = 9;
 }
 
 // ShowcasedActivity represents a publicly shareable activity snapshot.

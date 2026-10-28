@@ -145,6 +145,19 @@ func TestMergeSessions(t *testing.T) {
 	}
 }
 
+// The device's calories survive a merge (summed), so pkg/calories can prefer them to
+// FitGlue's MET estimate; a file without them stays without.
+func TestMergeSessions_Calories(t *testing.T) {
+	a, b := 600.0, 532.0
+	merged := MergeSessions([]*pbactivity.Session{{TotalCalories: &a}, {}, {TotalCalories: &b}})
+	if merged.GetTotalCalories() != 1132 {
+		t.Errorf("merged calories = %v, want 1132", merged.GetTotalCalories())
+	}
+	if MergeSessions([]*pbactivity.Session{{}, {}}).TotalCalories != nil {
+		t.Error("no session calories: merged has none")
+	}
+}
+
 func TestMergeSessions_Single(t *testing.T) {
 	now := time.Now()
 	sessions := []*pbactivity.Session{

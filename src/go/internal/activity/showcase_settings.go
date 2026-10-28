@@ -3,12 +3,14 @@ package activity
 import (
 	"context"
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 	"unicode"
 
+	"github.com/fitglue/server/src/go/pkg/calories"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
 	pbsvc "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
@@ -319,8 +321,12 @@ func (s *Service) AddShowcaseEntry(ctx context.Context, req *pbsvc.AddShowcaseEn
 			newEntry.AvgHeartRate = sess.AvgHeartRate
 		}
 
-		// calories_kcal: from typed enrichment
-		if hydratedEnrichments != nil && hydratedEnrichments.Calories != nil && hydratedEnrichments.Calories.Kcal > 0 {
+		// calories_kcal: the source platform's figure (Strava's total_calories), else the
+		// calories booster's (its estimate when the platform had none)
+		if kcal, ok := calories.Platform(showcase.ActivityData); ok {
+			v := int32(math.Round(kcal))
+			newEntry.CaloriesKcal = &v
+		} else if hydratedEnrichments != nil && hydratedEnrichments.Calories != nil && hydratedEnrichments.Calories.Kcal > 0 {
 			v := hydratedEnrichments.Calories.Kcal
 			newEntry.CaloriesKcal = &v
 		}

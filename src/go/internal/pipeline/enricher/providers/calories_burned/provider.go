@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	"log/slog"
+	"math"
 	"strconv"
 	"strings"
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
+	"github.com/fitglue/server/src/go/pkg/calories"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 
@@ -49,26 +51,6 @@ var activityMETs = map[pbactivity.ActivityType]float64{
 	pbactivity.ActivityType_ACTIVITY_TYPE_ROCK_CLIMBING:                    8.0,
 }
 
-// Fun food equivalents for calorie display
-type FoodEquivalent struct {
-	Name     string
-	Calories float64
-	Emoji    string
-}
-
-var foodEquivalents = []FoodEquivalent{
-	{Name: "slice of pizza", Calories: 285, Emoji: "🍕"},
-	{Name: "donut", Calories: 250, Emoji: "🍩"},
-	{Name: "banana", Calories: 105, Emoji: "🍌"},
-	{Name: "beer", Calories: 150, Emoji: "🍺"},
-	{Name: "chocolate bar", Calories: 230, Emoji: "🍫"},
-	{Name: "cookie", Calories: 80, Emoji: "🍪"},
-	{Name: "apple", Calories: 95, Emoji: "🍎"},
-	{Name: "glass of wine", Calories: 125, Emoji: "🍷"},
-	{Name: "burger", Calories: 540, Emoji: "🍔"},
-	{Name: "ice cream scoop", Calories: 140, Emoji: "🍨"},
-}
-
 type CaloriesBurned struct {
 	Service *bootstrap.Service
 }
@@ -99,69 +81,67 @@ func (p *CaloriesBurned) Enrich(ctx context.Context, logger *slog.Logger, activi
 	// Parse config
 	funMode := inputs["fun_mode"] == "true"
 
-	// Get user weight (default 70kg if not provided)
-	userWeight := 70.0
-	if weightStr, ok := inputs["user_weight"]; ok && weightStr != "" {
-		if w, err := strconv.ParseFloat(weightStr, 64); err == nil && w > 0 {
-			userWeight = w
-		}
-	}
-
-	// Calculate total duration in hours
+	// The source platform's calories (Strava's total_calories) when it has them;
+	// FitGlue's MET estimate only when it does not.
 	var totalSeconds float64
 	for _, session := range activity.Sessions {
 		totalSeconds += session.TotalElapsedTime
 	}
 	durationHours := totalSeconds / 3600.0
 
-	if durationHours <= 0 {
-		logger.Debug("calories_burned: skipping - no duration data")
-		return &providers.EnrichmentResult{
-			Skipped:    true,
-			SkipReason: "No duration data",
-			Metadata: map[string]string{
-				"calories_status": "skipped",
-				"status_detail":   "No duration data",
-			},
-		}, nil
+	source := calories.SourcePlatform
+	kcal, fromPlatform := calories.Platform(activity)
+	metadata := map[string]string{
+		"calories_status": "success",
+		"duration_hours":  fmt.Sprintf("%.2f", durationHours),
 	}
+	if !fromPlatform {
+		if durationHours <= 0 {
+			logger.Debug("calories_burned: skipping - no platform calories and no duration")
+			return &providers.EnrichmentResult{
+				Skipped:    true,
+				SkipReason: "No duration data",
+				Metadata: map[string]string{
+					"calories_status": "skipped",
+					"status_detail":   "No duration data",
+				},
+			}, nil
+		}
+		// Get user weight (default 70kg if not provided)
+		userWeight := 70.0
+		if weightStr, ok := inputs["user_weight"]; ok && weightStr != "" {
+			if w, err := strconv.ParseFloat(weightStr, 64); err == nil && w > 0 {
+				userWeight = w
+			}
+		}
+		// MET × weight(kg) × duration(hours)
+		met := getMET(activity.Type)
+		kcal = met * userWeight * durationHours
+		source = calories.SourceEstimate
+		metadata["met_value"] = fmt.Sprintf("%.1f", met)
+		metadata["weight_kg"] = fmt.Sprintf("%.0f", userWeight)
+	}
+	metadata["calories"] = fmt.Sprintf("%.0f", kcal)
+	metadata["calories_source"] = string(source)
 
-	// Get MET value for activity type
-	met := getMET(activity.Type)
-
-	// Calculate calories: MET × weight(kg) × duration(hours)
-	calories := met * userWeight * durationHours
-
-	// Build output
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("🔥 Calories: %.0f kcal", calories))
-
+	sb.WriteString(fmt.Sprintf("🔥 Calories: %.0f kcal", kcal))
 	var comparisonText string
-	if funMode && calories > 50 {
-		equiv := getFoodEquivalent(calories)
-		comparisonText = fmt.Sprintf("≈ %.1f %s %s", calories/equiv.Calories, equiv.Name, equiv.Emoji)
-		sb.WriteString(" " + comparisonText)
+	if funMode {
+		comparisonText = calories.Comparison(kcal)
+		if comparisonText != "" {
+			sb.WriteString(" " + comparisonText)
+		}
 	}
 
-	logger.Info("Calories calculated",
-		"calories", calories,
-		"met", met,
-		"weight_kg", userWeight,
-		"duration_hours", durationHours,
-	)
+	logger.Info("Calories resolved", "calories", kcal, "source", source, "duration_hours", durationHours)
 
 	return &providers.EnrichmentResult{
 		Description: sb.String(),
-		Metadata: map[string]string{
-			"calories_status": "success",
-			"calories":        fmt.Sprintf("%.0f", calories),
-			"met_value":       fmt.Sprintf("%.1f", met),
-			"duration_hours":  fmt.Sprintf("%.2f", durationHours),
-			"weight_kg":       fmt.Sprintf("%.0f", userWeight),
-		},
+		Metadata:    metadata,
 		Enrichments: &pbactivity.ActivityEnrichments{
 			Calories: &pbactivity.CaloriesSummary{
-				Kcal:           int32(calories),
+				Kcal:           int32(math.Round(kcal)),
 				ComparisonText: comparisonText,
 			},
 		},
@@ -175,17 +155,4 @@ func getMET(actType pbactivity.ActivityType) float64 {
 	}
 	// Default MET for unknown activities (moderate intensity)
 	return 5.0
-}
-
-// getFoodEquivalent picks a fun food to compare calories to
-func getFoodEquivalent(calories float64) FoodEquivalent {
-	// Pick a food that gives a reasonable ratio (not too high, not too low)
-	for _, food := range foodEquivalents {
-		ratio := calories / food.Calories
-		if ratio >= 0.5 && ratio <= 10 {
-			return food
-		}
-	}
-	// Default to pizza
-	return foodEquivalents[0]
 }

@@ -400,3 +400,28 @@ func TestDeriveTelemetry(t *testing.T) {
 		}
 	})
 }
+
+func TestApplyPlatformCalories(t *testing.T) {
+	strava := 1346.0
+	old := int32(523)
+	sc := &pbactivity.ShowcasedActivity{
+		ActivityData: &pbactivity.StandardizedActivity{Sessions: []*pbactivity.Session{{TotalCalories: &strava}}},
+		Enrichments:  &pbactivity.ActivityEnrichments{Calories: &pbactivity.CaloriesSummary{Kcal: 523, ComparisonText: "≈ 1.8 slice of pizza 🍕"}},
+	}
+	entry := &pbactivity.ShowcaseProfileEntry{CaloriesKcal: &old}
+	if !ApplyPlatformCalories(sc, entry) {
+		t.Fatal("expected a change")
+	}
+	if sc.Enrichments.Calories.Kcal != 1346 || sc.Enrichments.Calories.ComparisonText != "≈ 4.7 slice of pizza 🍕" || entry.GetCaloriesKcal() != 1346 {
+		t.Errorf("got %+v / %d", sc.Enrichments.Calories, entry.GetCaloriesKcal())
+	}
+	if ApplyPlatformCalories(sc, entry) {
+		t.Error("second pass should change nothing")
+	}
+	// No platform figure: the estimate stays.
+	hevy := &pbactivity.ShowcasedActivity{ActivityData: &pbactivity.StandardizedActivity{Sessions: []*pbactivity.Session{{}}},
+		Enrichments: &pbactivity.ActivityEnrichments{Calories: &pbactivity.CaloriesSummary{Kcal: 300}}}
+	if ApplyPlatformCalories(hevy, &pbactivity.ShowcaseProfileEntry{}) || hevy.Enrichments.Calories.Kcal != 300 {
+		t.Error("an activity without platform calories must be left alone")
+	}
+}

@@ -9,10 +9,12 @@ import (
 
 	"context"
 	"log/slog"
+	"strings"
 	"testing"
 
 	"time"
 
+	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
 	"github.com/fitglue/server/src/go/pkg/testing/mocks"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -88,7 +90,7 @@ func TestStreakTracker_ConsecutiveDay(t *testing.T) {
 }
 
 func TestStreakTracker_SameDayDuplicate(t *testing.T) {
-	var setCalled bool
+	var saved map[string]interface{}
 	mockDB := &mocks.MockDatabase{
 		GetBoosterDataFunc: func(ctx context.Context, userId string, boosterId string) (map[string]interface{}, error) {
 			return map[string]interface{}{
@@ -98,7 +100,7 @@ func TestStreakTracker_SameDayDuplicate(t *testing.T) {
 			}, nil
 		},
 		SetBoosterDataFunc: func(ctx context.Context, userId string, boosterId string, data map[string]interface{}) error {
-			setCalled = true
+			saved = data
 			return nil
 		},
 	}
@@ -106,15 +108,15 @@ func TestStreakTracker_SameDayDuplicate(t *testing.T) {
 	provider := &StreakTracker{}
 	provider.SetService(&bootstrap.Service{DB: mockDB})
 
-	res, err := provider.Enrich(context.Background(), slog.Default(), makeActivity("2026-02-08"), &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1"}}, map[string]string{}, false)
+	res, err := provider.Enrich(context.Background(), slog.Default(), makeActivity("2026-02-08"), &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1"}}, map[string]string{"external_id": "second"}, false)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if res.Metadata["streak_current"] != "5" {
 		t.Errorf("Expected streak_current=5 (no increment), got %s", res.Metadata["streak_current"])
 	}
-	if setCalled {
-		t.Error("Expected SetBoosterData NOT to be called for same-day duplicate")
+	if saved["current_streak"] != 5 {
+		t.Errorf("Expected the stored streak to stay 5, got %v", saved["current_streak"])
 	}
 }
 
@@ -149,8 +151,10 @@ func TestStreakTracker_StreakBroken(t *testing.T) {
 	}
 }
 
+// A late upload (or repost) of the day before a 5-day streak's last day reads the
+// streak as it stood that day (4), and leaves the stored streak at 5.
 func TestStreakTracker_OutOfOrderActivity(t *testing.T) {
-	var setCalled bool
+	var saved map[string]interface{}
 	mockDB := &mocks.MockDatabase{
 		GetBoosterDataFunc: func(ctx context.Context, userId string, boosterId string) (map[string]interface{}, error) {
 			return map[string]interface{}{
@@ -160,7 +164,7 @@ func TestStreakTracker_OutOfOrderActivity(t *testing.T) {
 			}, nil
 		},
 		SetBoosterDataFunc: func(ctx context.Context, userId string, boosterId string, data map[string]interface{}) error {
-			setCalled = true
+			saved = data
 			return nil
 		},
 	}
@@ -168,17 +172,70 @@ func TestStreakTracker_OutOfOrderActivity(t *testing.T) {
 	provider := &StreakTracker{}
 	provider.SetService(&bootstrap.Service{DB: mockDB})
 
-	// Activity from yesterday arriving late (out-of-order)
-	res, err := provider.Enrich(context.Background(), slog.Default(), makeActivity("2026-02-07"), &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1"}}, map[string]string{}, false)
+	res, err := provider.Enrich(context.Background(), slog.Default(), makeActivity("2026-02-07"), &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1"}}, map[string]string{"external_id": "late"}, false)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if res.Metadata["streak_current"] != "5" {
-		t.Errorf("Expected streak_current=5 (unchanged), got %s", res.Metadata["streak_current"])
+	if res.Metadata["streak_current"] != "4" {
+		t.Errorf("Expected streak_current=4 (as of 7 Feb), got %s", res.Metadata["streak_current"])
 	}
-	if setCalled {
-		t.Error("Expected SetBoosterData NOT to be called for out-of-order activity")
+	if saved["current_streak"] != 5 || saved["last_activity_date"] != "2026-02-08" {
+		t.Errorf("Expected the stored streak to stay 5 ending 8 Feb, got %v / %v", saved["current_streak"], saved["last_activity_date"])
 	}
+}
+
+// The Birmingham weekend: the doubles on Tuesday started a streak ("Day 1"), the solo
+// on Wednesday made it 2. Reposting the doubles afterwards must say Day 1 again, both
+// from a ledger and from a document the running-total code wrote.
+func TestStreakTracker_RepostIsAsOfStart(t *testing.T) {
+	doubles := makeActivity("2026-10-27")
+	solo := makeActivity("2026-10-28")
+	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1"}}
+	run := func(t *testing.T, data map[string]interface{}, act *pbactivity.StandardizedActivity, id string) (*providers.EnrichmentResult, map[string]interface{}) {
+		t.Helper()
+		mockDB := &mocks.MockDatabase{
+			GetBoosterDataFunc: func(ctx context.Context, userId, boosterId string) (map[string]interface{}, error) {
+				return data, nil
+			},
+			SetBoosterDataFunc: func(ctx context.Context, userId, boosterId string, d map[string]interface{}) error {
+				for k, v := range d {
+					data[k] = v
+				}
+				return nil
+			},
+		}
+		p := &StreakTracker{}
+		p.SetService(&bootstrap.Service{DB: mockDB})
+		res, err := p.Enrich(context.Background(), slog.Default(), act, u, map[string]string{"external_id": id}, false)
+		if err != nil {
+			t.Fatalf("Enrich: %v", err)
+		}
+		return res, data
+	}
+
+	t.Run("ledger", func(t *testing.T) {
+		data := map[string]interface{}{"current_streak": float64(3), "longest_streak": float64(120), "last_activity_date": "2026-10-24"}
+		if res, _ := run(t, data, doubles, "doubles"); !strings.Contains(res.Description, "Day 1") {
+			t.Fatalf("doubles first run: %q", res.Description)
+		}
+		if res, _ := run(t, data, solo, "solo"); res.Metadata["streak_current"] != "2" {
+			t.Fatalf("solo: %v", res.Metadata)
+		}
+		res, saved := run(t, data, doubles, "doubles")
+		if res.Metadata["streak_current"] != "1" || !strings.Contains(res.Description, "Day 1") {
+			t.Errorf("doubles repost: %v %q", res.Metadata, res.Description)
+		}
+		if saved["current_streak"] != 2 || saved["longest_streak"] != 120 {
+			t.Errorf("stored streak should stay 2 (best 120): %v / %v", saved["current_streak"], saved["longest_streak"])
+		}
+	})
+	t.Run("legacy document", func(t *testing.T) {
+		data := map[string]interface{}{"current_streak": float64(2), "longest_streak": float64(120), "last_activity_date": "2026-10-28"}
+		res, _ := run(t, data, doubles, "doubles")
+		if res.Metadata["streak_current"] != "1" || !strings.Contains(res.Description, "Day 1") {
+			t.Errorf("doubles repost on a legacy document: %v %q", res.Metadata, res.Description)
+		}
+	})
 }
 
 func TestStreakTracker_LongestStreakUpdates(t *testing.T) {

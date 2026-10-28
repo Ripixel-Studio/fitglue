@@ -2,6 +2,7 @@
 //
 //	fitgluectl export-site --slug james [--all | --since <RFC3339>] [--bucket B] [--prefix site/james]
 //	fitgluectl export-site --slug james --dry-run --out <dir>
+//	fitgluectl fix-calories --slug james [--apply]          store Strava's calories on the entries
 //	fitgluectl connect googlehealth|strava|github|spotify  prints the authorise URL (fitbit: legacy, dead 2 Nov 2026)
 //	fitgluectl connect hevy --api-key-stdin                 stores the key + mints the webhook ingress key
 //	fitgluectl connect intervals --api-key-stdin --athlete-id i12345
@@ -34,6 +35,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "usage: fitgluectl <command> [flags]")
 	fmt.Fprintln(os.Stderr, "commands:")
 	fmt.Fprintln(os.Stderr, "  export-site   export the showcase as static JSON for the personal site")
+	fmt.Fprintln(os.Stderr, "  fix-calories  correct stored entry calories to the source platform's figure (dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
 	fmt.Fprintln(os.Stderr, "  connections   list the owner's connected providers")
 	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup / parkrun-check trigger message (what the box timers run)")
@@ -49,6 +51,8 @@ func main() {
 	switch os.Args[1] {
 	case "export-site":
 		err = exportSiteCommand(ctx, os.Args[2:], os.Stderr, connectGCP)
+	case "fix-calories":
+		err = fixCaloriesCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, connectGCP)
 	case "connect":
 		err = connectCommand(ctx, os.Args[2:], os.Stdin, os.Stdout, os.Stderr, openOwnerStore)
 	case "connections":

@@ -33,6 +33,12 @@ type UploadedActivityRecord struct {
 	Destination   plugin.DestinationType `protobuf:"varint,6,opt,name=destination,proto3,enum=fitglue.models.plugin.DestinationType" json:"destination,omitempty"`
 	DestinationId string                 `protobuf:"bytes,7,opt,name=destination_id,json=destinationId,proto3" json:"destination_id,omitempty"`
 	UploadedAt    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=uploaded_at,json=uploadedAt,proto3" json:"uploaded_at,omitempty"`
+	// The title FitGlue last wrote to the destination activity: the name it created it
+	// with, or the name a same-source update set. Empty when FitGlue never set the title
+	// (it kept a third-party one such as ROXFIT's) or the record predates this field.
+	// A same-source update treats the activity's current title as FitGlue's own only
+	// when it equals this.
+	WrittenTitle  string `protobuf:"bytes,9,opt,name=written_title,json=writtenTitle,proto3" json:"written_title,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -121,6 +127,13 @@ func (x *UploadedActivityRecord) GetUploadedAt() *timestamppb.Timestamp {
 		return x.UploadedAt
 	}
 	return nil
+}
+
+func (x *UploadedActivityRecord) GetWrittenTitle() string {
+	if x != nil {
+		return x.WrittenTitle
+	}
+	return ""
 }
 
 // ShowcasedActivity represents a publicly shareable activity snapshot.
@@ -1306,7 +1319,7 @@ var File_models_activity_uploaded_proto protoreflect.FileDescriptor
 
 const file_models_activity_uploaded_proto_rawDesc = "" +
 	"\n" +
-	"\x1emodels/activity/uploaded.proto\x12\x17fitglue.models.activity\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cmodels/activity/source.proto\x1a\x1cmodels/plugin/provider.proto\x1a\"models/activity/standardized.proto\x1a!models/activity/enrichments.proto\"\x8c\x03\n" +
+	"\x1emodels/activity/uploaded.proto\x12\x17fitglue.models.activity\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cmodels/activity/source.proto\x1a\x1cmodels/plugin/provider.proto\x1a\"models/activity/standardized.proto\x1a!models/activity/enrichments.proto\"\xb1\x03\n" +
 	"\x16UploadedActivityRecord\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12?\n" +
@@ -1318,7 +1331,8 @@ const file_models_activity_uploaded_proto_rawDesc = "" +
 	"\vdestination\x18\x06 \x01(\x0e2&.fitglue.models.plugin.DestinationTypeR\vdestination\x12%\n" +
 	"\x0edestination_id\x18\a \x01(\tR\rdestinationId\x12;\n" +
 	"\vuploaded_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"uploadedAt\"\xa0\b\n" +
+	"uploadedAt\x12#\n" +
+	"\rwritten_title\x18\t \x01(\tR\fwrittenTitle\"\xa0\b\n" +
 	"\x11ShowcasedActivity\x12\x1f\n" +
 	"\vshowcase_id\x18\x01 \x01(\tR\n" +
 	"showcaseId\x12\x1f\n" +

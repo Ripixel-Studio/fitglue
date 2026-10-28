@@ -52,100 +52,48 @@ func (p *StreakTracker) Enrich(ctx context.Context, logger *slog.Logger, activit
 		activityTypes = "any"
 	}
 
-	// Get activity date (use start time if available)
-	activityDate := time.Now().Format("2006-01-02")
+	// The streak is computed as of this activity's start: the days with an activity
+	// that started before it, plus its own day (providers.Ledger). A repost of Tuesday's
+	// race after Wednesday's reads Tuesday's streak, not Wednesday's.
+	activityTime := time.Now()
 	if activity.StartTime != nil {
-		activityDate = activity.StartTime.AsTime().Format("2006-01-02")
+		activityTime = activity.StartTime.AsTime()
 	}
-
-	// Fetch streak data from booster_data
-	var currentStreak int
-	var longestStreak int
-	var lastActivityDate string
+	activityDate := dayOf(activityTime)
+	externalId := inputs["external_id"]
 	boosterId := fmt.Sprintf("streak_tracker_%s", activityTypes)
 
-	var lastExternalId string
-	var cachedDescription string
-	var cachedMetadata map[string]string
-
+	var ledger providers.Ledger
+	var longestBefore int
 	if p.Service != nil && p.Service.DB != nil {
 		data, err := p.Service.DB.GetBoosterData(ctx, user.UserId, boosterId)
 		if err != nil {
 			logger.Warn("Failed to fetch streak data", "error", err)
 		} else if data != nil {
-			currentStreak = int(providers.ToFloat64(data["current_streak"]))
-			longestStreak = int(providers.ToFloat64(data["longest_streak"]))
-			if val, ok := data["last_activity_date"].(string); ok {
-				lastActivityDate = val
-			}
-			if v, ok := data["last_external_id"].(string); ok {
-				lastExternalId = v
-			}
-			if v, ok := data["last_result_description"].(string); ok {
-				cachedDescription = v
-			}
-			if v, ok := data["last_result_metadata"].(map[string]interface{}); ok {
-				cachedMetadata = make(map[string]string)
-				for k, val := range v {
-					if s, ok := val.(string); ok {
-						cachedMetadata[k] = s
-					}
-				}
-			}
+			ledger, longestBefore = streakLedgerOf(data)
 		}
 	}
 
-	// Same-source dedup: if this activity was already processed, return cached result
-	externalId := inputs["external_id"]
-	if externalId != "" && lastExternalId == externalId && cachedDescription != "" {
-		logger.Info("streak_tracker: returning cached result for same-source activity",
-			"external_id", externalId)
-		if cachedMetadata == nil {
-			cachedMetadata = map[string]string{}
-		}
-		cachedMetadata["dedup"] = "true"
-		return &providers.EnrichmentResult{
-			Description: cachedDescription,
-			Metadata:    cachedMetadata,
-		}, nil
-	}
-
-	// Determine streak continuation
-	streakBroken := false
-	isNewDay := lastActivityDate != activityDate
-
-	if isNewDay && lastActivityDate != "" {
-		actDate, _ := time.Parse("2006-01-02", activityDate)
-		lastDate, _ := time.Parse("2006-01-02", lastActivityDate)
-
-		// If this activity is from a date BEFORE or SAME as the last recorded date,
-		// it's out-of-order or a race condition duplicate — don't modify the streak
-		if !actDate.After(lastDate) {
-			isNewDay = false
-			logger.Info("streak_tracker: skipping out-of-order or duplicate activity",
-				"activity_date", activityDate,
-				"last_activity_date", lastActivityDate,
-			)
-		} else {
-			// Check if streak continues: last activity must be exactly the day before this activity
-			expectedPrev := actDate.AddDate(0, 0, -1).Format("2006-01-02")
-			if lastActivityDate != expectedPrev {
-				// Streak broken - reset
-				streakBroken = true
-				currentStreak = 0
-			}
+	earlier := ledger.Before(activityTime, externalId)
+	days := map[string]bool{}
+	isNewDay := true
+	for _, e := range earlier {
+		d := dayOf(e.Start)
+		days[d] = true
+		if d == activityDate {
+			isNewDay = false // a second activity that day: the streak already counts it
 		}
 	}
-
-	// Increment streak only if this is a new day
-	if isNewDay {
-		currentStreak++
+	hadEarlierDay := longestBefore > 0
+	for d := range days {
+		if d < activityDate {
+			hadEarlierDay = true
+		}
 	}
-
-	// Update longest streak
-	if currentStreak > longestStreak {
-		longestStreak = currentStreak
-	}
+	days[activityDate] = true
+	currentStreak := runEndingAt(days, activityDate)
+	longestStreak := max(longestBefore, longestRun(days, activityDate))
+	streakBroken := currentStreak == 1 && isNewDay && hadEarlierDay
 
 	// Build output
 	activityLabel := getActivityLabel(activityTypes)
@@ -180,28 +128,45 @@ func (p *StreakTracker) Enrich(ctx context.Context, logger *slog.Logger, activit
 		"activity_type_filter": activityTypes,
 	}
 
-	// Persist updated streak + cached result for same-source dedup
-	if p.Service != nil && p.Service.DB != nil && isNewDay {
-		metadataMap := make(map[string]interface{})
-		for k, v := range resultMetadata {
-			metadataMap[k] = v
+	// Record this activity (replacing its entry on a repost) and keep the streak as of
+	// the latest activity on the document and the user profile.
+	if p.Service != nil && p.Service.DB != nil {
+		ledger = ledger.Put(providers.LedgerEntry{ID: externalId, Start: activityTime})
+		cutoff := time.Now().AddDate(0, 0, -ledgerDays)
+		pruned := map[string]bool{}
+		for _, e := range ledger {
+			if e.Start.Before(cutoff) {
+				pruned[dayOf(e.Start)] = true
+			}
 		}
+		if len(pruned) > 0 {
+			longestBefore = max(longestBefore, longestRun(pruned, ""))
+			ledger = ledger.Since(cutoff)
+		}
+		all := map[string]bool{}
+		for _, e := range ledger {
+			all[dayOf(e.Start)] = true
+		}
+		latestDate := activityDate
+		if last, ok := ledger.Latest(); ok {
+			latestDate = dayOf(last.Start)
+		}
+		latestCurrent := runEndingAt(all, latestDate)
+		latestLongest := max(longestBefore, longestRun(all, ""))
 		updateData := map[string]interface{}{
-			"current_streak":          currentStreak,
-			"longest_streak":          longestStreak,
-			"last_activity_date":      activityDate,
-			"last_external_id":        externalId,
-			"last_result_description": sb.String(),
-			"last_result_metadata":    metadataMap,
+			providers.LedgerField: ledger.ToFirestore(),
+			"longest_before":      longestBefore,
+			"current_streak":      latestCurrent,
+			"longest_streak":      latestLongest,
+			"last_activity_date":  latestDate,
 		}
 		if err := p.Service.DB.SetBoosterData(ctx, user.UserId, boosterId, updateData); err != nil {
 			logger.Warn("Failed to save streak data", "error", err)
 		}
-
 		// Roll up current/longest streak onto UserProfile for the stats dashboard.
 		if err := p.Service.DB.UpdateUser(ctx, user.UserId, map[string]interface{}{
-			"current_streak_days": currentStreak,
-			"longest_streak_days": longestStreak,
+			"current_streak_days": latestCurrent,
+			"longest_streak_days": latestLongest,
 		}); err != nil {
 			logger.Warn("Failed to update user streak fields", "error", err)
 		}
@@ -217,6 +182,69 @@ func (p *StreakTracker) Enrich(ctx context.Context, logger *slog.Logger, activit
 			},
 		},
 	}, nil
+}
+
+// ledgerDays bounds the ledger; the longest streak among pruned days is kept in
+// longest_before.
+const ledgerDays = 800
+
+const dayLayout = "2006-01-02"
+
+func dayOf(t time.Time) string { return t.UTC().Format(dayLayout) }
+
+// streakLedgerOf reads the ledger and the longest streak older than it. A document
+// written by the running-total code has no ledger: its current streak is rebuilt as
+// the run of days ending at last_activity_date, and its longest streak carried over.
+func streakLedgerOf(data map[string]interface{}) (providers.Ledger, int) {
+	if l, ok := providers.ParseLedger(data); ok {
+		return l, int(providers.ToFloat64(data["longest_before"]))
+	}
+	longest := int(providers.ToFloat64(data["longest_streak"]))
+	current := int(providers.ToFloat64(data["current_streak"]))
+	last, err := time.Parse(dayLayout, providers.LedgerString(data["last_activity_date"]))
+	if err != nil || current <= 0 {
+		return nil, longest
+	}
+	var l providers.Ledger
+	for i := current - 1; i >= 0; i-- {
+		l = append(l, providers.LedgerEntry{Start: last.AddDate(0, 0, -i)})
+	}
+	return l, longest
+}
+
+// runEndingAt counts the consecutive active days ending at day.
+func runEndingAt(days map[string]bool, day string) int {
+	t, err := time.Parse(dayLayout, day)
+	if err != nil || !days[day] {
+		return 0
+	}
+	n := 0
+	for days[t.Format(dayLayout)] {
+		n++
+		t = t.AddDate(0, 0, -1)
+	}
+	return n
+}
+
+// longestRun is the longest run of consecutive active days, among days up to and
+// including through ("" for all).
+func longestRun(days map[string]bool, through string) int {
+	best := 0
+	for d := range days {
+		if through != "" && d > through {
+			continue
+		}
+		prev, err := time.Parse(dayLayout, d)
+		if err != nil || days[prev.AddDate(0, 0, -1).Format(dayLayout)] {
+			continue // not the first day of a run
+		}
+		n := 0
+		for t := prev; days[t.Format(dayLayout)] && (through == "" || t.Format(dayLayout) <= through); t = t.AddDate(0, 0, 1) {
+			n++
+		}
+		best = max(best, n)
+	}
+	return best
 }
 
 func getStreakEmoji(streak int) string {

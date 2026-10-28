@@ -6,6 +6,7 @@ import (
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
@@ -75,50 +76,39 @@ func (p *DistanceMilestones) Enrich(ctx context.Context, logger *slog.Logger, ac
 		}, nil
 	}
 
-	// Fetch lifetime distance from booster_data
-	var lifetimeDistance float64
+	// The lifetime total is computed as of this activity's start: everything that
+	// started before it (providers.Ledger), so a repost or a late upload neither counts
+	// the activities after it nor counts itself twice.
 	boosterId := fmt.Sprintf("distance_milestones_%s", sport)
-
-	var lastExternalId string
-	var cachedDescription string
-	var cachedMetadata map[string]string
-
+	externalId := inputs["external_id"]
+	activityTime := time.Now()
+	if activity.StartTime != nil {
+		activityTime = activity.StartTime.AsTime()
+	}
+	var ledger providers.Ledger
+	var legacyLastID string
 	if p.Service != nil && p.Service.DB != nil {
 		data, err := p.Service.DB.GetBoosterData(ctx, user.UserId, boosterId)
 		if err != nil {
 			logger.Warn("Failed to fetch lifetime distance", "error", err)
 		} else if data != nil {
-			lifetimeDistance = providers.ToFloat64(data["lifetime_distance"])
-			if v, ok := data["last_external_id"].(string); ok {
-				lastExternalId = v
-			}
-			if v, ok := data["last_result_description"].(string); ok {
-				cachedDescription = v
-			}
-			if v, ok := data["last_result_metadata"].(map[string]interface{}); ok {
-				cachedMetadata = make(map[string]string)
-				for k, val := range v {
-					if s, ok := val.(string); ok {
-						cachedMetadata[k] = s
-					}
-				}
-			}
+			ledger = lifetimeLedgerOf(data)
+			legacyLastID, _ = data["last_external_id"].(string)
 		}
 	}
-
-	// Same-source dedup: if this activity was already processed, return cached result
-	externalId := inputs["external_id"]
-	if externalId != "" && lastExternalId == externalId && cachedDescription != "" {
-		logger.Info("distance_milestones: returning cached result for same-source activity",
-			"external_id", externalId)
-		if cachedMetadata == nil {
-			cachedMetadata = map[string]string{}
+	alreadyCarried := inputs["is_repost"] == "true" || (externalId != "" && externalId == legacyLastID)
+	lifetimeDistance := ledger.Before(activityTime, externalId).Sum(nil)
+	// A legacy total written after this activity started is still the lifetime so far
+	// (minus this activity when it is already inside it): dropping it would restart the
+	// lifetime at zero.
+	for _, e := range ledger {
+		if e.ID == "" && !e.Start.Before(activityTime) {
+			if alreadyCarried {
+				lifetimeDistance += max(0, e.Value-distanceKm)
+			} else {
+				lifetimeDistance += e.Value
+			}
 		}
-		cachedMetadata["dedup"] = "true"
-		return &providers.EnrichmentResult{
-			Description: cachedDescription,
-			Metadata:    cachedMetadata,
-		}, nil
 	}
 
 	// Calculate new total
@@ -176,19 +166,14 @@ func (p *DistanceMilestones) Enrich(ctx context.Context, logger *slog.Logger, ac
 		resultMetadata["next_milestone"] = fmt.Sprintf("%.0f", nextMilestone)
 	}
 
-	// Persist state + cached result for same-source dedup.
-	// Skip on full-pipeline repost: the lifetime total was already updated on the original run.
-	if p.Service != nil && p.Service.DB != nil && inputs["is_repost"] != "true" {
-		// Convert metadata to interface map for Firestore
-		metadataMap := make(map[string]interface{})
-		for k, v := range resultMetadata {
-			metadataMap[k] = v
-		}
+	// Record this activity (replacing its entry on a repost). Entries older than a year
+	// fold into one carried total. A repost of an activity a legacy total already holds
+	// (it started before that total was written) is not added again.
+	if p.Service != nil && p.Service.DB != nil && externalId != "" && !(alreadyCarried && carriedAfter(ledger, activityTime)) {
+		ledger = ledger.Put(providers.LedgerEntry{ID: externalId, Start: activityTime, Value: distanceKm}).Fold(time.Now().AddDate(-1, 0, 0))
 		updateData := map[string]interface{}{
-			"lifetime_distance":       newDistance,
-			"last_external_id":        externalId,
-			"last_result_description": sb.String(),
-			"last_result_metadata":    metadataMap,
+			providers.LedgerField: ledger.ToFirestore(),
+			"lifetime_distance":   ledger.Sum(nil),
 		}
 		if err := p.Service.DB.SetBoosterData(ctx, user.UserId, boosterId, updateData); err != nil {
 			logger.Warn("Failed to save lifetime distance", "error", err)
@@ -220,6 +205,29 @@ func (p *DistanceMilestones) Enrich(ctx context.Context, logger *slog.Logger, ac
 			DistanceMilestone: milestoneSummary,
 		},
 	}, nil
+}
+
+// lifetimeLedgerOf reads the ledger. A document written by the running-total code has
+// none: its lifetime total is carried over as one entry dated when it was last written.
+func lifetimeLedgerOf(data map[string]interface{}) providers.Ledger {
+	if l, ok := providers.ParseLedger(data); ok {
+		return l
+	}
+	if total := providers.ToFloat64(data["lifetime_distance"]); total > 0 {
+		return providers.Ledger{{Start: providers.LastUpdated(data), Value: total}}
+	}
+	return nil
+}
+
+// carriedAfter reports a carried total (ID "") written after start, which already
+// holds an activity that started at start and is being processed again.
+func carriedAfter(l providers.Ledger, start time.Time) bool {
+	for _, e := range l {
+		if e.ID == "" && start.Before(e.Start) {
+			return true
+		}
+	}
+	return false
 }
 
 func getMilestoneEmoji(km float64) string {

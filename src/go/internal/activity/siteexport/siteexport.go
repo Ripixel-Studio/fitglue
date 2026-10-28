@@ -289,6 +289,9 @@ func writeActivity(ctx context.Context, deps Deps, entry *pbactivity.ShowcasePro
 	if sc.ExpiresAt != nil && sc.ExpiresAt.AsTime().Before(now) {
 		return fmt.Errorf("%w: %s expired at %s", ErrNotExportable, entry.ShowcaseId, sc.ExpiresAt.AsTime().Format(time.RFC3339))
 	}
+	// Strava's calories over the MET estimate older runs stored (mutates entry, so the
+	// index ExportAll writes next carries the same figure).
+	ApplyPlatformCalories(sc, entry)
 	b, err := BuildActivity(sc, entry, now)
 	if err != nil {
 		return fmt.Errorf("build %s: %w", entry.ShowcaseId, err)
