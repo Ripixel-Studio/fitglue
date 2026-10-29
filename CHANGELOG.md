@@ -5,6 +5,25 @@ Hand-written since F1.8 of the single-user conversion; entries below
 
 ## Unreleased
 
+### feat: sleep, body and nutrition routes from Google Health (L0.1b)
+
+- `GET /api/v2/users/me/sleep?days=7` (the J9.4 shape Jarvis's readiness card
+  reads: `nights[{date, start, end, minutes_asleep, efficiency, stages}]`),
+  `GET /api/v2/users/me/body?days=30` (`weights`, `body_fat`, `resting_hr`,
+  `hrv`, one per day) and `GET /api/v2/users/me/nutrition?days=7` (`days[{date,
+  kcal, protein_g, carbs_g, fat_g, meals[{type, name, kcal, at}]}]`). Bearer
+  auth; `days` 1–90; 404 `NOT_CONNECTED` without the grant or the route's
+  scope; 5-minute in-memory cache. `internal/health`, handlers in
+  `services/api-client/internal/server/health.go`.
+- `pkg/integrations/googlehealth`: sleep `:reconcile`, weight / body-fat /
+  nutrition-log `:dailyRollUp`, daily resting HR and HRV, the food log, and a
+  per-app source census; all paginated, `all-sources` (MacroFactor and the
+  Renpho scale arrive through Health Connect).
+- api-client now refreshes the `googlehealth` token itself (needs
+  `GOOGLEHEALTH_CLIENT_ID` / `_SECRET`, already in the box env).
+- `fitgluectl health-check`: runs the three routes' code against the live
+  grant and prints counts, date ranges and writing apps — never a value.
+
 ### feat!: heart rate from the Google Health API; `googlehealth` OAuth provider (L0.1a)
 
 Google turns off the Fitbit Web API and Fitbit OAuth endpoints on 2 Nov 2026

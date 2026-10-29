@@ -9,7 +9,9 @@ import (
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/pubsub"
 	gcstorage "cloud.google.com/go/storage"
+	"github.com/fitglue/server/src/go/internal/health"
 	"github.com/fitglue/server/src/go/internal/infra"
+	"github.com/fitglue/server/src/go/pkg/infrastructure/database"
 	infraps "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
 	infrastorage "github.com/fitglue/server/src/go/pkg/infrastructure/storage"
 	"github.com/fitglue/server/src/go/services/api-client/internal/server"
@@ -114,6 +116,10 @@ func main() {
 		pipelineClient,
 		activityClient,
 	)
+
+	// Sleep, body and food from Google Health (L0.1b), read with the owner's
+	// googlehealth grant straight from the user store.
+	apiServer.SetHealth(health.NewReader(health.FirestoreGrant(database.NewFirestoreAdapter(firestoreClient), authCfg.OwnerUID)))
 
 	logger.Info(ctx, "Starting service.api.client", "port", port)
 

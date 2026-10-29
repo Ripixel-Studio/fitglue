@@ -47,6 +47,7 @@ bin/fitgluectl connect googlehealth|strava|github|spotify  # prints the authoris
 bin/fitgluectl connect hevy --api-key-stdin             # stores the key, prints the webhook ingress key once
 bin/fitgluectl connect intervals --api-key-stdin --athlete-id i12345
 bin/fitgluectl connections [--json]                     # what is connected, token expiry
+bin/fitgluectl health-check                             # sleep/body/nutrition routes vs Google Health: counts + dates only
 
 # Box deploy (systemd user units on Jarvis; docs/guides/box-deploy.md)
 make build-box          # static linux/amd64 binaries for the 7 services + fitgluectl, bootstrap-owner → bin/
