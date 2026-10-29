@@ -42,6 +42,7 @@ type APIServer struct {
 	userService userpb.UserServiceClient
 	pipelineSvc pipelinepb.PipelineServiceClient
 	activitySvc activitypb.ActivityServiceClient
+	health      HealthReader // nil: the health routes answer 404
 }
 
 // NewAPIServer constructs the application routing and API middleware stack
@@ -113,6 +114,7 @@ func (s *APIServer) setupRoutes() {
 			s.registerActivityRoutes(r)
 			s.registerOAuthRoutes(r)
 			s.registerRepostRoutes(r)
+			s.registerHealthRoutes(r)
 		})
 	})
 }

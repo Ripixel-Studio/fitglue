@@ -97,7 +97,7 @@ is the same command; the callback overwrites the integration document.
   verify token; `api-webhook` must already be serving at the new URL or the
   create fails.
 
-### Google Health (heart rate; sleep, body and food next)
+### Google Health (heart rate, sleep, body, food)
 
 The Google Health API (`health.googleapis.com/v4`) replaced the Fitbit Web API,
 which Google turns off on **2 Nov 2026** (support ended 30 Sep;
@@ -110,8 +110,8 @@ Fitbit API for heart rate any more.
   `access_type=offline` (refresh token) and `prompt=consent` (a refresh token
   on a re-connect too, and the scope checkboxes again); token
   `https://oauth2.googleapis.com/token`, client id/secret in the form body.
-- Scopes (read-only, all four asked for now so the sleep/body/food routes
-  need no re-consent):
+- Scopes (read-only, all four asked for at consent; the sleep/body/food
+  routes below each need their own):
   `https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly`
   (heart rate, resting HR, HRV, weight — **the one heart rate needs**),
   `…/googlehealth.activity_and_fitness.readonly` (exercise sessions, steps),
@@ -132,8 +132,10 @@ Fitbit API for heart rate any more.
   unverified: fine under 100 users, with the "Google hasn't verified this
   app" interstitial (Advanced → Go to …).
 - Env: `GOOGLEHEALTH_CLIENT_ID`, `GOOGLEHEALTH_CLIENT_SECRET` in
-  `~/.jarvis/fitglue.env` (api-client exchanges the code; pipeline refreshes;
-  the CLI prints the URL).
+  `~/.jarvis/fitglue.env` (api-client exchanges the code and refreshes for
+  the health routes; pipeline refreshes for heart rate; the CLI prints the
+  URL). Two refreshers on one grant are fine for Google — its refresh tokens
+  are reusable, unlike Fitbit's single-use ones.
 - Precondition: the Google account is signed in to the **Google Health app**
   on the phone (the Fitbit account migrated). Otherwise every call answers
   `400 ACCOUNT_NOT_LINKED`. The callback calls `GET /v4/users/me/identity`
@@ -153,6 +155,57 @@ Fitbit API for heart rate any more.
 ```bash
 fitgluectl connect googlehealth     # open the URL, tick every box
 fitgluectl connections              # googlehealth row, external id = health user id
+```
+
+#### Sleep, body and food routes (L0.1b)
+
+The owner's API serves them from the same grant (`internal/health`, client in
+`pkg/integrations/googlehealth/daily.go`); Jarvis reads them and never calls
+Google itself. Bearer token as every `/users/me` route; `?days` is 1–90; the
+window is today (the box's civil day) and the `days − 1` days before it.
+
+| Route | Default | Shape | Needs scope |
+|---|---|---|---|
+| `GET /api/v2/users/me/sleep?days=7` | 7 | `{nights[{date, start, end, minutes_asleep, efficiency, stages?{deep, light, rem, wake}, nap?, main_sleep?}]}` — oldest first, naps included | `googlehealth.sleep.readonly` |
+| `GET /api/v2/users/me/body?days=30` | 30 | `{weights[{date, kg}], body_fat[{date, pct}], resting_hr[{date, bpm}], hrv[{date, ms}]}` — one per day, oldest first | `googlehealth.health_metrics_and_measurements.readonly` |
+| `GET /api/v2/users/me/nutrition?days=7` | 7 | `{days[{date, kcal, protein_g, carbs_g, fat_g, meals[{type, name, kcal, at}]}]}` — days with anything logged, oldest first | `googlehealth.nutrition.readonly` |
+
+- **404 `NOT_CONNECTED`** when there is no enabled grant, the stored scope
+  list lacks the route's scope, or Google answers 403 / `ACCOUNT_NOT_LINKED`;
+  Jarvis reads 404 as "not connected". 400 for a bad `days`, 502 when Google
+  fails otherwise. A 200 is cached in memory for 5 minutes per route and
+  window.
+- Sleep is the J9.4 shape Jarvis's readiness card reads (`docs/home-screen.md`
+  in the jarvis repo, "The sleep route"): `date` is the wake date (civil end
+  date), `start`/`end` carry Google's offset, `efficiency` is
+  `minutesAsleep / minutesInSleepPeriod × 100` (Google has no efficiency
+  field), `stages` only for stage-tracked logs. There is no sleep score in
+  the API, so `score` is never sent. Read with `sleep/dataPoints:reconcile`,
+  filter `sleep.interval.civil_end_time >= "<from>"`, 25 a page; sleep
+  refuses an explicit `dataSourceFamily`.
+- Weight and body fat are `dataPoints:dailyRollUp` averages per day
+  (`weightGramsAvg`, `bodyFatPercentageAvg`; ≤ 90 days a call), so the same
+  weigh-in arriving twice (Renpho through Health Connect *and* as
+  `GOOGLE_WEB_API`) does not count twice. Resting HR and HRV are not roll-up
+  types: `daily-resting-heart-rate` / `daily-heart-rate-variability`
+  `dataPoints` with `daily_resting_heart_rate.date >= "<from>"` (filters take
+  snake_case names).
+- Food: day totals from `nutrition-log` `dailyRollUp` (energy `kcalSum`,
+  `PROTEIN` nutrient, `totalCarbohydrate`, `totalFat`; summed from the entries
+  if a day has no roll-up), meals from `nutrition-log/dataPoints` with
+  `nutrition_log.interval.civil_start_time >= "<from>"`. `type` is the
+  lower-cased `mealType`, or `null` — MacroFactor writes none.
+- Everything except sleep asks for `dataSourceFamily=all-sources` (the
+  default, stated anyway): the food (MacroFactor, `com.sbs.diet`) and the
+  scale (Renpho, `com.renpho.health`) reach Google Health through Health
+  Connect, which `google-wearables` would drop.
+
+Check what exists without printing a value — counts, date ranges and the
+writing apps only, through the same code the routes run (read-only):
+
+```bash
+set -a; . ~/.jarvis/fitglue.env; set +a
+GOOGLE_APPLICATION_CREDENTIALS=~/.jarvis/fitglue-box-sa.json bin/fitgluectl health-check [--sleep-days 7 --body-days 30 --nutrition-days 7]
 ```
 
 ### Fitbit (legacy — turned off 2 Nov 2026)

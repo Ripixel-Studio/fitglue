@@ -3,8 +3,9 @@
 // API, which Google turns off on 2 Nov 2026.
 //
 // Only what FitGlue reads is here: the caller's identity (proof the Google
-// account is linked to the Google Health app) and heart-rate samples for a
-// time range. Authentication is the caller's business: pass an *http.Client
+// account is linked to the Google Health app), heart-rate samples for a
+// time range, and (daily.go) sleep, weight, body fat, resting HR, HRV and
+// the food log. Authentication is the caller's business: pass an *http.Client
 // whose transport adds the OAuth bearer (pkg/infrastructure/oauth with
 // provider "googlehealth").
 //

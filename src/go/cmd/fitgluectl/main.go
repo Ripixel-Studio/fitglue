@@ -9,6 +9,7 @@
 //	fitgluectl connections [--json]                         what is connected, token expiry
 //	fitgluectl trigger roundup --data '{"period_type":"week"}' publish a roundup trigger (the box timers)
 //	fitgluectl trigger parkrun-check                        publish a parkrun results-check trigger
+//	fitgluectl health-check                                 sleep/body/nutrition routes against the live grant: counts and dates only
 //
 // It talks to Firestore, GCS and Pub/Sub directly with Application Default Credentials
 // (gcloud auth application-default login, or a service account), so it runs
@@ -39,6 +40,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
 	fmt.Fprintln(os.Stderr, "  connections   list the owner's connected providers")
 	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup / parkrun-check trigger message (what the box timers run)")
+	fmt.Fprintln(os.Stderr, "  health-check  run the sleep/body/nutrition routes against Google Health; prints counts and date ranges only")
 }
 
 func main() {
@@ -59,6 +61,8 @@ func main() {
 		err = connectionsCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openOwnerStore)
 	case "trigger":
 		err = triggerCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, publishToPubSub)
+	case "health-check":
+		err = healthCheckCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveHealth)
 	case "-h", "--help", "help":
 		usage()
 		return
