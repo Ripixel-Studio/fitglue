@@ -97,7 +97,7 @@ func (c CLI) Complete(ctx context.Context, r Request) (string, error) {
 
 	if err := cmd.Run(); err != nil {
 		// The CLI prints the limit notice on stdout; inspect it, never log it.
-		if isLimited(stdout.Bytes()) || isLimited(stderr.Bytes()) {
+		if headTailLimited(stdout.Bytes()) || headTailLimited(stderr.Bytes()) {
 			return "", ErrLimited
 		}
 		if ctx.Err() != nil {
@@ -128,4 +128,13 @@ const maxLimitNotice = 400
 func isLimited(b []byte) bool {
 	b = bytes.TrimSpace(b)
 	return len(b) <= maxLimitNotice && limitText.Match(b)
+}
+
+// headTailLimited is the error-path scan: the notice may sit in the first or
+// last maxLimitNotice bytes of a long output. Nothing in between is scanned.
+func headTailLimited(b []byte) bool {
+	if len(b) <= 2*maxLimitNotice {
+		return limitText.Match(b)
+	}
+	return limitText.Match(b[:maxLimitNotice]) || limitText.Match(b[len(b)-maxLimitNotice:])
 }

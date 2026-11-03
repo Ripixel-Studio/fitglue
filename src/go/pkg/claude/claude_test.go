@@ -107,3 +107,15 @@ func TestSpentWindowIsErrLimited(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+func TestLongStdoutWithLimitNoticeOnFailure(t *testing.T) {
+	for _, body := range []string{
+		"echo 'usage limit reached'; head -c 2000 /dev/zero | tr '\\0' x; exit 1",
+		"head -c 2000 /dev/zero | tr '\\0' x; echo; echo 'usage limit reached'; exit 1",
+	} {
+		_, err := fake(t, body).Complete(context.Background(), Request{Prompt: "p"})
+		if !errors.Is(err, ErrLimited) {
+			t.Fatalf("%q: %v", body, err)
+		}
+	}
+}
