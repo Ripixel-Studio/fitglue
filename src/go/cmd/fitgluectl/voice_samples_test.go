@@ -113,6 +113,9 @@ func TestVoiceSamplesTightensExistingFile(t *testing.T) {
 	if err := os.WriteFile(out, []byte("old\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chmod(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
 	var stdout, stderr bytes.Buffer
 	open := func(ctx context.Context, f *voiceSamplesFlags) (runLister, func(), error) {
 		return fakeRunLister{}, func() {}, nil
@@ -123,5 +126,8 @@ func TestVoiceSamplesTightensExistingFile(t *testing.T) {
 	st, _ := os.Stat(out)
 	if st.Mode().Perm() != 0o600 || st.Size() != 0 {
 		t.Errorf("mode %v size %d, want 0600 and empty", st.Mode().Perm(), st.Size())
+	}
+	if dst, _ := os.Stat(dir); dst.Mode().Perm() != 0o755 {
+		t.Errorf("existing dir mode = %v, want it left at 0755", dst.Mode().Perm())
 	}
 }

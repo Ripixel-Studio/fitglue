@@ -131,15 +131,20 @@ func voiceSamplesCommand(ctx context.Context, args []string, stdout, stderr io.W
 	return nil
 }
 
-// writePrivateJSONL writes the samples 0600 in a 0700 directory, tightening a
-// file or directory that already exists with looser modes.
+// writePrivateJSONL writes the samples 0600, tightening a file that already
+// exists with a looser mode. A directory it creates is 0700 (chmod'd past the
+// umask); an existing directory is left as its owner set it.
 func writePrivateJSONL(path string, samples []voiceSample) error {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return fmt.Errorf("create %s: %w", dir, err)
-	}
-	if err := os.Chmod(dir, 0o700); err != nil {
-		return fmt.Errorf("chmod %s: %w", dir, err)
+	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return fmt.Errorf("create %s: %w", dir, err)
+		}
+		if err := os.Chmod(dir, 0o700); err != nil {
+			return fmt.Errorf("chmod %s: %w", dir, err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("stat %s: %w", dir, err)
 	}
 	fh, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
