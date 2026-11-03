@@ -72,21 +72,23 @@ func main() {
 
 	// Site export on change (fitness-zine S1.2): after a showcase entry or a
 	// roundup is written, the matching site file and index.json are rewritten
-	// in the showcase-assets bucket. SITE_EXPORT_DISABLED=1 turns it off;
+	// in the showcase-assets bucket, then the box's site rebuild is signalled
+	// (SITE_EXPORT_SIGNAL_FILE, S6). SITE_EXPORT_DISABLED=1 turns it off;
 	// `fitgluectl export-site --all` is the repair path either way.
 	if cfg := siteexport.ConfigFromEnv(os.Getenv, showcaseAssetsBucket); cfg.Disabled {
 		logger.Info(ctx, "site export on change is disabled")
 	} else {
 		svc.SetSiteExporter(siteexport.NewHook(siteexport.HookConfig{
-			Slug:    cfg.Slug,
-			HookURL: cfg.HookURL,
-			Logger:  logger,
+			Slug:       cfg.Slug,
+			HookURL:    cfg.HookURL,
+			SignalFile: cfg.SignalFile,
+			Logger:     logger,
 			Deps: siteexport.Deps{
 				Source: siteexport.ServiceSource{Service: svc, Store: store},
 				Writer: &siteexport.GCSWriter{Client: gcsClient, Bucket: cfg.Bucket, Prefix: cfg.Prefix()},
 			},
 		}))
-		logger.Info(ctx, "site export on change enabled", "slug", cfg.Slug, "bucket", cfg.Bucket, "hook_url", cfg.HookURL)
+		logger.Info(ctx, "site export on change enabled", "slug", cfg.Slug, "bucket", cfg.Bucket, "hook_url", cfg.HookURL, "signal_file", cfg.SignalFile)
 	}
 
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(infra.LoggingUnaryInterceptor(logger)))

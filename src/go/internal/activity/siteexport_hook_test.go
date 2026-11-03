@@ -17,6 +17,13 @@ type recordingExporter struct {
 	mu         sync.Mutex
 	activities []string
 	roundups   []string // "slug/periodKey"
+	profiles   int
+}
+
+func (r *recordingExporter) ProfileChanged(context.Context) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.profiles++
 }
 
 func (r *recordingExporter) ActivityChanged(_ context.Context, showcaseID string) {
@@ -171,4 +178,67 @@ func TestGenerateRoundup_NotifiesSiteExporter(t *testing.T) {
 			t.Fatalf("got %v", rec.roundups)
 		}
 	})
+}
+
+func TestShowcaseEditAndDelete_NotifySiteExporter(t *testing.T) {
+	ctx := context.Background()
+	store := &MockActivityStore{
+		UpdateShowcaseFunc: func(_ context.Context, _ string, sc *pbactivity.ShowcasedActivity) (*pbactivity.ShowcasedActivity, error) {
+			return sc, nil
+		},
+	}
+	svc := newTestSvc(store, &MockBlobStore{})
+	rec := &recordingExporter{}
+	svc.SetSiteExporter(rec)
+	if _, err := svc.UpdateShowcase(ctx, &pbsvc.UpdateShowcaseRequest{UserId: "u1", ShowcaseId: "s1", Showcase: &pbactivity.ShowcasedActivity{ShowcaseId: "s1"}}); err != nil {
+		t.Fatalf("UpdateShowcase: %v", err)
+	}
+	if _, err := svc.DeleteShowcase(ctx, &pbsvc.DeleteShowcaseRequest{UserId: "u1", ShowcaseId: "s2"}); err != nil {
+		t.Fatalf("DeleteShowcase: %v", err)
+	}
+	if len(rec.activities) != 2 || rec.activities[0] != "s1" || rec.activities[1] != "s2" {
+		t.Fatalf("an edit and a delete must both reach the site, got %v", rec.activities)
+	}
+
+	failing := &MockActivityStore{
+		UpdateShowcaseFunc: func(context.Context, string, *pbactivity.ShowcasedActivity) (*pbactivity.ShowcasedActivity, error) {
+			return nil, errors.New("firestore down")
+		},
+		DeleteShowcaseFunc: func(context.Context, string, string) error { return errors.New("firestore down") },
+	}
+	svc2 := newTestSvc(failing, &MockBlobStore{})
+	rec2 := &recordingExporter{}
+	svc2.SetSiteExporter(rec2)
+	_, _ = svc2.UpdateShowcase(ctx, &pbsvc.UpdateShowcaseRequest{UserId: "u1", ShowcaseId: "s1", Showcase: &pbactivity.ShowcasedActivity{}})
+	_, _ = svc2.DeleteShowcase(ctx, &pbsvc.DeleteShowcaseRequest{UserId: "u1", ShowcaseId: "s1"})
+	if len(rec2.activities) != 0 {
+		t.Fatalf("failed writes must not export, got %v", rec2.activities)
+	}
+}
+
+func TestProfileSettings_NotifySiteExporter(t *testing.T) {
+	ctx := context.Background()
+	store := &MockActivityStore{
+		UpdateShowcasePreferencesFunc: func(_ context.Context, _ string, p *pbactivity.ShowcaseProfile) (*pbactivity.ShowcaseProfile, error) {
+			return p, nil
+		},
+	}
+	svc := newTestSvc(store, &MockBlobStore{})
+	rec := &recordingExporter{}
+	svc.SetSiteExporter(rec)
+	if _, err := svc.UpdateShowcaseSettings(ctx, &pbsvc.UpdateShowcaseSettingsRequest{UserId: "u1", Settings: &pbactivity.ShowcaseProfile{Bio: "new"}}); err != nil {
+		t.Fatalf("UpdateShowcaseSettings: %v", err)
+	}
+	if _, err := svc.UpdateRoundupSettings(ctx, &pbsvc.UpdateRoundupSettingsRequest{UserId: "u1", Settings: &pbactivity.RoundupSettings{EnabledWeekly: true}}); err != nil {
+		t.Fatalf("UpdateRoundupSettings: %v", err)
+	}
+	if rec.profiles != 2 {
+		t.Fatalf("each settings save must refresh the site index, got %d", rec.profiles)
+	}
+	if _, err := svc.UpdateShowcaseSettings(ctx, &pbsvc.UpdateShowcaseSettingsRequest{UserId: ""}); err == nil {
+		t.Fatal("expected InvalidArgument")
+	}
+	if rec.profiles != 2 {
+		t.Fatalf("a rejected save must not, got %d", rec.profiles)
+	}
 }

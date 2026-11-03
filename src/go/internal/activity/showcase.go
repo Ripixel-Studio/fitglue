@@ -157,6 +157,7 @@ func (s *Service) UpdateShowcase(ctx context.Context, req *pbsvc.UpdateShowcaseR
 		s.logger.Error(ctx, "failed to update showcase", "error", err)
 		return nil, status.Error(codes.Internal, "failed to update showcase")
 	}
+	s.siteActivityChanged(ctx, req.ShowcaseId)
 
 	return updated, nil
 }
@@ -171,6 +172,8 @@ func (s *Service) DeleteShowcase(ctx context.Context, req *pbsvc.DeleteShowcaseR
 		s.logger.Error(ctx, "failed to delete showcase", "error", err)
 		return nil, status.Error(codes.Internal, "failed to delete showcase")
 	}
+	// The export finds no showcase document and the index drops the entry.
+	s.siteActivityChanged(ctx, req.ShowcaseId)
 
 	return &emptypb.Empty{}, nil
 }

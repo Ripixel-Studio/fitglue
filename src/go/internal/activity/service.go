@@ -8,13 +8,16 @@ import (
 )
 
 // SiteExporter is told after the durable writes that change what the public
-// site shows (fitness-zine S1.2): a showcase profile entry persisted by
-// AddShowcaseEntry, a roundup saved by generateRoundup. Implementations must
+// site shows (fitness-zine S1.2, S6): a showcase profile entry persisted by
+// AddShowcaseEntry or removed by RemoveShowcaseEntry, a showcase edited or
+// deleted, a roundup saved by generateRoundup, and the public profile's
+// settings (name, bio, links, roundup settings) changed. Implementations must
 // return at once and never fail the caller — siteexport.Hook runs the export
 // in the background and logs failures. Nil means the site export is off.
 type SiteExporter interface {
 	ActivityChanged(ctx context.Context, showcaseID string)
 	RoundupChanged(ctx context.Context, slug, periodKey string)
+	ProfileChanged(ctx context.Context)
 }
 
 // Service implements the pbsvc.ActivityServiceServer interface.
@@ -50,6 +53,12 @@ func (s *Service) SetSiteExporter(x SiteExporter) {
 func (s *Service) siteActivityChanged(ctx context.Context, showcaseID string) {
 	if s.siteExporter != nil {
 		s.siteExporter.ActivityChanged(ctx, showcaseID)
+	}
+}
+
+func (s *Service) siteProfileChanged(ctx context.Context) {
+	if s.siteExporter != nil {
+		s.siteExporter.ProfileChanged(ctx)
 	}
 }
 

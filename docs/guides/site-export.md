@@ -121,6 +121,8 @@ wiring is `siteexport.Hook`, installed on `activity.Service` at boot
 | `AddShowcaseEntry` persisted the profile entry and recomputed the profile stats | `ActivityChanged(showcaseId)` | `activity/<id>.json`, then `index.json` |
 | `RemoveShowcaseEntry` deleted the entry | `ActivityChanged(showcaseId)` | `index.json` (the id is no longer exportable, so the index drops it; the orphan file waits for `--all`) |
 | `generateRoundup` saved the roundup (`SetRoundup`) | `RoundupChanged(slug, periodKey)` | `roundup/<key>.json`, then `index.json` |
+| `UpdateShowcase` / `DeleteShowcase` (the API's showcase edit and delete) | `ActivityChanged(showcaseId)` | `activity/<id>.json` (or, deleted, only `index.json`) |
+| `UpdateShowcaseSettings` / `UpdateShowcasePreferences` / `UpdateRoundupSettings` | `ProfileChanged()` | `index.json` (name, bio, links and totals live there) |
 
 The showcase destination uploader (`services/destination/.../uploaders/showcase`)
 needs no hook of its own: both its `Create` and `Update` paths end in the
@@ -145,11 +147,24 @@ How it behaves:
   activity that is not in `SITE_EXPORT_SLUG`'s profile (or has no showcase
   document, or has expired) is logged as skipped and only the index is
   refreshed.
-- **Tells the box.** When `SITE_EXPORT_HOOK_URL` is set, every successful
-  index refresh is followed by a `POST` of `{"slug":"<slug>","what":"index"}`
-  to it, 2 s timeout, best-effort (S3.2: the gateway's
-  `http://127.0.0.1:8790/hooks/fitness-updated`, which debounces and rebuilds
-  the site). It is unset on Cloud Run, so nothing is posted there.
+- **Tells the box.** Every successful index refresh carries the reasons
+  collected since the last one (`activity <id>`, `removed activity <id>`,
+  `roundup <key>`, `profile`; more than 20 become `(+N more)`), and:
+  - when `SITE_EXPORT_SIGNAL_FILE` is set, appends one line
+    `<unix seconds> fitglue <reasons>` to that file (S6). On the box it is
+    `~/.jarvis/home/site-changed`: a systemd path unit in the jarvis repo
+    (`jarvis-site-rebuild.path`) starts the site rebuild while the file
+    exists, the rebuild waits for 2 min of quiet (at most 10 min after the
+    first line), consumes the file and deploys james.ripixel.co.uk once. A
+    file, not an HTTP call, so a change survives a gateway reload or a reboot
+    and systemd guarantees one rebuild at a time. A failed refresh signals
+    nothing and carries its reasons to the next good one.
+  - when `SITE_EXPORT_HOOK_URL` is set, `POST`s
+    `{"slug":"<slug>","what":"index","reasons":"<reasons>"}` to it, 2 s
+    timeout, best-effort: the gateway's `/hooks/fitness-updated`, which makes
+    the kiosk's fitness panels refetch.
+
+  Both are unset on Cloud Run, so nothing is signalled there.
 
 Configuration (activity service environment; `terraform/cloud_run.tf` sets
 the slug):
@@ -160,6 +175,7 @@ the slug):
 | `SITE_EXPORT_BUCKET` | `$SHOWCASE_ASSETS_BUCKET` | destination bucket |
 | `SITE_EXPORT_DISABLED` | unset | `1`/`true`/`yes` turns the hook off entirely |
 | `SITE_EXPORT_HOOK_URL` | unset | POSTed after each index refresh; set on the box only |
+| `SITE_EXPORT_SIGNAL_FILE` | unset | a line appended after each index refresh; the box unit sets `%h/.jarvis/home/site-changed` |
 
 No new IAM: the activity service account already holds
 `roles/storage.objectAdmin` on the project (`terraform/iam.tf`,
@@ -169,8 +185,8 @@ Caveat on Cloud Run: the backend services run with `cpu_idle = true`, so a
 goroutine that outlives its request is CPU-throttled until the next request
 arrives. The export is I/O-bound and usually completes anyway, and a backfill
 keeps requests flowing, but a single late-night activity can land in the
-bucket later than the 10 s window suggests. The nightly site rebuild (S3.2)
-and the repair path below cover whatever slips; on the box (post-F4) the
+bucket later than the 10 s window suggests. The nightly site rebuild (04:30,
+jarvis `jarvis-site-nightly.timer`) and the repair path below cover whatever slips; on the box (post-F4) the
 throttle does not exist.
 
 **`fitgluectl export-site --all` remains the repair path**: it rewrites every
@@ -195,5 +211,6 @@ siteexport.ExportAll(ctx, deps, slug, siteexport.Options{Prune: true}) // the re
 hook := siteexport.NewHook(siteexport.HookConfig{Slug: slug, Deps: deps, HookURL: os.Getenv("SITE_EXPORT_HOOK_URL")})
 hook.ActivityChanged(ctx, showcaseID) // returns at once
 hook.RoundupChanged(ctx, slug, periodKey)
+hook.ProfileChanged(ctx)              // index only
 hook.Wait()                           // tests / shutdown only
 ```

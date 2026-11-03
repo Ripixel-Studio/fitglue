@@ -175,6 +175,7 @@ func (s *Service) UpdateShowcaseSettings(ctx context.Context, req *pbsvc.UpdateS
 				s.logger.Error(ctx, "failed to patch showcase settings", "error", err)
 				return nil, status.Error(codes.Internal, "failed to update showcase settings")
 			}
+			s.siteProfileChanged(ctx)
 			return updated, nil
 		}
 	}
@@ -184,6 +185,7 @@ func (s *Service) UpdateShowcaseSettings(ctx context.Context, req *pbsvc.UpdateS
 		s.logger.Error(ctx, "failed to update showcase settings", "error", err)
 		return nil, status.Error(codes.Internal, "failed to update showcase settings")
 	}
+	s.siteProfileChanged(ctx)
 
 	return updated, nil
 }
