@@ -290,3 +290,66 @@ func TestCheckBlocksDrinkAndDrugs(t *testing.T) {
 		}
 	}
 }
+
+// Regression: lines the guard wrongly rejected on James's box (round 2), with
+// the context the enrichers really pass. The activity type is the raw enum.
+func TestCheckFitnessVocabulary(t *testing.T) {
+	pilates := "Type: ACTIVITY_TYPE_PILATES\nDuration: 50 mins"
+	cross := "Type: ACTIVITY_TYPE_CROSSFIT"
+	roundup := "week Monday Tuesday run crossfit weight training pilates"
+	for _, c := range []struct{ out, ctx string }{
+		{"Pilates for 45 mins, and my core is still wobbling like a jelly 🥴", pilates},
+		{"Plenty of Pilates today, 50 mins with my heart rate at 76 avg. Max of 97 so not flat out 💪", pilates},
+		{"Max 179 bpm and 373 W on average, legs doing their bit 💪", ""},
+		{"Suffering is the whole point of CrossFit 🥵 Knackered but back for more", cross},
+		{"Bloody hell, 100 wall balls on the Sled then SkiErg and Rowing. Kettlebell swings and Burpees after 💪", ""},
+		{"Hyrox prep with Garmin and Hevy logging it all, Zone 2 and a PB on the Erg. HIIT, AMRAP, EMOM, Tabata.", ""},
+		{"Ooh, a big week. Weights, then a hard session. Legs: gone", ""},
+		{"Five PBs landed in one week, and two PRs on the Bench and Deadlift 💪", roundup},
+		{"Two PBs landed, a 5K in 24:03 and a 1K in 4:38. Pilates twice, CrossFit once.", roundup},
+	} {
+		if err := Check(c.out, c.ctx); err != nil {
+			t.Errorf("%q should pass: %v (offender %q)", c.out, err, Offender(c.out, c.ctx))
+		}
+	}
+}
+
+func TestContextTokensCaseInsensitive(t *testing.T) {
+	m := contextTokens("Type: ACTIVITY_TYPE_WEIGHT_TRAINING")
+	for _, w := range []string{"weight", "training", "activity"} {
+		if !m[w] {
+			t.Errorf("missing %q in %v", w, m)
+		}
+	}
+	if !namesFree("Weight sessions are rough.", "ACTIVITY_TYPE_WEIGHT_TRAINING") {
+		t.Error("normalised type word should pass")
+	}
+}
+
+// Names must still fail with the wider vocabulary and the looser context.
+func TestNamesStillFailWithFitnessVocabulary(t *testing.T) {
+	ctx := "Type: ACTIVITY_TYPE_PILATES\nMax HR: 120"
+	for _, s := range []string{
+		"Pilates today with Priya, and my core is wobbling.",
+		"Pilates for 45 mins. Priya would be proud.",
+		"Great CrossFit class, thanks Marcus.",
+		"Max would be proud of that Pilates class.",
+		"Pilates, then Hyrox, then a coffee with Beatrix.",
+		"Strava says Dorothea beat my PB.",
+		"Sled push and a chat with Colm about the PBs.",
+		"Squats were rough, Sarah laughed at me.",
+	} {
+		if Check(s, ctx) == nil {
+			t.Errorf("%q should fail", s)
+		}
+	}
+	// Context never whitelists a first name, even in the activity type.
+	if namesFree("Lovely Sarah session.", "Type: ACTIVITY_TYPE_SARAH") {
+		t.Error("context must not whitelist a known first name")
+	}
+	for _, s := range []string{"Ran with Pilates Priya.", "Max would be proud.", "Maxine did well."} {
+		if namesFree(s, "") {
+			t.Errorf("%q should fail", s)
+		}
+	}
+}
