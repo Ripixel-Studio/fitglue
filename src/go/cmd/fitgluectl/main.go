@@ -24,6 +24,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	firestore "cloud.google.com/go/firestore"
@@ -33,6 +34,9 @@ import (
 	"github.com/fitglue/server/src/go/internal/activity/siteexport"
 	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/fitglue/server/src/go/internal/user"
+	stravamap "github.com/fitglue/server/src/go/pkg/domain/sourcemap/strava"
+	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
+	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/storage"
 )
 
@@ -111,7 +115,19 @@ func connectGCP(ctx context.Context, f *exportSiteFlags) (siteexport.Source, sit
 	store := activity.NewFirestoreStore(fs)
 	blobs := &storage.StorageAdapter{Client: gcsClient}
 	svc := activity.NewService(store, blobs, nil, f.project+"-artifacts", f.bucket, infra.NewLoggerWithComponent("fitgluectl"))
-	source := siteexport.ServiceSource{Service: svc, Store: store}
+	cache := ""
+	if dir, err := os.UserCacheDir(); err == nil {
+		cache = filepath.Join(dir, "fitglue", "strava-visibility.json")
+	}
+	db := infradb.NewFirestoreAdapter(fs)
+	vis := siteexport.NewStravaVisibility(stravamap.APIBase, cache, func(ctx context.Context, uid string) (string, error) {
+		tok, err := oauth.NewFirestoreTokenSourceFromDB(db, uid, "strava").Token(ctx)
+		if err != nil {
+			return "", err
+		}
+		return tok.AccessToken, nil
+	}, nil)
+	source := siteexport.ServiceSource{Service: svc, Store: store, Visibility: vis}
 
 	var writer siteexport.Writer
 	if !f.dryRun {

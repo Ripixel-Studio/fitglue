@@ -13,6 +13,10 @@ import (
 	"github.com/fitglue/server/src/go/internal/activity"
 	"github.com/fitglue/server/src/go/internal/activity/siteexport"
 	"github.com/fitglue/server/src/go/internal/infra"
+	shared "github.com/fitglue/server/src/go/pkg"
+	stravamap "github.com/fitglue/server/src/go/pkg/domain/sourcemap/strava"
+	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
+	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
 	infrapubsub "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
 	gcsstorage "github.com/fitglue/server/src/go/pkg/infrastructure/storage"
 	pb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
@@ -84,7 +88,8 @@ func main() {
 			SignalFile: cfg.SignalFile,
 			Logger:     logger,
 			Deps: siteexport.Deps{
-				Source: siteexport.ServiceSource{Service: svc, Store: store},
+				Source: siteexport.ServiceSource{Service: svc, Store: store, Visibility: siteexport.NewStravaVisibility(
+					stravamap.APIBase, "", stravaTokenFor(infradb.NewFirestoreAdapter(fsClient)), nil)},
 				Writer: &siteexport.GCSWriter{Client: gcsClient, Bucket: cfg.Bucket, Prefix: cfg.Prefix()},
 				Zones:  siteexport.ZonesFromEnv(os.Getenv),
 			},
@@ -121,5 +126,17 @@ func main() {
 	logger.Info(ctx, "Starting service.activity (gRPC + HTTP)", "port", port)
 	if err := http.ListenAndServe(":"+port, h2c.NewHandler(handler, h2s)); err != nil {
 		log.Fatalf("failed to serve: %v", err)
+	}
+}
+
+// stravaTokenFor returns an owner's Strava access token for the site export's
+// visibility check (stored connection, refreshed as needed).
+func stravaTokenFor(db shared.Database) func(ctx context.Context, uid string) (string, error) {
+	return func(ctx context.Context, uid string) (string, error) {
+		tok, err := oauth.NewFirestoreTokenSourceFromDB(db, uid, "strava").Token(ctx)
+		if err != nil {
+			return "", err
+		}
+		return tok.AccessToken, nil
 	}
 }

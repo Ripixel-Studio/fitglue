@@ -19,24 +19,30 @@ var (
 	hevyIDRe   = regexp.MustCompile(`^[A-Za-z0-9-]+$`)
 )
 
-// BuildLinks derives the links for sc: a Strava-sourced activity links its own
-// Strava page; a Hevy-sourced one links its Hevy workout and, when stravaID is
-// set (the pipeline's successful Strava upload), the Strava copy. It returns nil
-// when there is nothing valid to link.
+// linkSource is the activity's source, from the showcase or else its activity data.
+func linkSource(sc *pbactivity.ShowcasedActivity) pbactivity.ActivitySource {
+	if src := sc.GetSource(); src != pbactivity.ActivitySource_SOURCE_UNSPECIFIED {
+		return src
+	}
+	return sc.GetActivityData().GetSource()
+}
+
+// BuildLinks derives the links for sc. stravaID is the Strava page to link, already
+// confirmed visible to everyone by Source.StravaID ("" when private, followers-only
+// or unknown): the activity's own id for a Strava source, the pipeline's Strava
+// upload for a Hevy source, which also links its Hevy workout. It returns nil when
+// there is nothing valid to link.
 func BuildLinks(sc *pbactivity.ShowcasedActivity, stravaID string) *Links {
 	if sc == nil {
 		return nil
 	}
-	src := sc.GetSource()
-	if src == pbactivity.ActivitySource_SOURCE_UNSPECIFIED {
-		src = sc.GetActivityData().GetSource()
-	}
+	src := linkSource(sc)
 	ext := sc.GetActivityData().GetExternalId()
 	var l Links
 	switch src {
 	case pbactivity.ActivitySource_SOURCE_STRAVA:
-		if stravaIDRe.MatchString(ext) {
-			l.Strava = "https://www.strava.com/activities/" + ext
+		if stravaIDRe.MatchString(stravaID) {
+			l.Strava = "https://www.strava.com/activities/" + stravaID
 		}
 	case pbactivity.ActivitySource_SOURCE_HEVY:
 		if hevyIDRe.MatchString(ext) {
