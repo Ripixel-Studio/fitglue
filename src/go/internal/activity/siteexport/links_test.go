@@ -329,3 +329,62 @@ func TestStravaVisibilityTTLs(t *testing.T) {
 		t.Fatalf("public answer should expire after 30 days, calls=%d", calls)
 	}
 }
+
+// The service is long-lived: the lookup budget refills every 15 minutes and a 429
+// pause lifts after its Retry-After (15 minutes without one).
+func TestStravaVisibilityWindowsReset(t *testing.T) {
+	now := time.Date(2026, 11, 3, 12, 0, 0, 0, time.UTC)
+	code, retry := 200, ""
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if retry != "" {
+			w.Header().Set("Retry-After", retry)
+		}
+		w.WriteHeader(code)
+		if code == 200 {
+			_, _ = w.Write([]byte(`{"private":false,"visibility":"everyone"}`))
+		}
+	}))
+	defer srv.Close()
+	v := &StravaVisibility{Token: func(context.Context, string) (string, error) { return "t", nil },
+		BaseURL: srv.URL, MaxLookups: 2, Now: func() time.Time { return now }}
+	own := func(context.Context) (string, error) { return "u", nil }
+	pub := func(id string) bool { ok, _ := v.Public(context.Background(), id, own); return ok }
+
+	if !pub("1") || !pub("2") || pub("3") {
+		t.Fatal("window budget of 2: first two lookups succeed, third is refused")
+	}
+	now = now.Add(14 * time.Minute)
+	if pub("3") {
+		t.Fatal("budget must not refill inside the 15-minute window")
+	}
+	now = now.Add(2 * time.Minute)
+	if !pub("3") {
+		t.Fatal("budget must refill after 15 minutes")
+	}
+	// 429 with Retry-After: paused for exactly that long.
+	now = now.Add(15 * time.Minute)
+	code, retry = 429, "120"
+	pub("4")
+	code, retry = 200, ""
+	now = now.Add(60 * time.Second)
+	if pub("5") {
+		t.Fatal("still inside Retry-After")
+	}
+	now = now.Add(61 * time.Second)
+	if !pub("5") {
+		t.Fatal("pause must lift once Retry-After has passed")
+	}
+	// 429 without Retry-After: 15 minutes.
+	now = now.Add(16 * time.Minute)
+	code = 429
+	pub("6")
+	code = 200
+	now = now.Add(14 * time.Minute)
+	if pub("7") {
+		t.Fatal("still inside the default 15-minute pause")
+	}
+	now = now.Add(2 * time.Minute)
+	if !pub("7") {
+		t.Fatal("default pause must lift after 15 minutes")
+	}
+}

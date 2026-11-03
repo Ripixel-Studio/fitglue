@@ -21,9 +21,10 @@ import (
 // request error, rate limit, a response without an explicit visibility) is "not
 // public" and the link is omitted.
 //
-// Rate limits: lookups stop for the process once Strava's X-RateLimit-Usage reaches
+// Rate limits: lookups pause once Strava's X-RateLimit-Usage reaches
 // the limit minus a reserve (the box shares one app limit with ingest and uploads), on
-// any 429, and after MaxLookups requests. Answers are cached in a file shared by the
+// any 429 (until its Retry-After, else 15 minutes), and after MaxLookups requests per rolling
+// 15-minute window; the service is long-lived, so all of these lift by themselves. Answers are cached in a file shared by the
 // service and fitgluectl (DefaultVisibilityCachePath): "everyone" for 30 days,
 // anything else for 7. An unknown result (an error) is never cached. A backfill over
 // hundreds of activities therefore fills in over several runs, the entries the export
@@ -38,7 +39,7 @@ type StravaVisibility struct {
 	CachePath string
 	// PublicTTL and OtherTTL bound how long an answer is trusted; 30 days and 7 when 0.
 	PublicTTL, OtherTTL time.Duration
-	// MaxLookups caps API requests per process; 90 when 0.
+	// MaxLookups caps API requests per 15-minute window; 90 when 0.
 	MaxLookups int
 	// Reserve is how far below the 15-minute/daily limits to stop; 20 when 0.
 	Reserve int
@@ -49,7 +50,9 @@ type StravaVisibility struct {
 	loaded  bool
 	cache   map[string]visEntry
 	lookups int
-	blocked bool
+	// windowStart opens the current 15-minute lookup window (Strava's own window).
+	windowStart  time.Time
+	blockedUntil time.Time
 }
 
 type visEntry struct {
@@ -88,7 +91,11 @@ func (v *StravaVisibility) Public(ctx context.Context, stravaID string, owner fu
 	if max == 0 {
 		max = 90
 	}
-	if v.blocked || v.lookups >= max {
+	now := v.now()
+	if now.Sub(v.windowStart) >= 15*time.Minute {
+		v.windowStart, v.lookups = now, 0
+	}
+	if now.Before(v.blockedUntil) || v.lookups >= max {
 		return false, fmt.Errorf("%w: lookup budget spent", errVisibilityUnknown)
 	}
 	uid, err := owner(ctx)
@@ -117,7 +124,11 @@ func (v *StravaVisibility) Public(ctx context.Context, stravaID string, owner fu
 	v.noteUsage(resp)
 	switch {
 	case resp.StatusCode == http.StatusTooManyRequests:
-		v.blocked = true
+		wait := 15 * time.Minute
+		if n, err := strconv.Atoi(strings.TrimSpace(resp.Header.Get("Retry-After"))); err == nil && n > 0 {
+			wait = time.Duration(n) * time.Second
+		}
+		v.blockedUntil = v.now().Add(wait)
 		return false, fmt.Errorf("%w: rate limited", errVisibilityUnknown)
 	case resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden:
 		// Gone, or not ours to read: nothing public to link.
@@ -152,10 +163,19 @@ func (v *StravaVisibility) noteUsage(resp *http.Response) {
 	for i := 0; i < len(use) && i < len(lim); i++ {
 		u, e1 := strconv.Atoi(strings.TrimSpace(use[i]))
 		l, e2 := strconv.Atoi(strings.TrimSpace(lim[i]))
-		if e1 == nil && e2 == nil && u >= l-reserve {
-			v.blocked = true
-			v.logf("strava rate limit near (%d/%d): visibility lookups stopped", u, l)
+		if e1 != nil || e2 != nil || u < l-reserve {
+			continue
 		}
+		// Index 0 is the 15-minute window, 1 the daily one (resets at UTC midnight).
+		now := v.now().UTC()
+		until := now.Add(15 * time.Minute)
+		if i == 1 {
+			until = time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, time.UTC)
+		}
+		if until.After(v.blockedUntil) {
+			v.blockedUntil = until
+		}
+		v.logf("strava rate limit near (%d/%d): visibility lookups paused until %s", u, l, until.Format(time.RFC3339))
 	}
 }
 
