@@ -161,8 +161,11 @@ var tokenRe = regexp.MustCompile(`[\p{L}\p{N}₂][\p{L}\p{N}₂'’-]*`)
 
 func contextTokens(c string) map[string]bool {
 	m := map[string]bool{}
+	// Case-insensitive: the activity type arrives as ACTIVITY_TYPE_PILATES and
+	// the model writes "Pilates". Underscores split tokens, so the type enum
+	// yields the words "activity", "type", "pilates" ("weight", "training").
 	for _, t := range tokenRe.FindAllString(c, -1) {
-		m[t] = true
+		m[strings.ToLower(t)] = true
 	}
 	return m
 }
@@ -264,7 +267,11 @@ func allCaps(t string) bool {
 // sentence start (or just after a quote), not in context, not allowlisted and
 // not an all-caps unit. Sentence-initial words fail only if they are a known
 // first name and absent from context.
-func namesFree(out, context string) bool {
+func namesFree(out, context string) bool { return Offender(out, context) == "" }
+
+// Offender returns the first token that makes out count as naming someone, or ""
+// when out is names-free. For diagnosis and logs only; callers gate on Check.
+func Offender(out, context string) string {
 	ctx := contextTokens(context)
 	for _, loc := range tokenRe.FindAllStringIndex(out, -1) {
 		tok := out[loc[0]:loc[1]]
@@ -277,22 +284,32 @@ func namesFree(out, context string) bool {
 			if dateShaped(out[:loc[0]], out[loc[1]:]) {
 				continue
 			}
-			return false
+			return tok
+		}
+		if tok == "W" || tok == "K" || tok == "M" {
+			// A unit right after a number: "373 W", "5 K".
+			if p := strings.TrimRight(out[:loc[0]], " \t"); p != "" {
+				if r, _ := utf8.DecodeLastRuneInString(p); unicode.IsDigit(r) {
+					continue
+				}
+			}
+			return tok
 		}
 		if tok == "Miles" {
 			if metricFollows(out[loc[1]:]) {
 				continue
 			}
-			return false
+			return tok
 		}
 		known := commonFirstNames[base]
 		// Context never whitelists a known first name, and callers pass only
 		// fitness vocabulary (never his free text) as context.
-		if (ctx[tok] && !known) || allow[tok] || (allCaps(tok) && utf8.RuneCountInString(tok) > 1) {
+		if (ctx[strings.ToLower(base)] && !known) || allow[tok] || (!known && fitWords[strings.ToLower(base)]) ||
+			(tok == "Max" && maxStatFollows(out[loc[1]:])) || pluralAcronym(tok) || (allCaps(tok) && utf8.RuneCountInString(tok) > 1) {
 			continue
 		}
 		if known {
-			return false
+			return tok
 		}
 		if i := strings.TrimRight(out[:loc[0]], " \t\n"); i == "" || strings.HasSuffix(i, `"`) ||
 			strings.HasSuffix(i, "“") || strings.HasSuffix(i, ".") || strings.HasSuffix(i, "!") || strings.HasSuffix(i, "?") ||
@@ -300,11 +317,62 @@ func namesFree(out, context string) bool {
 			if startsOK(tok) || commonWord(tok) {
 				continue
 			}
-			return false
+			return tok
 		}
+		return tok
+	}
+	return ""
+}
+
+// fitWords are capitalised words that are fitness vocabulary, never names:
+// sports, brands, kit, exercises, body parts and stat labels. Lowercase, matched
+// case-insensitively, and never applied to a known first name.
+var fitWords = func() map[string]bool {
+	m := map[string]bool{}
+	for _, w := range strings.Fields(`pilates yoga crossfit hyrox roxfit strava hevy garmin fitbit whoop oura
+	peloton zwift parkrun parkruns zone zones pb pbs pr prs hiit amrap emom tabata wod metcon hr hrv bpm
+	kettlebell kettlebells deadlift deadlifts squat squats bench burpee burpees wall ball balls sled sleds
+	skierg rowing erg ergs row rows rower lunge lunges plank planks thruster thrusters snatch snatches clean
+	cleans jerk press presses pullup pullups pushup pushups situp situps dip dips curl curls farmers carry
+	carries sandbag sandbags barbell barbells dumbbell dumbbells bike treadmill turbo spin cardio strength
+	weights weight training workout workouts session sessions sesh circuit circuits intervals interval
+	tempo threshold sprint sprints run runs running jog jogging walk walking swim
+	swimming cycling ride rides gym core abs glutes glute quads quad hamstrings hammies calves lats traps
+	delts legs leg arms arm back chest shoulders shoulder hips hip lungs lung heart feet foot knees knee
+	ankles ankle avg average pace power cadence watts watt kcal km kg kgs mile miles min mins hour hours
+	ooh ooft oooh ohh ahh aww oof ouch yikes blimey crikey bloody flipping cheeky knackered
+	brutal horrific proper`) {
+		m[w] = true
+	}
+	return m
+}()
+
+// maxStatFollows: capitalised "Max" is a stat label ("Max 179 bpm", "Max of 97",
+// "Max HR", "Max power") only when a number or a metric word follows it.
+func maxStatFollows(after string) bool {
+	a := strings.ToLower(strings.TrimLeft(after, " \t"))
+	if a == "" {
 		return false
 	}
-	return true
+	if r, _ := utf8.DecodeRuneInString(a); unicode.IsDigit(r) {
+		return true
+	}
+	a = strings.TrimPrefix(a, "of ")
+	if r, _ := utf8.DecodeRuneInString(a); unicode.IsDigit(r) && len(a) < len(strings.TrimLeft(after, " \t")) {
+		return true
+	}
+	for _, w := range []string{"hr", "heart", "power", "pace", "speed", "cadence", "watts", "bpm", "elevation"} {
+		if strings.HasPrefix(a, w) {
+			return true
+		}
+	}
+	return false
+}
+
+// pluralAcronym: "PBs", "PRs", "HRs" - an all-caps acronym with a plural s.
+func pluralAcronym(tok string) bool {
+	t := strings.TrimSuffix(tok, "s")
+	return t != tok && utf8.RuneCountInString(t) > 1 && allCaps(t)
 }
 
 // ambiguousMonths are months that are also first names. They pass only in a
