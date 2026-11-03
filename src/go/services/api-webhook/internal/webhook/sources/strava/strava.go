@@ -7,13 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
 	shared "github.com/fitglue/server/src/go/pkg"
-	stravaapi "github.com/fitglue/server/src/go/pkg/api/strava"
 	stravamap "github.com/fitglue/server/src/go/pkg/domain/sourcemap/strava"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
-	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook"
@@ -99,54 +96,6 @@ func (p *Provider) FetchActivity(ctx context.Context, _ userpb.UserServiceClient
 		return nil, fmt.Errorf("failed to get strava token: %w", err)
 	}
 
-	// 2. Create authenticated Strava client
-	client, err := stravaapi.NewClientWithResponses(
-		stravaAPIBase,
-		stravaapi.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
-			req.Header.Set("Authorization", "Bearer "+token.AccessToken)
-			return nil
-		}),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create strava client: %w", err)
-	}
-
-	// 3. Parse activity ID
-	activityID, err := strconv.ParseInt(evt.ActivityID, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid activity id %q: %w", evt.ActivityID, err)
-	}
-
-	// 4. Fetch activity summary
-	actResp, err := client.GetActivityByIdWithResponse(ctx, activityID, &stravaapi.GetActivityByIdParams{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch strava activity: %w", err)
-	}
-	if actResp.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("strava api error: status=%d body=%s", actResp.StatusCode(), string(actResp.Body))
-	}
-
-	// 5. Fetch time-series streams — best-effort, nil if unavailable or not permitted
-	var streams *stravaapi.StreamSet
-	streamResp, streamErr := client.GetActivityStreamsWithResponse(ctx, activityID, &stravaapi.GetActivityStreamsParams{
-		Keys:      stravamap.StreamKeys,
-		KeyByType: true,
-	})
-	if streamErr == nil && streamResp.StatusCode() == http.StatusOK && streamResp.JSON200 != nil {
-		streams = streamResp.JSON200
-	}
-
-	// 6. Map to StandardizedActivity
-	stdActivity, err := mapToStandardizedActivity(actResp.Body, internalUserID, streams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse strava activity: %w", err)
-	}
-
-	return &pbevents.ActivityPayload{
-		Source:               activitypb.ActivitySource_SOURCE_STRAVA,
-		UserId:               internalUserID,
-		OriginalPayloadJson:  string(actResp.Body),
-		ActivityId:           &evt.ActivityID,
-		StandardizedActivity: stdActivity,
-	}, nil
+	// 2. Fetch the activity + streams and map it (shared with `fitgluectl reconcile`)
+	return stravamap.FetchPayload(ctx, stravaAPIBase, token.AccessToken, evt.ActivityID, internalUserID)
 }

@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
+	hevymap "github.com/fitglue/server/src/go/pkg/domain/sourcemap/hevy"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"github.com/fitglue/server/src/go/services/api-webhook/internal/webhook"
@@ -115,45 +115,6 @@ func (p *Provider) FetchActivity(ctx context.Context, userSvc userpb.UserService
 		return nil, fmt.Errorf("hevy integration not found or api key missing")
 	}
 
-	// 2. Fetch activity from Hevy API
-	url := fmt.Sprintf("https://api.hevyapp.com/v1/workouts/%s", workoutID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("api-key", hevyInteg.ApiKey)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch hevy activity: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("hevy api error: status=%d body=%s", resp.StatusCode, string(body))
-	}
-
-	rawBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	stdActivity, err := mapToStandardizedActivity(rawBody, internalUserID, activitypb.ActivitySource_SOURCE_HEVY)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse hevy workout to standardized activity: %w", err)
-	}
-
-	// 3. Construct Payload
-	payload := &pbevents.ActivityPayload{
-		Source:               activitypb.ActivitySource_SOURCE_HEVY,
-		UserId:               internalUserID,
-		OriginalPayloadJson:  string(rawBody),
-		ActivityId:           &evt.ActivityID,
-		StandardizedActivity: stdActivity,
-	}
-
-	return payload, nil
+	// 2. Fetch the workout and map it (shared with `fitgluectl reconcile`)
+	return hevymap.FetchPayload(ctx, nil, hevymap.APIBase, hevyInteg.ApiKey, workoutID, internalUserID)
 }
