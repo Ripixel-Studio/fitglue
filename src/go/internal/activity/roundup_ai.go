@@ -2,20 +2,22 @@ package activity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
-	"os"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/fitglue/server/src/go/internal/infra"
+	"github.com/fitglue/server/src/go/pkg/claude"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	"github.com/fitglue/server/src/go/pkg/voice"
 )
 
-const roundupAISummaryTimeout = 30 * time.Second
+const roundupAISummaryTimeout = 120 * time.Second
+
+const maxRoundupSummaryChars = 900
 
 const (
 	maxRoundupPhotos  = 24
@@ -267,80 +269,77 @@ func deriveEffortLevel(e *pbactivity.ShowcaseProfileEntry) int32 {
 	}
 }
 
-// generateRoundupAISummary calls Gemini to produce a one-paragraph narrative
-// for the period. Returns an empty string if the API key is absent or the
-// call fails — callers should treat an empty string as "not available".
-func generateRoundupAISummary(ctx context.Context, logger infra.Logger, roundup *pbactivity.ShowcaseRoundup) string {
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		return ""
+// generateRoundupAISummary asks Claude Sonnet for the roundup write-up in
+// James's voice. It returns "" (the roundup keeps its non-AI text) when Claude
+// errors or is limited, or the output fails voice.Line/voice.Check. Raw model
+// output is never returned.
+func generateRoundupAISummary(ctx context.Context, logger infra.Logger, ai claude.Completer, roundup *pbactivity.ShowcaseRoundup) string {
+	if ai == nil {
+		ai = claude.Default()
 	}
-
-	tctx, cancel := context.WithTimeout(ctx, roundupAISummaryTimeout)
-	defer cancel()
-
-	client, err := genai.NewClient(tctx, option.WithAPIKey(apiKey))
+	out, err := ai.Complete(ctx, claude.Request{
+		Model:   claude.ModelSonnet,
+		System:  voice.Guide() + "\n\n" + roundupTaskBlock,
+		Prompt:  roundupUserPrompt + "\n\nPeriod data:\n" + buildRoundupSummaryContext(roundup),
+		Timeout: roundupAISummaryTimeout,
+	})
 	if err != nil {
-		logger.Warn(ctx, "roundup AI summary: failed to create Gemini client", "error", err)
+		logger.Warn(ctx, "roundup AI summary: Claude unavailable", "error", err, "limited", errors.Is(err, claude.ErrLimited))
 		return ""
 	}
-	defer client.Close()
-
-	model := client.GenerativeModel("gemini-2.5-flash")
-	model.SetTemperature(0.9)
-	model.SetTopP(0.95)
-	// gemini-2.5-flash spends part of the output budget on hidden "thinking"
-	// tokens; 512 left almost nothing for the paragraph and it truncated
-	// mid-sentence. Even 2048 still clipped the closing line on busy weeks, so
-	// give generous headroom — the prompt caps the visible length.
-	model.SetMaxOutputTokens(4096)
-	model.SystemInstruction = genai.NewUserContent(genai.Text(roundupSystemInstruction))
-
-	periodCtx := buildRoundupSummaryContext(roundup)
-	resp, err := model.GenerateContent(tctx, genai.Text(roundupUserPrompt+"\n\nPeriod data:\n"+periodCtx))
-	if err != nil {
-		logger.Warn(ctx, "roundup AI summary: generation failed", "error", err)
+	text := voice.Line(out, maxRoundupSummaryChars)
+	if text == "" || voice.Check(text, roundupCheckContext(roundup)) != nil {
+		logger.Warn(ctx, "roundup AI summary: output failed the voice check, dropped")
 		return ""
 	}
-	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		return ""
-	}
-
-	raw := ""
-	for _, part := range resp.Candidates[0].Content.Parts {
-		if text, ok := part.(genai.Text); ok {
-			raw += string(text)
-		}
-	}
-	return strings.TrimSpace(raw)
+	return text
 }
 
-const roundupSystemInstruction = `You are a world-class sports feature writer — think The Athletic or a Nike campaign — composing a short, vivid recap of one athlete's training period for their public profile.
+const roundupTaskBlock = `Write the roundup for this period: ONE paragraph of 4-6 sentences, in the voice above.
+- Find a through-line built from the numbers (a sport that dominated, a streak that held, strength that quietly climbed).
+- Use only facts in the data. Never invent numbers, sports or events.
+- No names at all: not his, not anyone's, no places. Never quote an activity title. No 'you'. No Markdown, no lists.
+- End on a line worth screenshotting.`
 
-Voice & rules:
-- Refer to the athlete by FIRST NAME only (it is given to you). Never use their surname or full name — full names read like a press release, not a story.
-- Write ONE paragraph, 4–6 sentences. Confident, specific, evocative.
-- Find a through-line — the story the numbers tell (a sport that dominated, a streak that held, strength that quietly climbed) — and build toward it. Don't just list stats; make them mean something.
-- Weave in exact figures and standout moments from the data (a big session, the longest streak, PR count, a peak distance or climb). Numbers are the evidence; the narrative is the point.
-- Land on a single strong, declarative closing line — the kind people screenshot.
-- Casual and human, never corporate. Third person, no "you"/"your". No emojis, no markdown, no headings, no lists.
-- Skip hollow gym clichés ("crushed it", "smashed", "beast mode", "keep it up", "great work"). Earn the energy through specifics, not hype words.
-- Use ONLY facts present in the data below. Never invent numbers, places, sports, or events. Omit anything not given.`
+const roundupUserPrompt = `Write the roundup paragraph now.`
 
-const roundupUserPrompt = `Write the recap paragraph now. One paragraph, first name only, ending on a strong closing line.`
+// calendarWords are weekday and month names: date vocabulary the prompt itself
+// carries, not names. A month that is also a first name (April, June) stays
+// rejected because voice.Check never lets context whitelist a known first name.
+const calendarWords = "Monday Tuesday Wednesday Thursday Friday Saturday Sunday January February March April May June July August September October November December"
+
+// roundupCheckContext is the only context voice.Check sees for a roundup:
+// fitness vocabulary (period, sport labels, best-effort labels, muscles). Never
+// an activity title, so a word from his own text cannot whitelist itself.
+func roundupCheckContext(roundup *pbactivity.ShowcaseRoundup) string {
+	parts := []string{periodTypeName(roundup.PeriodType), calendarWords}
+	for _, bd := range roundup.ActivityTypeBreakdowns {
+		parts = append(parts, activityTypeShortLabel(bd.ActivityType))
+	}
+	for _, be := range roundup.BestEfforts {
+		parts = append(parts, be.Display, be.DistanceKey)
+	}
+	for _, m := range roundup.Muscles {
+		parts = append(parts, m.Name)
+	}
+	return strings.Join(parts, " ")
+}
 
 // sanitiseRoundupString truncates user-controlled strings and strips prompt-injection
-// delimiters before they are embedded in the Gemini prompt.
+// delimiters before they are embedded in the prompt, scrubbed, and dropped if sensitive.
 func sanitiseRoundupString(s string) string {
 	const maxLen = 200
-	s = strings.NewReplacer("<", "", ">", "", "{", "", "}", "").Replace(s)
+	if voice.Sensitive(s) {
+		return ""
+	}
+	s = voice.Scrub(strings.NewReplacer("<", "", ">", "", "{", "", "}", "").Replace(s))
 	if len(s) > maxLen {
 		s = s[:maxLen]
 	}
 	return strings.TrimSpace(s)
 }
 
-// buildRoundupSummaryContext produces the plaintext data section of the Gemini
+// buildRoundupSummaryContext produces the plaintext data section of the
 // prompt from an already-computed ShowcaseRoundup.
 func buildRoundupSummaryContext(roundup *pbactivity.ShowcaseRoundup) string {
 	var lines []string
@@ -352,10 +351,6 @@ func buildRoundupSummaryContext(roundup *pbactivity.ShowcaseRoundup) string {
 		start := roundup.PeriodStart.AsTime().UTC().Format("2 Jan 2006")
 		end := roundup.PeriodEnd.AsTime().UTC().AddDate(0, 0, -1).Format("2 Jan 2006")
 		lines = append(lines, fmt.Sprintf("Date range: %s – %s", start, end))
-	}
-
-	if name := sanitiseRoundupString(firstNameOnly(roundup.OwnerDisplayName)); name != "" {
-		lines = append(lines, fmt.Sprintf("Athlete first name (refer to them as this — never the surname): %s", name))
 	}
 
 	lines = append(lines, fmt.Sprintf("Sessions: %d", roundup.TotalActivities))
@@ -442,27 +437,6 @@ func buildRoundupSummaryContext(roundup *pbactivity.ShowcaseRoundup) string {
 		lines = append(lines, fmt.Sprintf("Total elevation gain: %.0f m", roundup.TotalElevationGainMeters))
 	}
 
-	// Places trained
-	if len(roundup.Places) > 0 {
-		countries := map[string]struct{}{}
-		var names []string
-		for _, p := range roundup.Places {
-			if n := sanitiseRoundupString(p.Name); n != "" {
-				names = append(names, n)
-			}
-			if p.Country != "" {
-				countries[p.Country] = struct{}{}
-			}
-		}
-		if len(names) > 0 {
-			line := fmt.Sprintf("Trained at: %s", strings.Join(names, ", "))
-			if len(countries) > 1 {
-				line += fmt.Sprintf(" (%d countries)", len(countries))
-			}
-			lines = append(lines, line)
-		}
-	}
-
 	// Best efforts
 	if len(roundup.BestEfforts) > 0 {
 		var efforts []string
@@ -494,16 +468,6 @@ func buildRoundupSummaryContext(roundup *pbactivity.ShowcaseRoundup) string {
 	}
 
 	return strings.Join(lines, "\n")
-}
-
-// firstNameOnly returns the first whitespace-delimited token of a display name,
-// so the AI summary can address the athlete informally rather than by full name.
-func firstNameOnly(displayName string) string {
-	fields := strings.Fields(displayName)
-	if len(fields) == 0 {
-		return ""
-	}
-	return fields[0]
 }
 
 // formatEffortClock renders a duration in seconds as m:ss (or h:mm:ss).

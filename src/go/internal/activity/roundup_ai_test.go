@@ -1,10 +1,14 @@
 package activity
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/fitglue/server/src/go/internal/infra"
+	"github.com/fitglue/server/src/go/pkg/claude"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -77,7 +81,6 @@ func TestBuildRoundupSummaryContext(t *testing.T) {
 		want  string
 	}{
 		{"period type", "week"},
-		{"athlete name", "Alice"},
 		{"session count", "Sessions: 5"},
 		{"total time", "5h"},
 		{"distance", "52.0 km"},
@@ -424,5 +427,94 @@ func TestComputeSessionPeaks(t *testing.T) {
 	f, c, v, fID, cID, vID := computeSessionPeaks(nil)
 	if f != 0 || c != 0 || v != 0 || fID != "" || cID != "" || vID != "" {
 		t.Errorf("empty input should be zero/empty, got %v/%d/%v ids %q/%q/%q", f, c, v, fID, cID, vID)
+	}
+}
+
+type fakeCompleter struct {
+	out string
+	err error
+	got claude.Request
+}
+
+func (f *fakeCompleter) Complete(_ context.Context, r claude.Request) (string, error) {
+	f.got = r
+	return f.out, f.err
+}
+
+func syntheticRoundup() *pbactivity.ShowcaseRoundup {
+	return &pbactivity.ShowcaseRoundup{
+		PeriodType:       pbactivity.RoundupPeriodType_ROUNDUP_PERIOD_TYPE_WEEK,
+		OwnerDisplayName: "James Example",
+		TotalActivities:  4,
+		ActivityTypeBreakdowns: []*pbactivity.RoundupActivityTypeBreakdown{
+			{ActivityType: pbactivity.ActivityType_ACTIVITY_TYPE_RUN, ActivityCount: 4},
+		},
+		HighestAvgBpm:              160,
+		HighestAvgBpmActivityTitle: "Tuesday Threshold Run",
+	}
+}
+
+func TestRoundupUsesSonnet(t *testing.T) {
+	f := &fakeCompleter{out: "Four runs, one very sweaty week. Legs are shaking but I'm back tomorrow 💪"}
+	got := generateRoundupAISummary(context.Background(), infra.NewLogger(), f, syntheticRoundup())
+	if f.got.Model != claude.ModelSonnet {
+		t.Errorf("model = %q, want sonnet", f.got.Model)
+	}
+	if f.got.Timeout != 120*time.Second || roundupAISummaryTimeout != 120*time.Second {
+		t.Errorf("timeout = %v", f.got.Timeout)
+	}
+	if !strings.Contains(f.got.System, "No names") {
+		t.Errorf("system prompt lacks the task block")
+	}
+	if got == "" {
+		t.Errorf("clean output was dropped")
+	}
+}
+
+func TestRoundupContextHasNoOwnerName(t *testing.T) {
+	f := &fakeCompleter{out: "Four runs 💪"}
+	generateRoundupAISummary(context.Background(), infra.NewLogger(), f, syntheticRoundup())
+	if strings.Contains(f.got.Prompt, "James") || strings.Contains(f.got.Prompt, "Example") {
+		t.Errorf("owner name reached the prompt: %s", f.got.Prompt)
+	}
+}
+
+func TestRoundupContextDropsSensitiveTitles(t *testing.T) {
+	r := syntheticRoundup()
+	r.HighestAvgBpmActivityTitle = "NA meeting then recovery walk"
+	ctx := buildRoundupSummaryContext(r)
+	if strings.Contains(ctx, "recovery") || strings.Contains(ctx, "NA meeting") {
+		t.Errorf("sensitive title reached the prompt: %s", ctx)
+	}
+	if !strings.Contains(ctx, "160 bpm") {
+		t.Errorf("bpm line should survive without its title: %s", ctx)
+	}
+}
+
+func TestRoundupDropsNamedOutput(t *testing.T) {
+	for _, out := range []string{
+		"Four runs and Sam kept up with me 💪",
+		"Four runs, a PB and James looking cooked 🥵",
+	} {
+		f := &fakeCompleter{out: out}
+		if got := generateRoundupAISummary(context.Background(), infra.NewLogger(), f, syntheticRoundup()); got != "" {
+			t.Errorf("named output published: %q", got)
+		}
+	}
+	// A name that only appears in an activity title cannot whitelist itself.
+	r := syntheticRoundup()
+	r.HighestAvgBpmActivityTitle = "Zorblax Hill Repeats"
+	f := &fakeCompleter{out: "Four runs, and Zorblax finished me off 🥵"}
+	if got := generateRoundupAISummary(context.Background(), infra.NewLogger(), f, r); got != "" {
+		t.Errorf("title word whitelisted itself: %q", got)
+	}
+}
+
+func TestRoundupErrorIsEmpty(t *testing.T) {
+	for _, err := range []error{claude.ErrLimited, errors.New("boom")} {
+		f := &fakeCompleter{out: "Four runs 💪", err: err}
+		if got := generateRoundupAISummary(context.Background(), infra.NewLogger(), f, syntheticRoundup()); got != "" {
+			t.Errorf("err %v: got %q", err, got)
+		}
 	}
 }
