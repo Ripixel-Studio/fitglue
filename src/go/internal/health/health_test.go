@@ -429,3 +429,21 @@ func TestReadRangeCacheKeyIncludesEnd(t *testing.T) {
 		t.Errorf("another end is another key: calls = %d", calls)
 	}
 }
+
+func TestGrantWideRefusalIsNotEmptyMovementOrBody(t *testing.T) {
+	for name, body := range map[string]string{
+		"not linked": `{"error":{"code":403,"status":"PERMISSION_DENIED","message":"no","details":[{"reason":"ACCOUNT_NOT_LINKED"}]}}`,
+		"no scope":   `{"error":{"code":403,"status":"PERMISSION_DENIED","message":"no","details":[{"reason":"MISSING_OAUTH_SCOPE"}]}}`,
+	} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(403)
+			fmt.Fprint(w, body)
+		}))
+		for _, k := range []Kind{KindMovement, KindBody} {
+			if _, err := newTestReader(srv.URL, "").Read(context.Background(), k, 7); !errors.Is(err, ErrNotConnected) {
+				t.Errorf("%s/%s: want ErrNotConnected, got %v", name, k, err)
+			}
+		}
+		srv.Close()
+	}
+}

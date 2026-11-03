@@ -181,10 +181,15 @@ func (r *Reader) ReadRange(ctx context.Context, kind Kind, days int, end googleh
 var refusedLogged sync.Map // data type -> *sync.Once
 
 // optional runs fetch for one data type whose refusal (400/403/404 from
-// Google: the account does not serve it) is an empty list, logged once per
+// Google: the account does not serve that type) is an empty list, except
+// the grant-wide reasons (account not linked, scope missing), which stay errors, logged once per
 // process per type. Any other error is returned.
 func optional(dataType string, fetch func() ([]googlehealth.DailyValue, error)) ([]googlehealth.DailyValue, error) {
 	vs, err := fetch()
+	var ae *googlehealth.APIError
+	if errors.As(err, &ae) && (ae.Reason == "ACCOUNT_NOT_LINKED" || ae.Reason == "MISSING_OAUTH_SCOPE") {
+		return nil, err // the whole grant is unusable: classify makes it 404, not an empty list
+	}
 	if err != nil && googlehealth.IsTypeRefused(err) {
 		once, _ := refusedLogged.LoadOrStore(dataType, new(sync.Once))
 		once.(*sync.Once).Do(func() { log.Printf("health: %s refused, served empty", dataType) })
