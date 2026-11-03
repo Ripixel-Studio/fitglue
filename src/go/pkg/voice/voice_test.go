@@ -258,3 +258,16 @@ func TestAmbiguousMonths(t *testing.T) {
 		t.Errorf("January stays allowed")
 	}
 }
+
+func TestJadeAndMiles(t *testing.T) {
+	for _, s := range []string{"Jade smashed it", "Four runs. Jade kept up", "Four runs. Miles kept up", "Miles smashed it", "Ran with Miles", "Miles"} {
+		if Check(s, "") == nil {
+			t.Errorf("%q should fail", s)
+		}
+	}
+	for _, s := range []string{"Miles: 6.2", "Miles 6.2 today", "Miles - 6", "Ran 6 miles 💪", "Four runs. Miles: 20"} {
+		if err := Check(s, ""); err != nil {
+			t.Errorf("%q should pass: %v", s, err)
+		}
+	}
+}

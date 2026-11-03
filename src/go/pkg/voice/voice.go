@@ -140,7 +140,7 @@ var commonFirstNames = func() map[string]bool {
 	Grace Rose Bill Billy Bob Bobby Joy Hope Faith Max Ray Rory Kev Kevin Neil Ross Craig Chloe Ella Eve Eva
 	Ivy Jane Joan Josh Joshua Lee Leo Liam Lily Lucas Mia Nina Olivia Oliver Ollie Pat Priya Ryan Sophie Tess
 	Toby Tina Vicky Victoria Wendy April May June August Mary Maria Jordan Jamie Charlie Frank Fred George
-	Hugh Jake Jay Jeff Jerry Kyle Larry Mick Nathan Ned Nigel Owen Pam Pippa Rod Roy Sid Stan Stu Ted Tara`) {
+	Jade Hugh Jake Jay Jeff Jerry Kyle Larry Mick Nathan Ned Nigel Owen Pam Pippa Rod Roy Sid Stan Stu Ted Tara`) {
 		m[n] = true
 	}
 	return m
@@ -268,6 +268,12 @@ func namesFree(out, context string) bool {
 			}
 			return false
 		}
+		if tok == "Miles" {
+			if metricFollows(out[loc[1]:]) {
+				continue
+			}
+			return false
+		}
 		known := commonFirstNames[base]
 		// Context never whitelists a known first name, and callers pass only
 		// fitness vocabulary (never his free text) as context.
@@ -293,6 +299,17 @@ func namesFree(out, context string) bool {
 // ambiguousMonths are months that are also first names. They pass only in a
 // date-shaped position, anywhere else they count as a name.
 var ambiguousMonths = map[string]bool{"April": true, "May": true, "June": true}
+
+// metricFollows: capitalised "Miles" is a unit only when a number, ":" or "-"
+// follows it ("Miles: 6.2"); anywhere else it is a name.
+func metricFollows(after string) bool {
+	a := strings.TrimLeft(after, " \t")
+	if a == "" {
+		return false
+	}
+	r, _ := utf8.DecodeRuneInString(a)
+	return unicode.IsDigit(r) || r == ':' || r == '-'
+}
 
 // dateShaped: the month sits next to a number ("3 May", "May 3") or follows
 // "in", "since" or "last".
