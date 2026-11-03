@@ -271,3 +271,22 @@ func TestJadeAndMiles(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckBlocksDrinkAndDrugs(t *testing.T) {
+	for _, s := range []string{
+		"Beer legs today.", "Ran off last night's hangover.", "Felt a bit drunk by the last rep.",
+		"Earned a glass of wine.", "Stoned legs.", "Pub after.", "BEER legs.", "Two pints later.",
+		"Gin o'clock.", "Totally wasted.", "Prosecco pace.", "Smelled of weed.", "Day one, rehab.",
+		"Booze-free.", "Sober October.", "Vodka legs.", "AA tonight.",
+	} {
+		if Check(s, "Type: ACTIVITY_TYPE_RUN") == nil {
+			t.Errorf("should block %q", s)
+		}
+	}
+	// Word boundaries: no substring hits; "high" is left alone.
+	for _, s := range []string{"Ginormous legs.", "Pubic bone fine.", "High reps, heavy day.", "Cooked the bench."} {
+		if err := Check(s, "Type: ACTIVITY_TYPE_RUN"); err != nil && strings.Contains(err.Error(), "drink") {
+			t.Errorf("over-blocked %q: %v", s, err)
+		}
+	}
+}

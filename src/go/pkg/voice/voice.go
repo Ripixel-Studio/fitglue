@@ -113,6 +113,17 @@ func Scrub(s string) string {
 	return strings.TrimRight(s, " ,;")
 }
 
+// drinkDrugR is the output-only drink/drug/recovery list. Over-blocking only
+// drops a line, so it errs wide. "high" (drug sense) is deliberately absent:
+// it cannot be told apart from "high reps" or "high heart rate".
+var drinkDrugR = regexp.MustCompile(`(?i)(?:^|[^\p{L}0-9])(?:` + strings.Join([]string{
+	`beers?`, `lager`, `cider`, `ale`, `pints?`, `pubs?`, `wine`, `prosecco`, `gin`, `vodka`,
+	`whisky`, `whiskey`, `booze`, `boozy`, `boozing`, `alcohol(?:ic|ics)?`, `drunk`, `drunken`,
+	`hangover`, `hungover`, `wasted`, `stoned`, `weed`, `spliff`, `cannabis`, `cocaine`, `coke`,
+	`mdma`, `drugs?`, `drink(?:s|ing)?`, `sober(?:ly)?`, `sobriety`, `aa`, `na`, `relapse[sd]?`,
+	`rehab`, `recovery`,
+}, "|") + `)(?:$|[^\p{L}0-9])`)
+
 // Sensitive reports whether s touches recovery vocabulary. Fails closed: it
 // also catches "recovery run". Source: jarvis gateway/lifehub/screen.py RECOVERY_WORDS.
 func Sensitive(s string) bool { return recoveryR.MatchString(s) }
@@ -341,6 +352,9 @@ func dateShaped(before, after string) bool {
 func Check(out, context string) error {
 	if Sensitive(out) {
 		return errors.New("voice: output touches sensitive vocabulary")
+	}
+	if drinkDrugR.MatchString(out) {
+		return errors.New("voice: output mentions drink, drugs or recovery")
 	}
 	if !namesFree(out, context) {
 		return errors.New("voice: output names someone")

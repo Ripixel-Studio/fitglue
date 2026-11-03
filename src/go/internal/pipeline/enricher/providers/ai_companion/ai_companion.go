@@ -64,11 +64,14 @@ func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, a
 	}
 
 	// Repost cache: return stored result instead of calling Claude again.
+	// The key is versioned so Gemini-era lines are never reused, and a cached
+	// line must pass voice.Check again; a failure falls through to regenerate.
 	externalId := inputs["external_id"]
 	if inputs["is_repost"] == "true" && externalId != "" && p.Service != nil && p.Service.DB != nil {
-		if data, err := p.Service.DB.GetBoosterData(ctx, user.UserId, "ai_companion"); err == nil && data != nil {
-			if cached, ok := data["cached_external_id"].(string); ok && cached == externalId {
-				cachedDesc, _ := data["cached_description"].(string)
+		if data, err := p.Service.DB.GetBoosterData(ctx, user.UserId, cacheKey); err == nil && data != nil {
+			cachedDesc, _ := data["cached_description"].(string)
+			if cached, ok := data["cached_external_id"].(string); ok && cached == externalId && cachedDesc != "" &&
+				voice.Check(strings.TrimPrefix(cachedDesc, aiLabel), checkContext(activityContext)) == nil {
 				logger.Info("AI Companion: returning cached result for repost", "external_id", externalId)
 				return &providers.EnrichmentResult{
 					Description: cachedDesc,
@@ -106,13 +109,13 @@ func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, a
 
 	result := &aiResult{Description: line}
 	// The label is mandatory: it is what marks the line as AI, not his.
-	result.Description = "✨ AI Summary:\n" + result.Description
+	result.Description = aiLabel + result.Description
 
 	logger.Info("AI Companion content generated successfully")
 
 	// Cache result so reposts don't re-call Claude.
 	if externalId != "" && p.Service != nil && p.Service.DB != nil {
-		_ = p.Service.DB.SetBoosterData(ctx, user.UserId, "ai_companion", map[string]interface{}{
+		_ = p.Service.DB.SetBoosterData(ctx, user.UserId, cacheKey, map[string]interface{}{
 			"cached_external_id": externalId,
 			"cached_description": result.Description,
 		})
@@ -152,7 +155,14 @@ func sanitiseForPrompt(s string) string {
 	return s
 }
 
-const taskBlock = `Write the companion line for this session: 1–3 sentences, at most 280 characters, in the voice above. Use only facts in the data. No names. No 'you'. Never claim he wrote it.`
+// cacheKey versions the repost cache by model/voice. Bump it when either
+// changes; the pre-Haiku key "ai_companion" holds unguarded Gemini text and is
+// never read.
+const cacheKey = "ai_companion_haiku_v3"
+
+const aiLabel = "✨ AI Summary:\n"
+
+const taskBlock = `Write the companion line for this session: 1–3 sentences, at most 280 characters, in the voice above. Use only facts in the data. No names. No 'you'. Never claim he wrote it. Never mention alcohol, drink, drugs, pubs or recovery.`
 
 const maxLineChars = 280
 
