@@ -43,3 +43,12 @@ const RouteSVGTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <text x="{{.EndX}}" y="{{.EndY}}" dy="20" text-anchor="middle">FINISH</text>
   </g>
 </svg>`
+
+// PlaceholderSVG stands in for a route that is withheld (inside a privacy zone, or no
+// zones available): same background, no route.
+const PlaceholderSVG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <rect width="400" height="400" fill="#1a1a2e"/>
+  <circle cx="200" cy="200" r="48" fill="none" stroke="#7C3AED" stroke-width="4" stroke-dasharray="6 10" stroke-linecap="round"/>
+</svg>
+`

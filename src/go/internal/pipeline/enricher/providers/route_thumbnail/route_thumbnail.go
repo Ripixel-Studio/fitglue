@@ -10,6 +10,7 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/fitglue/server/src/go/internal/activity/siteexport"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
 
@@ -51,35 +52,21 @@ type GPSPoint struct {
 }
 
 func (p *RouteThumbnailProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputConfig map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
-	// Extract GPS points from all records
-	var points []GPSPoint
-	for _, session := range activity.Sessions {
-		for _, lap := range session.Laps {
-			for _, record := range lap.Records {
-				if record.PositionLat != 0 && record.PositionLong != 0 {
-					points = append(points, GPSPoint{
-						Lat:  record.PositionLat,
-						Long: record.PositionLong,
-					})
-				}
-			}
-		}
-	}
-
 	// Require at least 10 GPS points for a reasonable route
-	if len(points) < 10 {
-		logger.Info("Skipping route thumbnail - insufficient GPS data", "points", len(points))
+	if n := countGPS(activity); n < 10 {
+		logger.Info("Skipping route thumbnail - insufficient GPS data", "points", n)
 		return &providers.EnrichmentResult{Skipped: true, SkipReason: "Insufficient GPS data"}, nil
 	}
 
-	// Simplify the route if too many points (Douglas-Peucker)
-	if len(points) > 200 {
-		points = simplifyRoute(points, 0.0001) // ~10m tolerance
+	// The thumbnail is public: draw it from the track trimmed against the privacy zones
+	// (same zones and whole rule as the site export's routePoints). Without zones a
+	// non-whole route is never drawn.
+	zones, zerr := siteexport.ZonesFromEnv(os.Getenv)()
+	if zerr != nil {
+		logger.Warn("Privacy zones unavailable; route thumbnail will be a placeholder", "error", zerr.Error())
+		zones = nil
 	}
-
-	// Generate SVG
-	svgContent := generateRouteSVG(points)
-
+	svgContent := string(ThumbnailForActivity(activity, zones))
 	// Upload to GCS - use dedicated showcase assets bucket
 	bucketName := os.Getenv("SHOWCASE_ASSETS_BUCKET")
 	if bucketName == "" {
@@ -114,7 +101,7 @@ func (p *RouteThumbnailProvider) Enrich(ctx context.Context, logger *slog.Logger
 		assetURL = fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, objectPath)
 	}
 
-	logger.Info("Generated route thumbnail", "asset_folder_id", assetFolderID, "url", assetURL, "points", len(points))
+	logger.Info("Generated route thumbnail", "asset_folder_id", assetFolderID, "url", assetURL, "zones", zones != nil)
 
 	return &providers.EnrichmentResult{
 		Metadata: map[string]string{
@@ -272,4 +259,43 @@ func perpendicularDistance(point, lineStart, lineEnd GPSPoint) float64 {
 	closestY := lineStart.Lat + t*dy
 
 	return math.Sqrt(math.Pow(point.Long-closestX, 2) + math.Pow(point.Lat-closestY, 2))
+}
+
+func countGPS(activity *pbactivity.StandardizedActivity) int {
+	n := 0
+	for _, session := range activity.Sessions {
+		for _, lap := range session.Laps {
+			for _, record := range lap.Records {
+				if record.PositionLat != 0 && record.PositionLong != 0 {
+					n++
+				}
+			}
+		}
+	}
+	return n
+}
+
+// ThumbnailForActivity renders the public thumbnail of an activity at enrich time. At
+// this point only the standardized activity exists, so "whole" is judged on it wrapped
+// as a showcase (a race with splits, or a parkrun by title and distance); the one-off
+// `fitgluectl rethumb-site` re-renders with the final showcase.
+func ThumbnailForActivity(activity *pbactivity.StandardizedActivity, zones *siteexport.Zones) []byte {
+	sc := &pbactivity.ShowcasedActivity{Title: activity.Name, Description: activity.Description, Tags: activity.Tags, ActivityData: activity}
+	return RenderTrack(siteexport.ThumbnailTrack(activity, zones, siteexport.IsWhole(sc)))
+}
+
+// RenderTrack draws a [lat, lng] track (already trimmed) as the route SVG, simplified
+// when long, or the neutral placeholder when track is nil.
+func RenderTrack(track [][]float64) []byte {
+	if len(track) == 0 {
+		return []byte(PlaceholderSVG)
+	}
+	points := make([]GPSPoint, 0, len(track))
+	for _, p := range track {
+		points = append(points, GPSPoint{Lat: p[0], Long: p[1]})
+	}
+	if len(points) > 200 {
+		points = simplifyRoute(points, 0.0001) // ~10m tolerance
+	}
+	return []byte(generateRouteSVG(points))
 }

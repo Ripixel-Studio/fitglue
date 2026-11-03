@@ -58,7 +58,7 @@ func TestBuildActivity(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			b, err := BuildActivity(tc.showcase, tc.entry, fixedNow)
+			b, err := BuildActivity(tc.showcase, tc.entry, fixedNow, farZones)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -167,7 +167,7 @@ func TestBuildActivity_NoActivityData(t *testing.T) {
 	sc := runShowcase()
 	sc.ActivityData = nil
 	sc.Enrichments = nil
-	b, err := BuildActivity(sc, runEntry(), fixedNow)
+	b, err := BuildActivity(sc, runEntry(), fixedNow, farZones)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +351,7 @@ func TestDeriveTelemetry(t *testing.T) {
 			StartTime: ts(runStart),
 			Laps:      []*pbactivity.Lap{{Records: runRecords(runStart, 30)}},
 		}}}
-		s, route := DeriveTelemetry(data)
+		s, route := DeriveTelemetry(data, farZones, false)
 		if s.N != 30 || len(s.HeartRate) != 30 || *s.ElapsedS[29] != 29 || *s.DistanceM[0] != 0 {
 			t.Errorf("series = n=%d hr=%d elapsed[29]=%v dist[0]=%v", s.N, len(s.HeartRate), *s.ElapsedS[29], *s.DistanceM[0])
 		}
@@ -367,7 +367,7 @@ func TestDeriveTelemetry(t *testing.T) {
 			{Timestamp: ts(runStart.Add(2 * time.Second)), HeartRate: 120},
 		}
 		data := &pbactivity.StandardizedActivity{Sessions: []*pbactivity.Session{{Laps: []*pbactivity.Lap{{Records: recs}}}}}
-		s, route := DeriveTelemetry(data)
+		s, route := DeriveTelemetry(data, farZones, false)
 		if s.N != 3 || s.HeartRate[1] != nil || *s.HeartRate[2] != 120 {
 			t.Errorf("heartRate = %v", s.HeartRate)
 		}
@@ -389,12 +389,12 @@ func TestDeriveTelemetry(t *testing.T) {
 	})
 	t.Run("under ten GPS points is no route", func(t *testing.T) {
 		data := &pbactivity.StandardizedActivity{Sessions: []*pbactivity.Session{{Laps: []*pbactivity.Lap{{Records: runRecords(runStart, 9)}}}}}
-		if _, route := DeriveTelemetry(data); len(route) != 0 {
+		if _, route := DeriveTelemetry(data, farZones, false); len(route) != 0 {
 			t.Errorf("got %d route points", len(route))
 		}
 	})
 	t.Run("nil data", func(t *testing.T) {
-		s, route := DeriveTelemetry(nil)
+		s, route := DeriveTelemetry(nil, farZones, false)
 		if s.N != 0 || route == nil || len(route) != 0 {
 			t.Errorf("nil data: %+v %v", s, route)
 		}

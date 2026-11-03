@@ -51,6 +51,24 @@ type Deps struct {
 	Logf func(format string, args ...any)
 	// Concurrency bounds parallel activity reads/writes; 8 when 0.
 	Concurrency int
+	// Zones loads the privacy zones (ZonesFromEnv on the box). Nil, or an error from it,
+	// fails closed: no routePoints for activities not kept whole.
+	Zones ZoneSource
+}
+
+// zones loads the privacy zones for one activity build; nil (fail closed) with one
+// log line when they cannot be loaded.
+func (d Deps) zones() *Zones {
+	if d.Zones == nil {
+		d.logf("privacy zones: no source configured; routes withheld")
+		return nil
+	}
+	z, err := d.Zones()
+	if err != nil {
+		d.logf("privacy zones unavailable (%v); routes withheld", err)
+		return nil
+	}
+	return z
 }
 
 func (d Deps) now() time.Time {
@@ -133,7 +151,7 @@ func ExportAll(ctx context.Context, deps Deps, slug string, opts Options) (Resul
 			selected = append(selected, e)
 		}
 	}
-	written, skipped, err := exportEntries(ctx, deps, selected)
+	written, skipped, wroteIDs, err := exportEntries(ctx, deps, selected)
 	res.Activities, res.Skipped = written, skipped
 	if err != nil {
 		return res, err
@@ -153,8 +171,10 @@ func ExportAll(ctx context.Context, deps Deps, slug string, opts Options) (Resul
 	// Prune orphans before the index is rewritten.
 	if opts.Prune {
 		keep := map[string]bool{}
-		for _, e := range entries {
-			keep[activityName(e.ShowcaseId)] = true
+		// Only files this run actually wrote: an entry skipped as not exportable
+		// (expired, no showcase document) must not keep an older, untrimmed file.
+		for _, id := range wroteIDs {
+			keep[activityName(id)] = true
 		}
 		for _, r := range roundups {
 			keep[roundupName(r.PeriodKey)] = true
@@ -235,7 +255,7 @@ func RefreshIndex(ctx context.Context, deps Deps, slug string) error {
 	return writeIndex(ctx, deps, profile, entries, roundups)
 }
 
-func exportEntries(ctx context.Context, deps Deps, entries []*pbactivity.ShowcaseProfileEntry) (written, skipped int, err error) {
+func exportEntries(ctx context.Context, deps Deps, entries []*pbactivity.ShowcaseProfileEntry) (written, skipped int, wroteIDs []string, err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -250,7 +270,7 @@ func exportEntries(ctx context.Context, deps Deps, entries []*pbactivity.Showcas
 		case sem <- struct{}{}:
 		case <-ctx.Done():
 			wg.Wait()
-			return written, skipped, firstErr
+			return written, skipped, wroteIDs, firstErr
 		}
 		wg.Add(1)
 		go func(e *pbactivity.ShowcaseProfileEntry) {
@@ -262,6 +282,7 @@ func exportEntries(ctx context.Context, deps Deps, entries []*pbactivity.Showcas
 			switch {
 			case err == nil:
 				written++
+				wroteIDs = append(wroteIDs, e.ShowcaseId)
 			case errors.Is(err, ErrNotExportable):
 				deps.logf("skip %s: %v", e.ShowcaseId, err)
 				skipped++
@@ -274,7 +295,15 @@ func exportEntries(ctx context.Context, deps Deps, entries []*pbactivity.Showcas
 		}(e)
 	}
 	wg.Wait()
-	return written, skipped, firstErr
+	return written, skipped, wroteIDs, firstErr
+}
+
+// dropStale removes the published file of an activity that is no longer exportable, so
+// an older (possibly pre-privacy-zone) copy does not stay public.
+func dropStale(ctx context.Context, deps Deps, id string) {
+	if err := deps.Writer.Delete(ctx, activityName(id)); err != nil {
+		deps.logf("delete stale %s: %v", activityName(id), err)
+	}
 }
 
 func writeActivity(ctx context.Context, deps Deps, entry *pbactivity.ShowcaseProfileEntry) error {
@@ -283,16 +312,18 @@ func writeActivity(ctx context.Context, deps Deps, entry *pbactivity.ShowcasePro
 		return fmt.Errorf("showcase %s: %w", entry.ShowcaseId, err)
 	}
 	if sc == nil {
+		dropStale(ctx, deps, entry.ShowcaseId)
 		return fmt.Errorf("%w: no showcase document for %s", ErrNotExportable, entry.ShowcaseId)
 	}
 	now := deps.now()
 	if sc.ExpiresAt != nil && sc.ExpiresAt.AsTime().Before(now) {
+		dropStale(ctx, deps, entry.ShowcaseId)
 		return fmt.Errorf("%w: %s expired at %s", ErrNotExportable, entry.ShowcaseId, sc.ExpiresAt.AsTime().Format(time.RFC3339))
 	}
 	// Strava's calories over the MET estimate older runs stored (mutates entry, so the
 	// index ExportAll writes next carries the same figure).
 	ApplyPlatformCalories(sc, entry)
-	b, err := BuildActivity(sc, entry, now)
+	b, err := BuildActivity(sc, entry, now, deps.zones())
 	if err != nil {
 		return fmt.Errorf("build %s: %w", entry.ShowcaseId, err)
 	}

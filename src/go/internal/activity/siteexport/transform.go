@@ -157,15 +157,27 @@ func BuildIndex(profile *pbactivity.ShowcaseProfile, entries []*pbactivity.Showc
 // BuildActivity renders activity/<showcaseId>.json (contract §3). showcase must
 // be the hydrated ShowcasedActivity GetPublicShowcase returns; entry the
 // matching ShowcaseProfileEntry.
-func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.ShowcaseProfileEntry, now time.Time) ([]byte, error) {
+//
+// zones are the privacy zones (privacyzones.go); nil fails closed: routePoints is []
+// and location coordinates are dropped unless the activity is a race or a parkrun.
+func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.ShowcaseProfileEntry, now time.Time, zones *Zones) ([]byte, error) {
 	category := ResolveCategory(showcase)
-	series, route := DeriveTelemetry(showcase.ActivityData)
+	whole := IsWhole(showcase)
+	series, route := DeriveTelemetry(showcase.ActivityData, zones, whole)
 	race := DeriveRace(showcase)
 	kmSplits := DeriveKmSplits(showcase.ActivityData, category)
 
 	// Strip the records after deriving series/route from them (§3.1). Work on
 	// a clone so the caller's message is untouched.
 	stripped := proto.Clone(showcase).(*pbactivity.ShowcasedActivity)
+	if !whole {
+		if stripped.Enrichments != nil {
+			stripped.Enrichments.Location = scrubLocation(stripped.Enrichments.Location, zones)
+		}
+		if stripped.ActivityData != nil {
+			stripped.ActivityData.HintLocation = scrubLocation(stripped.ActivityData.HintLocation, zones)
+		}
+	}
 	if stripped.ActivityData != nil {
 		for _, sess := range stripped.ActivityData.Sessions {
 			for _, lap := range sess.Laps {
@@ -359,35 +371,23 @@ func ResolveCategory(sc *pbactivity.ShowcasedActivity) Category {
 // bucket-averaged samples, null where a bucket has no valid value) and the GPS
 // track into ≤ 200 [lat, lng] pairs (§3.3). routePoints is empty when fewer
 // than 10 records carry a position.
-func DeriveTelemetry(data *pbactivity.StandardizedActivity) (*Series, [][]float64) {
-	var records []*pbactivity.Record
+//
+// The track is trimmed against zones at full resolution, before the downsample, unless
+// whole (a race or parkrun); a nil zones with !whole yields no route (fail closed).
+func DeriveTelemetry(data *pbactivity.StandardizedActivity, zones *Zones, whole bool) (*Series, [][]float64) {
+	records := trackRecords(data)
 	var base time.Time
 	if data != nil {
 		for _, sess := range data.Sessions {
-			if base.IsZero() && sess.StartTime != nil {
+			if sess.StartTime != nil {
 				base = sess.StartTime.AsTime()
-			}
-			for _, lap := range sess.Laps {
-				records = append(records, lap.Records...)
+				break
 			}
 		}
 	}
 	series := &Series{N: 0}
 	if len(records) == 0 {
 		return series, [][]float64{}
-	}
-	// Records from several sources arrive concatenated (a race-timing app's sparse track,
-	// then a Fitbit HR stream); bucket them in time order. Only when every record is timed,
-	// so an untimed stream keeps its recorded order.
-	allTimed := true
-	for _, r := range records {
-		if r.Timestamp == nil {
-			allTimed = false
-			break
-		}
-	}
-	if allTimed {
-		sort.SliceStable(records, func(i, j int) bool { return records[i].Timestamp.AsTime().Before(records[j].Timestamp.AsTime()) })
 	}
 	if base.IsZero() {
 		for _, r := range records {
@@ -439,7 +439,7 @@ func DeriveTelemetry(data *pbactivity.StandardizedActivity) (*Series, [][]float6
 	series.TemperatureC = bucketAverage(records, n, func(r *pbactivity.Record) (float64, bool) {
 		return float64(r.GetTemperature()), r.Temperature != nil
 	})
-	return series, routePoints(records)
+	return series, routePoints(records, zones, whole)
 }
 
 // bucketAverage splits records into n evenly sized buckets (like downsample()
@@ -475,12 +475,46 @@ func bucketAverage(records []*pbactivity.Record, n int, value func(*pbactivity.R
 	return out
 }
 
-func routePoints(records []*pbactivity.Record) [][]float64 {
+// trackRecords concatenates the records of every lap. Records from several sources
+// arrive concatenated (a race-timing app's sparse track, then a Fitbit HR stream); they
+// are put in time order, but only when every record is timed, so an untimed stream
+// keeps its recorded order.
+func trackRecords(data *pbactivity.StandardizedActivity) []*pbactivity.Record {
+	var records []*pbactivity.Record
+	if data != nil {
+		for _, sess := range data.Sessions {
+			for _, lap := range sess.Laps {
+				records = append(records, lap.Records...)
+			}
+		}
+	}
+	for _, r := range records {
+		if r.Timestamp == nil {
+			return records
+		}
+	}
+	sort.SliceStable(records, func(i, j int) bool { return records[i].Timestamp.AsTime().Before(records[j].Timestamp.AsTime()) })
+	return records
+}
+
+// trackPoints is the [lat, lng] of every record that has a position, rounded.
+func trackPoints(records []*pbactivity.Record) [][]float64 {
 	var pts [][]float64
 	for _, r := range records {
 		if r.PositionLat != 0 && r.PositionLong != 0 {
 			pts = append(pts, []float64{round(r.PositionLat, routePrecision), round(r.PositionLong, routePrecision)})
 		}
+	}
+	return pts
+}
+
+func routePoints(records []*pbactivity.Record, zones *Zones, whole bool) [][]float64 {
+	pts := trackPoints(records)
+	if !whole {
+		if zones == nil {
+			return [][]float64{}
+		}
+		pts = zones.trimTrack(pts)
 	}
 	if len(pts) < minRoutePoints {
 		return [][]float64{}

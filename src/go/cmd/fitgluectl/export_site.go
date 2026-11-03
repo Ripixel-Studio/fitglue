@@ -118,6 +118,7 @@ func runExportSite(ctx context.Context, f *exportSiteFlags, source siteexport.So
 		Writer:      writer,
 		Logf:        logger.Printf,
 		Concurrency: f.concurrency,
+		Zones:       siteexport.ZonesFromEnv(os.Getenv),
 	}
 	if f.dryRun {
 		logger.Printf("dry run: writing to %s (bucket %s untouched)", f.out, f.bucket)
