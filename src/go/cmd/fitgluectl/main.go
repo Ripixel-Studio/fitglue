@@ -2,6 +2,7 @@
 //
 //	fitgluectl export-site --slug james [--all | --since <RFC3339>] [--bucket B] [--prefix site/james]
 //	fitgluectl export-site --slug james --dry-run --out <dir>
+//	fitgluectl rethumb-site --slug james [--dry-run --out <dir>]  re-render every route thumbnail from the privacy-trimmed track
 //	fitgluectl fix-calories --slug james [--apply]          store Strava's calories on the entries
 //	fitgluectl connect googlehealth|strava|github|spotify  prints the authorise URL (fitbit: legacy, dead 2 Nov 2026)
 //	fitgluectl connect hevy --api-key-stdin                 stores the key + mints the webhook ingress key
@@ -37,6 +38,7 @@ import (
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage: fitgluectl <command> [flags]")
 	fmt.Fprintln(os.Stderr, "commands:")
+	fmt.Fprintln(os.Stderr, "  rethumb-site  re-render route thumbnails from the privacy-trimmed track")
 	fmt.Fprintln(os.Stderr, "  export-site   export the showcase as static JSON for the personal site")
 	fmt.Fprintln(os.Stderr, "  fix-calories  correct stored entry calories to the source platform's figure (dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
@@ -56,6 +58,8 @@ func main() {
 	switch os.Args[1] {
 	case "export-site":
 		err = exportSiteCommand(ctx, os.Args[2:], os.Stderr, connectGCP)
+	case "rethumb-site":
+		err = rethumbSiteCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, connectRethumbGCP)
 	case "fix-calories":
 		err = fixCaloriesCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, connectGCP)
 	case "connect":

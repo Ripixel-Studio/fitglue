@@ -70,13 +70,19 @@ the longest remaining segment is published (`routePoints` is `[]` below 10 point
 Zones are the homes in `~/.jarvis/home/places.json` (`{"homes":[{"lat","lon"}]}`, 800 m
 each) plus the learned spots in `~/.jarvis/home/privacy-zones.json`
 (`{"zones":[{"lat","lng","radiusM"}]}`, optional). Override the paths with
-`SITE_EXPORT_PLACES_FILE` / `SITE_EXPORT_ZONES_FILE`. Races (Hyrox) and parkruns are
-published whole. If `places.json` is missing or unreadable the export **fails closed**:
-`routePoints` is `[]` for every other activity and location coordinates are dropped
-(one log line per activity). `enrichments.location` and `hintLocation` inside a zone are
-removed; route thumbnails (images of the full track) are blanked in activity files, the
-index and roundups for everything except races and parkruns. After changing the zones,
-republish with `bin/fitgluectl export-site --slug james --all`.
+`SITE_EXPORT_PLACES_FILE` / `SITE_EXPORT_ZONES_FILE`. Whole (untrimmed) means a
+race (`DeriveRace` finds one) or a parkrun (parkrun in the title and 4.8-5.3 km); a bare
+"parkrun" or "hyrox" in a title or tag does not count. If `places.json` is missing or
+unreadable the export **fails closed**: `routePoints` is `[]` for every other activity and
+location coordinates are dropped (one log line per activity). `enrichments.location` and
+`hintLocation` inside a zone are removed. Skipped or expired activities have their old
+file deleted, and `--all` prunes everything not written in that run.
+
+Route thumbnails (`route-thumbnail.svg`) are drawn from the same trimmed track, by the
+enricher going forward and, for the ones already published, by
+`bin/fitgluectl rethumb-site --slug james` (overwrites the same objects at the same URLs;
+a route that trims to nothing, or any non-whole route without zones, gets a neutral
+placeholder). After changing the zones run both `export-site --all` and `rethumb-site`.
 
 ## Calories
 

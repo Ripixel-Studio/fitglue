@@ -10,8 +10,6 @@ import (
 	"regexp"
 	"strings"
 
-	"google.golang.org/protobuf/proto"
-
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 )
 
@@ -179,30 +177,73 @@ func (z *Zones) trimTrack(pts [][]float64) [][]float64 {
 
 var parkrunRE = regexp.MustCompile(`(?i)parkrun`)
 
-// keptWhole reports whether an activity's route is published untrimmed: a race
-// (Hyrox, the one race marker the export has) or a parkrun.
-func keptWhole(sc *pbactivity.ShowcasedActivity) bool {
+// Distance window of a real parkrun (5 km course, GPS slack).
+const (
+	parkrunMinM = 4800.0
+	parkrunMaxM = 5300.0
+)
+
+// IsWhole is the one definition of "kept whole" for every public coordinate the
+// export publishes (routePoints, route thumbnails, locations): the activity is a race
+// (DeriveRace finds one) or a parkrun (parkrun in the title and 4.8-5.3 km). A bare
+// "hyrox" or "parkrun" in a title, name or tag never makes an activity whole by itself:
+// "Run to parkrun" and "Hyrox training" start at the front door.
+func IsWhole(sc *pbactivity.ShowcasedActivity) bool {
 	if sc == nil {
 		return false
 	}
-	if isHyroxActivity(sc) || parkrunRE.MatchString(sc.Title) {
+	if DeriveRace(sc) != nil {
 		return true
 	}
-	if sc.ActivityData != nil && parkrunRE.MatchString(sc.ActivityData.Name) {
-		return true
+	title := sc.Title
+	if title == "" && sc.ActivityData != nil {
+		title = sc.ActivityData.Name
 	}
-	for _, t := range sc.Tags {
-		if parkrunRE.MatchString(t) {
-			return true
-		}
+	if !parkrunRE.MatchString(title) {
+		return false
 	}
-	return false
+	d := activityDistanceM(sc.ActivityData)
+	return d >= parkrunMinM && d <= parkrunMaxM
 }
 
-// titleKeptWhole is keptWhole for the index and roundups, which carry a title only.
-func titleKeptWhole(title string) bool {
-	t := strings.ToLower(title)
-	return strings.Contains(t, "hyrox") || parkrunRE.MatchString(title)
+// activityDistanceM is the sessions' total distance, else the last cumulative record distance.
+func activityDistanceM(data *pbactivity.StandardizedActivity) float64 {
+	if data == nil {
+		return 0
+	}
+	total, last := 0.0, 0.0
+	for _, sess := range data.Sessions {
+		total += sess.TotalDistance
+		for _, lap := range sess.Laps {
+			for _, r := range lap.Records {
+				if r.Distance > last {
+					last = r.Distance
+				}
+			}
+		}
+	}
+	if total > 0 {
+		return total
+	}
+	return last
+}
+
+// ThumbnailTrack is the full-resolution track a route thumbnail may be drawn from:
+// the whole track for a whole activity, the longest segment outside the zones
+// otherwise, and nil (fail closed) for a non-whole activity without zones. Fewer than
+// minRoutePoints points also gives nil: draw a placeholder.
+func ThumbnailTrack(data *pbactivity.StandardizedActivity, zones *Zones, whole bool) [][]float64 {
+	pts := trackPoints(trackRecords(data))
+	if !whole {
+		if zones == nil {
+			return nil
+		}
+		pts = zones.trimTrack(pts)
+	}
+	if len(pts) < minRoutePoints {
+		return nil
+	}
+	return pts
 }
 
 // scrubLocation applies the zones to a LocationSummary: unavailable zones drop its
@@ -219,42 +260,4 @@ func scrubLocation(loc *pbactivity.LocationSummary, zones *Zones) *pbactivity.Lo
 		return nil
 	}
 	return loc
-}
-
-// scrubEntry blanks the route thumbnail of an entry that is not kept whole. The
-// thumbnail is an image of the full track, which cannot be trimmed; the site draws
-// its maps from the trimmed routePoints instead. Works on a copy.
-func scrubEntry(e *pbactivity.ShowcaseProfileEntry) *pbactivity.ShowcaseProfileEntry {
-	if e == nil || e.RouteThumbnailUrl == "" || titleKeptWhole(e.Title) {
-		return e
-	}
-	c := proto.Clone(e).(*pbactivity.ShowcaseProfileEntry)
-	c.RouteThumbnailUrl = ""
-	return c
-}
-
-// scrubEnrichments
-// applies the zones to the location. Mutates the (cloned) enrichments.
-func scrubEnrichments(en *pbactivity.ActivityEnrichments, zones *Zones) *pbactivity.ActivityEnrichments {
-	if en == nil {
-		return nil
-	}
-	en.Location = scrubLocation(en.Location, zones)
-	return en
-}
-
-// scrubRoundup drops the roundup's route thumbnails of activities not kept whole.
-func scrubRoundup(r *pbactivity.ShowcaseRoundup) *pbactivity.ShowcaseRoundup {
-	if r == nil || len(r.Routes) == 0 {
-		return r
-	}
-	c := proto.Clone(r).(*pbactivity.ShowcaseRoundup)
-	kept := c.Routes[:0]
-	for _, rt := range c.Routes {
-		if titleKeptWhole(rt.ActivityTitle) {
-			kept = append(kept, rt)
-		}
-	}
-	c.Routes = kept
-	return c
 }

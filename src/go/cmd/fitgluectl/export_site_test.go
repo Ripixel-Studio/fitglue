@@ -208,3 +208,53 @@ func (w *recordingWriter) List(_ context.Context, prefix string) ([]string, erro
 	}
 	return out, nil
 }
+
+func TestRethumbSite(t *testing.T) {
+	out := t.TempDir()
+	src := fakeThumbSource()
+	put := func(_ context.Context, obj string, svg []byte) error {
+		return os.WriteFile(filepath.Join(out, filepath.Base(filepath.Dir(obj))+".svg"), svg, 0o644)
+	}
+	var stdout bytes.Buffer
+	t.Setenv("SITE_EXPORT_PLACES_FILE", filepath.Join(t.TempDir(), "absent.json")) // fail closed
+	err := runRethumb(context.Background(), &rethumbFlags{exportSiteFlags{slug: "james", concurrency: 2}}, src, put, &stdout, log.New(&bytes.Buffer{}, "", 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stdout.String(); got != "thumbnails: 0 trimmed, 0 whole, 1 placeholder, 0 skipped (no thumbnail URL)\n" {
+		t.Errorf("output = %q", got)
+	}
+	b, err := os.ReadFile(filepath.Join(out, "act1.svg"))
+	if err != nil || !bytes.Contains(b, []byte("stroke-dasharray")) {
+		t.Errorf("without zones the thumbnail must be the placeholder: %v", err)
+	}
+}
+
+// fakeThumbSource has one non-whole activity with an invented track near (10.0, 10.0).
+func fakeThumbSource() siteexport.Source {
+	recs := make([]*pbactivity.Record, 400)
+	for i := range recs {
+		recs[i] = &pbactivity.Record{PositionLat: 10.0 + float64(i)*0.00002, PositionLong: 10.0}
+	}
+	sc := &pbactivity.ShowcasedActivity{ShowcaseId: "act1", Title: "Morning Run", ActivityData: &pbactivity.StandardizedActivity{
+		Sessions: []*pbactivity.Session{{Laps: []*pbactivity.Lap{{Records: recs}}}}}}
+	return thumbSource{sc: sc}
+}
+
+type thumbSource struct{ sc *pbactivity.ShowcasedActivity }
+
+func (thumbSource) Profile(context.Context, string) (*pbactivity.ShowcaseProfile, error) {
+	return &pbactivity.ShowcaseProfile{UserId: "u"}, nil
+}
+func (thumbSource) Entries(context.Context, string) ([]*pbactivity.ShowcaseProfileEntry, error) {
+	return []*pbactivity.ShowcaseProfileEntry{{ShowcaseId: "act1", RouteThumbnailUrl: "https://assets.invalid/act1/route-thumbnail.svg"}}, nil
+}
+func (s thumbSource) Showcase(context.Context, string) (*pbactivity.ShowcasedActivity, error) {
+	return s.sc, nil
+}
+func (thumbSource) Roundups(context.Context, string) ([]*pbactivity.ShowcaseRoundup, error) {
+	return nil, nil
+}
+func (thumbSource) Roundup(context.Context, string, string) (*pbactivity.ShowcaseRoundup, error) {
+	return nil, nil
+}

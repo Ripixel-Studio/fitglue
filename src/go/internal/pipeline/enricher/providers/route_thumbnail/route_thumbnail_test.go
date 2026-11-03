@@ -1,6 +1,8 @@
 package route_thumbnail
 
 import (
+	"github.com/fitglue/server/src/go/internal/activity/siteexport"
+	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	"math"
 	"strings"
 	"testing"
@@ -141,4 +143,53 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// Invented coordinates around (10.0, 10.0); ~0.00002 deg of latitude is ~2.2 m.
+func walkNorth(n int) *pbactivity.StandardizedActivity {
+	recs := make([]*pbactivity.Record, n)
+	for i := range recs {
+		recs[i] = &pbactivity.Record{PositionLat: 10.0 + float64(i)*0.00002, PositionLong: 10.0}
+	}
+	return &pbactivity.StandardizedActivity{Name: "Morning Run", Sessions: []*pbactivity.Session{{Laps: []*pbactivity.Lap{{Records: recs}}}}}
+}
+
+func TestThumbnailForActivity_FailsClosedWithoutZones(t *testing.T) {
+	got := string(ThumbnailForActivity(walkNorth(3000), nil))
+	if got != PlaceholderSVG {
+		t.Error("a non-whole route must not be drawn without zones")
+	}
+}
+
+func TestThumbnailForActivity_TrimmedFromHome(t *testing.T) {
+	zones := siteexport.NewZones([3]float64{10.0, 10.0, siteexport.HomeZoneRadiusM})
+	// North ~3 km out of the zone, then a 3 km dogleg east: the part inside the zone
+	// changes the drawn shape (the drawing is normalised to its bounding box).
+	act := walkNorth(1500)
+	recs := act.Sessions[0].Laps[0].Records
+	for i := 1; i <= 1500; i++ {
+		recs = append(recs, &pbactivity.Record{PositionLat: 10.03, PositionLong: 10.0 + float64(i)*0.00002})
+	}
+	act.Sessions[0].Laps[0].Records = recs
+	trimmed := string(ThumbnailForActivity(act, zones))
+	if trimmed == PlaceholderSVG {
+		t.Fatal("a route leaving the zone should still be drawn")
+	}
+	full := string(RenderTrack(siteexport.ThumbnailTrack(act, nil, true)))
+	if trimmed == full {
+		t.Error("the trimmed thumbnail must differ from the untrimmed one")
+	}
+}
+
+func TestThumbnailForActivity_LoopInsideZoneIsPlaceholder(t *testing.T) {
+	zones := siteexport.NewZones([3]float64{10.0, 10.0, siteexport.HomeZoneRadiusM})
+	if string(ThumbnailForActivity(walkNorth(300), zones)) != PlaceholderSVG {
+		t.Error("a loop inside the zone must give the placeholder")
+	}
+}
+
+func TestRenderTrack_NilIsPlaceholder(t *testing.T) {
+	if string(RenderTrack(nil)) != PlaceholderSVG || !strings.Contains(PlaceholderSVG, "<svg") {
+		t.Error("nil track must render the placeholder")
+	}
 }

@@ -142,7 +142,7 @@ func BuildIndex(profile *pbactivity.ShowcaseProfile, entries []*pbactivity.Showc
 		Roundups:      make([]RoundupSummary, 0, len(roundups)),
 	}
 	for _, e := range entries {
-		b, err := marshalWith(scrubEntry(e), map[string]any{"slug": e.ShowcaseId})
+		b, err := marshalWith(e, map[string]any{"slug": e.ShowcaseId})
 		if err != nil {
 			return nil, fmt.Errorf("entry %s: %w", e.ShowcaseId, err)
 		}
@@ -162,7 +162,7 @@ func BuildIndex(profile *pbactivity.ShowcaseProfile, entries []*pbactivity.Showc
 // and location coordinates are dropped unless the activity is a race or a parkrun.
 func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.ShowcaseProfileEntry, now time.Time, zones *Zones) ([]byte, error) {
 	category := ResolveCategory(showcase)
-	whole := keptWhole(showcase)
+	whole := IsWhole(showcase)
 	series, route := DeriveTelemetry(showcase.ActivityData, zones, whole)
 	race := DeriveRace(showcase)
 	kmSplits := DeriveKmSplits(showcase.ActivityData, category)
@@ -170,10 +170,10 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 	// Strip the records after deriving series/route from them (§3.1). Work on
 	// a clone so the caller's message is untouched.
 	stripped := proto.Clone(showcase).(*pbactivity.ShowcasedActivity)
-	entry = scrubEntry(entry)
 	if !whole {
-		// The route thumbnail is a rendered map of the full, untrimmed track.
-		stripped.Enrichments = scrubEnrichments(stripped.Enrichments, zones)
+		if stripped.Enrichments != nil {
+			stripped.Enrichments.Location = scrubLocation(stripped.Enrichments.Location, zones)
+		}
 		if stripped.ActivityData != nil {
 			stripped.ActivityData.HintLocation = scrubLocation(stripped.ActivityData.HintLocation, zones)
 		}
@@ -209,7 +209,7 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 
 // BuildRoundup renders roundup/<periodKey>.json (contract §6).
 func BuildRoundup(roundup *pbactivity.ShowcaseRoundup, now time.Time) ([]byte, error) {
-	roundupJSON, err := marshalStripped(scrubRoundup(roundup), "userId")
+	roundupJSON, err := marshalStripped(roundup, "userId")
 	if err != nil {
 		return nil, fmt.Errorf("roundup: %w", err)
 	}
@@ -375,34 +375,19 @@ func ResolveCategory(sc *pbactivity.ShowcasedActivity) Category {
 // The track is trimmed against zones at full resolution, before the downsample, unless
 // whole (a race or parkrun); a nil zones with !whole yields no route (fail closed).
 func DeriveTelemetry(data *pbactivity.StandardizedActivity, zones *Zones, whole bool) (*Series, [][]float64) {
-	var records []*pbactivity.Record
+	records := trackRecords(data)
 	var base time.Time
 	if data != nil {
 		for _, sess := range data.Sessions {
-			if base.IsZero() && sess.StartTime != nil {
+			if sess.StartTime != nil {
 				base = sess.StartTime.AsTime()
-			}
-			for _, lap := range sess.Laps {
-				records = append(records, lap.Records...)
+				break
 			}
 		}
 	}
 	series := &Series{N: 0}
 	if len(records) == 0 {
 		return series, [][]float64{}
-	}
-	// Records from several sources arrive concatenated (a race-timing app's sparse track,
-	// then a Fitbit HR stream); bucket them in time order. Only when every record is timed,
-	// so an untimed stream keeps its recorded order.
-	allTimed := true
-	for _, r := range records {
-		if r.Timestamp == nil {
-			allTimed = false
-			break
-		}
-	}
-	if allTimed {
-		sort.SliceStable(records, func(i, j int) bool { return records[i].Timestamp.AsTime().Before(records[j].Timestamp.AsTime()) })
 	}
 	if base.IsZero() {
 		for _, r := range records {
@@ -490,13 +475,41 @@ func bucketAverage(records []*pbactivity.Record, n int, value func(*pbactivity.R
 	return out
 }
 
-func routePoints(records []*pbactivity.Record, zones *Zones, whole bool) [][]float64 {
+// trackRecords concatenates the records of every lap. Records from several sources
+// arrive concatenated (a race-timing app's sparse track, then a Fitbit HR stream); they
+// are put in time order, but only when every record is timed, so an untimed stream
+// keeps its recorded order.
+func trackRecords(data *pbactivity.StandardizedActivity) []*pbactivity.Record {
+	var records []*pbactivity.Record
+	if data != nil {
+		for _, sess := range data.Sessions {
+			for _, lap := range sess.Laps {
+				records = append(records, lap.Records...)
+			}
+		}
+	}
+	for _, r := range records {
+		if r.Timestamp == nil {
+			return records
+		}
+	}
+	sort.SliceStable(records, func(i, j int) bool { return records[i].Timestamp.AsTime().Before(records[j].Timestamp.AsTime()) })
+	return records
+}
+
+// trackPoints is the [lat, lng] of every record that has a position, rounded.
+func trackPoints(records []*pbactivity.Record) [][]float64 {
 	var pts [][]float64
 	for _, r := range records {
 		if r.PositionLat != 0 && r.PositionLong != 0 {
 			pts = append(pts, []float64{round(r.PositionLat, routePrecision), round(r.PositionLong, routePrecision)})
 		}
 	}
+	return pts
+}
+
+func routePoints(records []*pbactivity.Record, zones *Zones, whole bool) [][]float64 {
+	pts := trackPoints(records)
 	if !whole {
 		if zones == nil {
 			return [][]float64{}
