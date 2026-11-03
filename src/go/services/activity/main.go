@@ -86,6 +86,7 @@ func main() {
 			Deps: siteexport.Deps{
 				Source: siteexport.ServiceSource{Service: svc, Store: store},
 				Writer: &siteexport.GCSWriter{Client: gcsClient, Bucket: cfg.Bucket, Prefix: cfg.Prefix()},
+				Zones:  siteexport.ZonesFromEnv(os.Getenv),
 			},
 		}))
 		logger.Info(ctx, "site export on change enabled", "slug", cfg.Slug, "bucket", cfg.Bucket, "hook_url", cfg.HookURL, "signal_file", cfg.SignalFile)

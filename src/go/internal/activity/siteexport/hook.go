@@ -170,6 +170,11 @@ func NewHook(cfg HookConfig) *Hook {
 	if h.logger == nil {
 		h.logger = infra.NewLoggerWithComponent("siteexport")
 	}
+	if h.deps.Logf == nil {
+		h.deps.Logf = func(format string, args ...any) {
+			h.logger.Info(context.Background(), fmt.Sprintf(format, args...))
+		}
+	}
 	if h.exportTimeout <= 0 {
 		h.exportTimeout = DefaultExportTimeout
 	}

@@ -51,6 +51,24 @@ type Deps struct {
 	Logf func(format string, args ...any)
 	// Concurrency bounds parallel activity reads/writes; 8 when 0.
 	Concurrency int
+	// Zones loads the privacy zones (ZonesFromEnv on the box). Nil, or an error from it,
+	// fails closed: no routePoints for activities not kept whole.
+	Zones ZoneSource
+}
+
+// zones loads the privacy zones for one activity build; nil (fail closed) with one
+// log line when they cannot be loaded.
+func (d Deps) zones() *Zones {
+	if d.Zones == nil {
+		d.logf("privacy zones: no source configured; routes withheld")
+		return nil
+	}
+	z, err := d.Zones()
+	if err != nil {
+		d.logf("privacy zones unavailable (%v); routes withheld", err)
+		return nil
+	}
+	return z
 }
 
 func (d Deps) now() time.Time {
@@ -292,7 +310,7 @@ func writeActivity(ctx context.Context, deps Deps, entry *pbactivity.ShowcasePro
 	// Strava's calories over the MET estimate older runs stored (mutates entry, so the
 	// index ExportAll writes next carries the same figure).
 	ApplyPlatformCalories(sc, entry)
-	b, err := BuildActivity(sc, entry, now)
+	b, err := BuildActivity(sc, entry, now, deps.zones())
 	if err != nil {
 		return fmt.Errorf("build %s: %w", entry.ShowcaseId, err)
 	}
