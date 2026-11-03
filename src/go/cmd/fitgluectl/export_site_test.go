@@ -258,3 +258,11 @@ func (thumbSource) Roundups(context.Context, string) ([]*pbactivity.ShowcaseRoun
 func (thumbSource) Roundup(context.Context, string, string) (*pbactivity.ShowcaseRoundup, error) {
 	return nil, nil
 }
+
+func (stubSource) StravaID(context.Context, *pbactivity.ShowcasedActivity) (string, error) {
+	return "", nil
+}
+
+func (thumbSource) StravaID(context.Context, *pbactivity.ShowcasedActivity) (string, error) {
+	return "", nil
+}

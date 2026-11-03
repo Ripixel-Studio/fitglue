@@ -8,6 +8,8 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/activity"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
+	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
+	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	pbsvc "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
 )
 
@@ -52,4 +54,28 @@ func (s ServiceSource) Roundups(ctx context.Context, slug string) ([]*pbactivity
 
 func (s ServiceSource) Roundup(ctx context.Context, slug, periodKey string) (*pbactivity.ShowcaseRoundup, error) {
 	return s.Store.GetRoundup(ctx, slug, periodKey)
+}
+
+// StravaID reads the activity's pipeline run and returns the external id of its
+// successful Strava upload, else "". The owner comes from the showcase document
+// (the public showcase carries no user id).
+func (s ServiceSource) StravaID(ctx context.Context, sc *pbactivity.ShowcasedActivity) (string, error) {
+	if sc == nil || sc.GetPipelineExecutionId() == "" {
+		return "", nil
+	}
+	_, owner, err := s.Store.GetPublicShowcase(ctx, sc.ShowcaseId)
+	if err != nil || owner == "" {
+		return "", err
+	}
+	run, err := s.Store.GetPipelineRun(ctx, owner, sc.GetPipelineExecutionId())
+	if err != nil || run == nil {
+		return "", err
+	}
+	for _, d := range run.GetDestinations() {
+		if d.GetDestination() == pbplugin.DestinationType_DESTINATION_STRAVA &&
+			d.GetStatus() == pbpipeline.DestinationStatus_DESTINATION_STATUS_SUCCESS {
+			return d.GetExternalId(), nil
+		}
+	}
+	return "", nil
 }

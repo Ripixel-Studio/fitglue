@@ -114,6 +114,7 @@ type activityFile struct {
 	RoutePoints   [][]float64     `json:"routePoints"`
 	Race          *Race           `json:"race,omitempty"`     // §3.4, Hyrox races with splits only
 	KmSplits      []KmSplit       `json:"kmSplits,omitempty"` // §3.5, distance activities with HR only
+	Links         *Links          `json:"links,omitempty"`    // C4, public Strava/Hevy pages
 }
 
 type roundupFile struct {
@@ -160,7 +161,7 @@ func BuildIndex(profile *pbactivity.ShowcaseProfile, entries []*pbactivity.Showc
 //
 // zones are the privacy zones (privacyzones.go); nil fails closed: routePoints is []
 // and location coordinates are dropped unless the activity is a race or a parkrun.
-func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.ShowcaseProfileEntry, now time.Time, zones *Zones) ([]byte, error) {
+func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.ShowcaseProfileEntry, now time.Time, zones *Zones, links *Links) ([]byte, error) {
 	category := ResolveCategory(showcase)
 	whole := IsWhole(showcase)
 	series, route := DeriveTelemetry(showcase.ActivityData, zones, whole)
@@ -204,6 +205,7 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 		RoutePoints:   route,
 		Race:          race,
 		KmSplits:      kmSplits,
+		Links:         links,
 	})
 }
 

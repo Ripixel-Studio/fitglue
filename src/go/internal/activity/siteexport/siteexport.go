@@ -29,6 +29,9 @@ type Source interface {
 	Roundups(ctx context.Context, slug string) ([]*pbactivity.ShowcaseRoundup, error)
 	// Roundup returns one roundup, or nil when it does not exist.
 	Roundup(ctx context.Context, slug, periodKey string) (*pbactivity.ShowcaseRoundup, error)
+	// StravaID returns the Strava activity id the activity's pipeline run uploaded to
+	// (the SUCCESS DESTINATION_STRAVA outcome's external id), or "" when there is none.
+	StravaID(ctx context.Context, sc *pbactivity.ShowcasedActivity) (string, error)
 }
 
 // Writer is the destination: the site folder of the showcase-assets bucket, or
@@ -323,7 +326,13 @@ func writeActivity(ctx context.Context, deps Deps, entry *pbactivity.ShowcasePro
 	// Strava's calories over the MET estimate older runs stored (mutates entry, so the
 	// index ExportAll writes next carries the same figure).
 	ApplyPlatformCalories(sc, entry)
-	b, err := BuildActivity(sc, entry, now, deps.zones())
+	stravaID, err := deps.Source.StravaID(ctx, sc)
+	if err != nil {
+		// Links are decoration: never fail the export for them.
+		deps.logf("strava id for %s unavailable: %v", entry.ShowcaseId, err)
+		stravaID = ""
+	}
+	b, err := BuildActivity(sc, entry, now, deps.zones(), BuildLinks(sc, stravaID))
 	if err != nil {
 		return fmt.Errorf("build %s: %w", entry.ShowcaseId, err)
 	}

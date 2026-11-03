@@ -58,7 +58,7 @@ func TestBuildActivity(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			b, err := BuildActivity(tc.showcase, tc.entry, fixedNow, farZones)
+			b, err := BuildActivity(tc.showcase, tc.entry, fixedNow, farZones, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -167,7 +167,7 @@ func TestBuildActivity_NoActivityData(t *testing.T) {
 	sc := runShowcase()
 	sc.ActivityData = nil
 	sc.Enrichments = nil
-	b, err := BuildActivity(sc, runEntry(), fixedNow, farZones)
+	b, err := BuildActivity(sc, runEntry(), fixedNow, farZones, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

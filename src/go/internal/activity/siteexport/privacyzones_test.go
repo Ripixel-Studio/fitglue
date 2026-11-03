@@ -143,7 +143,7 @@ func TestMissingZonesFailsClosed(t *testing.T) {
 	b, err := BuildActivity(&pbactivity.ShowcasedActivity{
 		ShowcaseId: "a", Title: "Morning Run", ActivityData: trackData(gpsRecords(10.5, 0.00002, 300)),
 		Enrichments: &pbactivity.ActivityEnrichments{Location: &pbactivity.LocationSummary{LocationName: "X", Latitude: 10.5, Longitude: 10.0}},
-	}, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "a"}, fixedNow, nil)
+	}, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "a"}, fixedNow, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestLocationInZoneDropped(t *testing.T) {
 		ShowcaseId: "a", Title: "Morning Run",
 		Enrichments: &pbactivity.ActivityEnrichments{Location: &pbactivity.LocationSummary{LocationName: "Home Town", Latitude: 10.001, Longitude: 10.0}},
 	}
-	b, err := BuildActivity(sc, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "a"}, fixedNow, homeZones)
+	b, err := BuildActivity(sc, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "a"}, fixedNow, homeZones, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestIsWhole(t *testing.T) {
 func TestRunToParkrunFromHomeIsTrimmed(t *testing.T) {
 	// 9 km out of the front door, titled "parkrun": not whole, so the start is cut.
 	sc := distSC("Run to parkrun", 9000, gpsRecords(10.0, 0.00003, 3000))
-	b, err := BuildActivity(sc, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "x"}, fixedNow, homeZones)
+	b, err := BuildActivity(sc, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "x"}, fixedNow, homeZones, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

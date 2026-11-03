@@ -234,6 +234,7 @@ type fakeSource struct {
 	showcases map[string]*pbactivity.ShowcasedActivity
 	roundups  []*pbactivity.ShowcaseRoundup
 	errs      map[string]error
+	stravaIDs map[string]string
 }
 
 func newFakeSource() *fakeSource {
@@ -385,4 +386,12 @@ func forbidKeys(t *testing.T, what string, m map[string]any, keys ...string) {
 			t.Errorf("%s: key %q must be stripped", what, k)
 		}
 	}
+}
+
+// StravaID: the fake returns f.stravaIDs[showcaseId].
+func (f *fakeSource) StravaID(_ context.Context, sc *pbactivity.ShowcasedActivity) (string, error) {
+	if err := f.errs["strava:"+sc.ShowcaseId]; err != nil {
+		return "", err
+	}
+	return f.stravaIDs[sc.ShowcaseId], nil
 }
