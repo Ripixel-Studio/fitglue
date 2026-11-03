@@ -33,8 +33,10 @@ package googlehealth
 //   - Steps and active-zone-minutes roll up per civil day (R2a.1, probed
 //     2026-11-03): steps.countSum (int64 string); activeZoneMinutes.
 //     {sumInFatBurnHeartZone, sumInCardioHeartZone, sumInPeakHeartZone}
-//     (a zone with nothing is omitted). The AZM day total is fat burn once
-//     plus cardio and peak twice, Fitbit's own definition.
+//     (a zone with nothing is omitted). The sums are already credited
+//     minutes (a raw point's activeZoneMinutes is 1 for fat burn, 2 for
+//     cardio or peak; checked live 2026-11-03: 13 cardio points summed 26,
+//     matching the cardio roll-up), so the day total is the plain sum.
 //   - daily-vo2-max (dailyVo2Max.{date, vo2Max}), daily-oxygen-saturation
 //     (dailyOxygenSaturation.{date, averagePercentage}) and
 //     daily-respiratory-rate (dailyRespiratoryRate.{date, breathsPerMinute})
@@ -345,15 +347,15 @@ func (c *Client) DailySteps(ctx context.Context, from, to Date) ([]DailyValue, e
 	return out, err
 }
 
-// DailyActiveZoneMinutes is the day's active zone minutes (fat burn once,
-// cardio and peak twice) for each civil day in [from, to] that has any,
+// DailyActiveZoneMinutes is the day's active zone minutes (the roll-up's
+// zone sums are already credited, so the plain sum) for each civil day in [from, to] that has any,
 // oldest first.
 func (c *Client) DailyActiveZoneMinutes(ctx context.Context, from, to Date) ([]DailyValue, error) {
 	var out []DailyValue
 	err := c.rollUp(ctx, "active-zone-minutes", from, to, func(r rollUpResponse) {
 		for _, p := range r.RollupDataPoints {
 			if a := p.ActiveZoneMinutes; a != nil {
-				if v := float64(a.FatBurn) + 2*float64(a.Cardio) + 2*float64(a.Peak); v > 0 {
+				if v := float64(a.FatBurn) + float64(a.Cardio) + float64(a.Peak); v > 0 {
 					out = append(out, DailyValue{p.CivilStartTime.Date.date(), v})
 				}
 			}
@@ -780,7 +782,8 @@ func (c *Client) Probe(ctx context.Context, dataType string, from, to Date) (sta
 		err = c.get(ctx, "/v4/users/me/dataTypes/"+dataType+"/dataPoints", q, &raw)
 	}
 	if err != nil {
-		if ae, ok := err.(*APIError); ok {
+		var ae *APIError
+		if errors.As(err, &ae) {
 			return ae.StatusCode, 0, nil, nil
 		}
 		return 0, 0, nil, err

@@ -270,8 +270,8 @@ func TestDailyAZMRollUp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// fat burn counts once, cardio and peak twice; a zero day is dropped.
-	if len(got) != 2 || got[0].Value != 24 || got[1].Date.String() != "2026-11-03" || got[1].Value != 6 {
+	// the zone sums are already credited minutes, so the day is their plain sum; a zero day is dropped.
+	if len(got) != 2 || got[0].Value != 17 || got[1].Date.String() != "2026-11-03" || got[1].Value != 6 {
 		t.Errorf("got %+v", got)
 	}
 }
