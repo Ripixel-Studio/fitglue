@@ -3,6 +3,7 @@
 //
 //	GET /api/v2/users/me/sleep?days=7       {nights[...]}          (J9.4, docs/home-screen.md in jarvis)
 //	GET /api/v2/users/me/body?days=30       {weights, body_fat, resting_hr, hrv}
+//	GET /api/v2/users/me/movement?days=7   {steps, active_zone_minutes, vo2_max}
 //	GET /api/v2/users/me/nutrition?days=7   {days[{date, kcal, protein_g, carbs_g, fat_g, meals[]}]}
 //
 // FitGlue holds the one googlehealth grant; Jarvis never calls Google
@@ -15,6 +16,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"sort"
@@ -32,6 +34,7 @@ const (
 	KindSleep     Kind = "sleep"
 	KindBody      Kind = "body"
 	KindNutrition Kind = "nutrition"
+	KindMovement  Kind = "movement"
 )
 
 // Scope is the read-only Google scope each kind needs.
@@ -43,6 +46,8 @@ func (k Kind) Scope() string {
 		return "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly"
 	case KindNutrition:
 		return "https://www.googleapis.com/auth/googlehealth.nutrition.readonly"
+	case KindMovement:
+		return "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly"
 	}
 	return ""
 }
@@ -120,11 +125,20 @@ func NewReader(grant GrantSource) *Reader {
 // Read returns kind's response for the last days civil days (today
 // included), from the cache when fresh.
 func (r *Reader) Read(ctx context.Context, kind Kind, days int) (interface{}, error) {
+	return r.ReadRange(ctx, kind, days, googlehealth.Date{})
+}
+
+// ReadRange returns kind's response for the days civil days ending on end
+// (inclusive); a zero end is today. Nothing after end is returned.
+func (r *Reader) ReadRange(ctx context.Context, kind Kind, days int, end googlehealth.Date) (interface{}, error) {
 	if days < 1 || days > MaxDays {
 		return nil, fmt.Errorf("days must be 1..%d", MaxDays)
 	}
-	key := fmt.Sprintf("%s/%d", kind, days)
 	now := r.Now()
+	if end.IsZero() {
+		end = googlehealth.DateOf(now.In(r.Location))
+	}
+	key := fmt.Sprintf("%s/%d/%s", kind, days, end)
 	r.mu.Lock()
 	if c, ok := r.cache[key]; ok && now.Sub(c.at) < r.TTL {
 		r.mu.Unlock()
@@ -140,17 +154,18 @@ func (r *Reader) Read(ctx context.Context, kind Kind, days int) (interface{}, er
 		return nil, fmt.Errorf("%w: the grant lacks %s", ErrNotConnected, kind.Scope())
 	}
 	client := googlehealth.NewWithBaseURL(r.BaseURL, g.HTTP)
-	today := googlehealth.DateOf(now.In(r.Location))
-	from := today.AddDays(-(days - 1))
+	from := end.AddDays(-(days - 1))
 
 	var v interface{}
 	switch kind {
 	case KindSleep:
-		v, err = readSleep(ctx, client, from)
+		v, err = readSleep(ctx, client, from, end)
 	case KindBody:
-		v, err = readBody(ctx, client, from, today)
+		v, err = readBody(ctx, client, from, end)
 	case KindNutrition:
-		v, err = readNutrition(ctx, client, from, today)
+		v, err = readNutrition(ctx, client, from, end)
+	case KindMovement:
+		v, err = readMovement(ctx, client, from, end)
 	default:
 		return nil, fmt.Errorf("unknown kind %q", kind)
 	}
@@ -161,6 +176,21 @@ func (r *Reader) Read(ctx context.Context, kind Kind, days int) (interface{}, er
 	r.cache[key] = cached{at: now, v: v}
 	r.mu.Unlock()
 	return v, nil
+}
+
+var refusedLogged sync.Map // data type -> *sync.Once
+
+// optional runs fetch for one data type whose refusal (400/403/404 from
+// Google: the account does not serve it) is an empty list, logged once per
+// process per type. Any other error is returned.
+func optional(dataType string, fetch func() ([]googlehealth.DailyValue, error)) ([]googlehealth.DailyValue, error) {
+	vs, err := fetch()
+	if err != nil && googlehealth.IsTypeRefused(err) {
+		once, _ := refusedLogged.LoadOrStore(dataType, new(sync.Once))
+		once.(*sync.Once).Do(func() { log.Printf("health: %s refused, served empty", dataType) })
+		return nil, nil
+	}
+	return vs, err
 }
 
 // classify turns the API's "this grant cannot read that" answers into
@@ -207,13 +237,16 @@ type Stages struct {
 	Wake  int `json:"wake"`
 }
 
-func readSleep(ctx context.Context, c *googlehealth.Client, from googlehealth.Date) (*SleepResponse, error) {
+func readSleep(ctx context.Context, c *googlehealth.Client, from, to googlehealth.Date) (*SleepResponse, error) {
 	sessions, err := c.Sleep(ctx, from)
 	if err != nil {
 		return nil, err
 	}
 	out := &SleepResponse{Nights: []Night{}}
 	for _, s := range sessions {
+		if s.WakeDate().String() > to.String() {
+			continue
+		}
 		n := Night{
 			Date:          s.WakeDate().String(),
 			Start:         s.Start.Format(time.RFC3339),
@@ -247,6 +280,18 @@ type BodyResponse struct {
 	BodyFat   []BodyFat `json:"body_fat"`
 	RestingHR []Resting `json:"resting_hr"`
 	HRV       []HRV     `json:"hrv"`
+	SpO2      []SpO2    `json:"spo2"`
+	RespRate  []Resp    `json:"respiratory_rate"`
+}
+
+type SpO2 struct {
+	Date string  `json:"date"`
+	Pct  float64 `json:"pct"`
+}
+
+type Resp struct {
+	Date string  `json:"date"`
+	BRPM float64 `json:"brpm"`
 }
 
 type Weight struct {
@@ -270,7 +315,7 @@ type HRV struct {
 }
 
 func readBody(ctx context.Context, c *googlehealth.Client, from, to googlehealth.Date) (*BodyResponse, error) {
-	out := &BodyResponse{Weights: []Weight{}, BodyFat: []BodyFat{}, RestingHR: []Resting{}, HRV: []HRV{}}
+	out := &BodyResponse{Weights: []Weight{}, BodyFat: []BodyFat{}, RestingHR: []Resting{}, HRV: []HRV{}, SpO2: []SpO2{}, RespRate: []Resp{}}
 	w, err := c.DailyWeightKg(ctx, from, to)
 	if err != nil {
 		return nil, err
@@ -298,6 +343,72 @@ func readBody(ctx context.Context, c *googlehealth.Client, from, to googlehealth
 	}
 	for _, v := range sortDaily(hrv, from, to) {
 		out.HRV = append(out.HRV, HRV{v.Date.String(), round(v.Value, 1)})
+	}
+	sp, err := optional("daily-oxygen-saturation", func() ([]googlehealth.DailyValue, error) { return c.DailySpO2(ctx, from) })
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range sortDaily(sp, from, to) {
+		out.SpO2 = append(out.SpO2, SpO2{v.Date.String(), round(v.Value, 1)})
+	}
+	rr, err := optional("daily-respiratory-rate", func() ([]googlehealth.DailyValue, error) { return c.DailyRespiratoryRate(ctx, from) })
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range sortDaily(rr, from, to) {
+		out.RespRate = append(out.RespRate, Resp{v.Date.String(), round(v.Value, 1)})
+	}
+	return out, nil
+}
+
+// ---- movement ----
+
+// MovementResponse is GET /users/me/movement. Each list is oldest first, one
+// entry per civil day that has a value; a type the account does not serve is
+// an empty list.
+type MovementResponse struct {
+	Steps []Steps `json:"steps"`
+	AZM   []AZM   `json:"active_zone_minutes"`
+	VO2   []VO2   `json:"vo2_max"`
+}
+
+type Steps struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+type AZM struct {
+	Date    string `json:"date"`
+	Minutes int    `json:"minutes"`
+}
+
+type VO2 struct {
+	Date    string  `json:"date"`
+	MlKgMin float64 `json:"ml_kg_min"`
+}
+
+func readMovement(ctx context.Context, c *googlehealth.Client, from, to googlehealth.Date) (*MovementResponse, error) {
+	out := &MovementResponse{Steps: []Steps{}, AZM: []AZM{}, VO2: []VO2{}}
+	st, err := optional("steps", func() ([]googlehealth.DailyValue, error) { return c.DailySteps(ctx, from, to) })
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range sortDaily(st, from, to) {
+		out.Steps = append(out.Steps, Steps{v.Date.String(), int(math.Round(v.Value))})
+	}
+	az, err := optional("active-zone-minutes", func() ([]googlehealth.DailyValue, error) { return c.DailyActiveZoneMinutes(ctx, from, to) })
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range sortDaily(az, from, to) {
+		out.AZM = append(out.AZM, AZM{v.Date.String(), int(math.Round(v.Value))})
+	}
+	vo, err := optional("daily-vo2-max", func() ([]googlehealth.DailyValue, error) { return c.DailyVO2Max(ctx, from) })
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range sortDaily(vo, from, to) {
+		out.VO2 = append(out.VO2, VO2{v.Date.String(), round(v.Value, 1)})
 	}
 	return out, nil
 }
@@ -333,6 +444,7 @@ type NutritionDay struct {
 	ProteinG float64 `json:"protein_g"`
 	CarbsG   float64 `json:"carbs_g"`
 	FatG     float64 `json:"fat_g"`
+	FibreG   float64 `json:"fibre_g"`
 	Meals    []Meal  `json:"meals"`
 }
 
@@ -374,6 +486,7 @@ func readNutrition(ctx context.Context, c *googlehealth.Client, from, to googleh
 		nd := day(d)
 		nd.Kcal = int(math.Round(t.Kcal))
 		nd.ProteinG, nd.CarbsG, nd.FatG = round(t.ProteinG, 1), round(t.CarbsG, 1), round(t.FatG, 1)
+		nd.FibreG = round(t.FibreG, 1)
 		rolled[d] = true
 	}
 	sort.SliceStable(entries, func(i, j int) bool { return entries[i].Start.Before(entries[j].Start) })
@@ -397,6 +510,7 @@ func readNutrition(ctx context.Context, c *googlehealth.Client, from, to googleh
 		s.ProteinG += e.ProteinG
 		s.CarbsG += e.CarbsG
 		s.FatG += e.FatG
+		s.FibreG += e.FibreG
 	}
 	for d, s := range sums {
 		if rolled[d] {
@@ -405,6 +519,7 @@ func readNutrition(ctx context.Context, c *googlehealth.Client, from, to googleh
 		nd := days[d]
 		nd.Kcal = int(math.Round(s.Kcal))
 		nd.ProteinG, nd.CarbsG, nd.FatG = round(s.ProteinG, 1), round(s.CarbsG, 1), round(s.FatG, 1)
+		nd.FibreG = round(s.FibreG, 1)
 	}
 	out := &NutritionResponse{Days: []NutritionDay{}}
 	for _, nd := range days {

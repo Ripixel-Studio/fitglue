@@ -5,18 +5,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fitglue/server/src/go/pkg/integrations/googlehealth"
 )
 
-const allScopes = "https://www.googleapis.com/auth/googlehealth.sleep.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly https://www.googleapis.com/auth/googlehealth.nutrition.readonly"
+const allScopes = "https://www.googleapis.com/auth/googlehealth.sleep.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly https://www.googleapis.com/auth/googlehealth.nutrition.readonly https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly"
 
 // fakeGoogle answers the endpoints the reader calls with one day of data
 // each, and counts calls.
-func fakeGoogle(t *testing.T, calls *int) *httptest.Server {
+func fakeGoogle(t *testing.T, calls *int) *httptest.Server { return fakeGoogleVO2(t, calls, 0) }
+
+// fakeGoogleVO2 is fakeGoogle with daily-vo2-max answering vo2Status (0: data).
+func fakeGoogleVO2(t *testing.T, calls *int, vo2Status int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		*calls++
 		switch r.URL.Path {
@@ -41,10 +47,26 @@ func fakeGoogle(t *testing.T, calls *int) *httptest.Server {
 				{"dailyRestingHeartRate":{"date":{"year":2026,"month":9,"day":1},"beatsPerMinute":"60"}}]}`)
 		case "/v4/users/me/dataTypes/daily-heart-rate-variability/dataPoints":
 			fmt.Fprint(w, `{"dataPoints":[{"dailyHeartRateVariability":{"date":{"year":2026,"month":10,"day":29},"averageHeartRateVariabilityMilliseconds":41.66}}]}`)
+		case "/v4/users/me/dataTypes/daily-oxygen-saturation/dataPoints":
+			fmt.Fprint(w, `{"dataPoints":[{"dailyOxygenSaturation":{"date":{"year":2026,"month":10,"day":29},"averagePercentage":96.54}}]}`)
+		case "/v4/users/me/dataTypes/daily-respiratory-rate/dataPoints":
+			fmt.Fprint(w, `{"dataPoints":[{"dailyRespiratoryRate":{"date":{"year":2026,"month":10,"day":29},"breathsPerMinute":14.26}}]}`)
+		case "/v4/users/me/dataTypes/steps/dataPoints:dailyRollUp":
+			fmt.Fprint(w, `{"rollupDataPoints":[{"civilStartTime":{"date":{"year":2026,"month":10,"day":29}},"steps":{"countSum":"10432"}},
+				{"civilStartTime":{"date":{"year":2026,"month":10,"day":28}},"steps":{"countSum":"8000"}}]}`)
+		case "/v4/users/me/dataTypes/active-zone-minutes/dataPoints:dailyRollUp":
+			fmt.Fprint(w, `{"rollupDataPoints":[{"civilStartTime":{"date":{"year":2026,"month":10,"day":29}},"activeZoneMinutes":{"sumInFatBurnHeartZone":"20","sumInCardioHeartZone":"10","sumInPeakHeartZone":"5"}}]}`)
+		case "/v4/users/me/dataTypes/daily-vo2-max/dataPoints":
+			if vo2Status != 0 {
+				w.WriteHeader(vo2Status)
+				fmt.Fprint(w, `{"error":{"code":403,"status":"PERMISSION_DENIED"}}`)
+				return
+			}
+			fmt.Fprint(w, `{"dataPoints":[{"dailyVo2Max":{"date":{"year":2026,"month":10,"day":29},"vo2Max":47.84}}]}`)
 		case "/v4/users/me/dataTypes/nutrition-log/dataPoints:dailyRollUp":
 			fmt.Fprint(w, `{"rollupDataPoints":[{"civilStartTime":{"date":{"year":2026,"month":10,"day":29}},
 				"nutritionLog":{"energy":{"kcalSum":1000.4},"totalCarbohydrate":{"gramsSum":100},"totalFat":{"gramsSum":30},
-				"nutrients":[{"nutrient":"PROTEIN","quantity":{"gramsSum":80.04}}]}}]}`)
+				"nutrients":[{"nutrient":"PROTEIN","quantity":{"gramsSum":80.04}},{"nutrient":"DIETARY_FIBER","quantity":{"gramsSum":22.26}}]}}]}`)
 		case "/v4/users/me/dataTypes/nutrition-log/dataPoints":
 			fmt.Fprint(w, `{"dataPoints":[
 				{"dataSource":{"application":{"packageName":"com.sbs.diet"}},"nutritionLog":{"interval":{"startTime":"2026-10-29T12:30:00Z","startUtcOffset":"0s","civilStartTime":{"date":{"year":2026,"month":10,"day":29}}},
@@ -52,7 +74,7 @@ func fakeGoogle(t *testing.T, calls *int) *httptest.Server {
 				{"dataSource":{"application":{"packageName":"com.sbs.diet"}},"nutritionLog":{"interval":{"startTime":"2026-10-29T08:00:00Z","startUtcOffset":"0s","civilStartTime":{"date":{"year":2026,"month":10,"day":29}}},
 					"energy":{"kcal":400.4},"mealType":"BREAKFAST","foodDisplayName":"Oats"}},
 				{"dataSource":{"application":{"packageName":"com.sbs.diet"}},"nutritionLog":{"interval":{"startTime":"2026-10-28T19:00:00Z","startUtcOffset":"0s","civilStartTime":{"date":{"year":2026,"month":10,"day":28}}},
-					"energy":{"kcal":700},"totalCarbohydrate":{"grams":60},"totalFat":{"grams":25},"nutrients":[{"nutrient":"PROTEIN","quantity":{"grams":50}}],"foodDisplayName":"Curry"}}]}`)
+					"energy":{"kcal":700},"totalCarbohydrate":{"grams":60},"totalFat":{"grams":25},"nutrients":[{"nutrient":"PROTEIN","quantity":{"grams":50}},{"nutrient":"DIETARY_FIBER","quantity":{"grams":7.25}}],"foodDisplayName":"Curry"}}]}`)
 		default:
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 			http.NotFound(w, r)
@@ -106,7 +128,8 @@ func TestBody(t *testing.T) {
 	want := `{"weights":[{"date":"2026-10-28","kg":78.6},{"date":"2026-10-29","kg":78.41}],` +
 		`"body_fat":[{"date":"2026-10-29","pct":18}],` +
 		`"resting_hr":[{"date":"2026-10-29","bpm":52}],` + // 1 Sep is outside the window
-		`"hrv":[{"date":"2026-10-29","ms":41.7}]}`
+		`"hrv":[{"date":"2026-10-29","ms":41.7}],` +
+		`"spo2":[{"date":"2026-10-29","pct":96.5}],"respiratory_rate":[{"date":"2026-10-29","brpm":14.3}]}`
 	if got := asJSON(t, v); got != want {
 		t.Errorf("body\n got %s\nwant %s", got, want)
 	}
@@ -122,8 +145,8 @@ func TestNutritionTotalsFromRollUpElseSummed(t *testing.T) {
 	}
 	want := `{"days":[` +
 		// No roll-up for the 28th: totals are the entries summed.
-		`{"date":"2026-10-28","kcal":700,"protein_g":50,"carbs_g":60,"fat_g":25,"meals":[{"type":null,"name":"Curry","kcal":700,"at":"2026-10-28T19:00:00Z"}]},` +
-		`{"date":"2026-10-29","kcal":1000,"protein_g":80,"carbs_g":100,"fat_g":30,"meals":[` +
+		`{"date":"2026-10-28","kcal":700,"protein_g":50,"carbs_g":60,"fat_g":25,"fibre_g":7.3,"meals":[{"type":null,"name":"Curry","kcal":700,"at":"2026-10-28T19:00:00Z"}]},` +
+		`{"date":"2026-10-29","kcal":1000,"protein_g":80,"carbs_g":100,"fat_g":30,"fibre_g":22.3,"meals":[` +
 		`{"type":"breakfast","name":"Oats","kcal":400,"at":"2026-10-29T08:00:00Z"},` +
 		`{"type":null,"name":"Lunch wrap","kcal":600,"at":"2026-10-29T12:30:00Z"}]}]}`
 	if got := asJSON(t, v); got != want {
@@ -235,7 +258,7 @@ func TestGrantHas(t *testing.T) {
 	if !(&Grant{}).Has(KindBody.Scope()) {
 		t.Error("an unknown scope list defers to the API")
 	}
-	if !strings.HasSuffix(KindBody.Scope(), "health_metrics_and_measurements.readonly") || KindBody.DefaultDays() != 30 || KindSleep.DefaultDays() != 7 {
+	if !strings.HasSuffix(KindBody.Scope(), "health_metrics_and_measurements.readonly") || KindBody.DefaultDays() != 30 || KindMovement.DefaultDays() != 7 || !strings.HasSuffix(KindMovement.Scope(), "googlehealth.activity_and_fitness.readonly") || KindSleep.DefaultDays() != 7 {
 		t.Error("kind table")
 	}
 }
@@ -266,5 +289,143 @@ func TestWindowIsTodayAndThePreviousDays(t *testing.T) {
 	}
 	if !strings.Contains(string(rollUp), `"start":{"date":{"year":2026,"month":10,"day":29}},"end":{"date":{"year":2026,"month":10,"day":30}}`) {
 		t.Errorf("days=1 rolls up today only: %s", rollUp)
+	}
+}
+
+func TestMovementShape(t *testing.T) {
+	var calls int
+	srv := fakeGoogle(t, &calls)
+	defer srv.Close()
+	v, err := newTestReader(srv.URL, allScopes).Read(context.Background(), KindMovement, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `{"steps":[{"date":"2026-10-28","count":8000},{"date":"2026-10-29","count":10432}],` +
+		`"active_zone_minutes":[{"date":"2026-10-29","minutes":35}],` +
+		`"vo2_max":[{"date":"2026-10-29","ml_kg_min":47.8}]}`
+	if got := asJSON(t, v); got != want {
+		t.Errorf("movement\n got %s\nwant %s", got, want)
+	}
+	var keys map[string]json.RawMessage
+	_ = json.Unmarshal([]byte(asJSON(t, v)), &keys)
+	if len(keys) != 3 {
+		t.Errorf("keys = %d, want exactly steps, active_zone_minutes, vo2_max", len(keys))
+	}
+}
+
+func TestMovementPartialRefusal(t *testing.T) {
+	var calls int
+	srv := fakeGoogleVO2(t, &calls, 403)
+	defer srv.Close()
+	v, err := newTestReader(srv.URL, allScopes).Read(context.Background(), KindMovement, 7)
+	if err != nil {
+		t.Fatalf("a refused type is empty, not an error: %v", err)
+	}
+	got := asJSON(t, v)
+	if !strings.Contains(got, `"vo2_max":[]`) || !strings.Contains(got, `"count":10432`) {
+		t.Errorf("partial refusal: %s", got)
+	}
+}
+
+func TestMovementUpstreamErrorFails(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(500)
+		fmt.Fprint(w, `{"error":{"code":500,"status":"INTERNAL"}}`)
+	}))
+	defer srv.Close()
+	_, err := newTestReader(srv.URL, "").Read(context.Background(), KindMovement, 7)
+	if err == nil || errors.Is(err, ErrNotConnected) {
+		t.Errorf("a 500 fails the route: %v", err)
+	}
+}
+
+func TestBodySpO2Resp(t *testing.T) {
+	var calls int
+	srv := fakeGoogle(t, &calls)
+	defer srv.Close()
+	v, err := newTestReader(srv.URL, allScopes).Read(context.Background(), KindBody, 30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := v.(*BodyResponse)
+	if len(b.SpO2) != 1 || b.SpO2[0].Pct != 96.5 || len(b.RespRate) != 1 || b.RespRate[0].BRPM != 14.3 {
+		t.Errorf("spo2/resp = %+v %+v", b.SpO2, b.RespRate)
+	}
+	if got := asJSON(t, b); !strings.Contains(got, `"spo2":[{"date":"2026-10-29","pct":96.5}]`) || !strings.Contains(got, `"respiratory_rate":[{"date":"2026-10-29","brpm":14.3}]`) {
+		t.Errorf("json keys: %s", got)
+	}
+}
+
+func TestNutritionFibreField(t *testing.T) {
+	var calls int
+	srv := fakeGoogle(t, &calls)
+	defer srv.Close()
+	v, err := newTestReader(srv.URL, allScopes).Read(context.Background(), KindNutrition, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	days := v.(*NutritionResponse).Days
+	// 28th: no roll-up, entries summed; 29th: the roll-up's figure.
+	if len(days) != 2 || days[0].FibreG != 7.3 || days[1].FibreG != 22.3 {
+		t.Errorf("fibre = %+v", days)
+	}
+	if !strings.Contains(asJSON(t, days[0]), `"fibre_g":7.3`) {
+		t.Errorf("tag: %s", asJSON(t, days[0]))
+	}
+}
+
+func TestReadRangeEnd(t *testing.T) {
+	var rollUps, filters []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			b, _ := io.ReadAll(r.Body)
+			rollUps = append(rollUps, string(b))
+			fmt.Fprint(w, `{}`)
+			return
+		}
+		filters = append(filters, r.URL.Query().Get("filter"))
+		// Rows on both sides of end: only the one on or before it may come back.
+		fmt.Fprint(w, `{"dataPoints":[
+			{"dailyRestingHeartRate":{"date":{"year":2025,"month":11,"day":3},"beatsPerMinute":"50"}},
+			{"dailyRestingHeartRate":{"date":{"year":2025,"month":11,"day":4},"beatsPerMinute":"51"}},
+			{"dailyRestingHeartRate":{"date":{"year":2025,"month":10,"day":4},"beatsPerMinute":"52"}}]}`)
+	}))
+	defer srv.Close()
+	end := googlehealth.Date{Year: 2025, Month: 11, Day: 3}
+	v, err := newTestReader(srv.URL, "").ReadRange(context.Background(), KindBody, 30, end)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := v.(*BodyResponse)
+	if len(b.RestingHR) != 1 || b.RestingHR[0].Date != "2025-11-03" {
+		t.Errorf("rows after end (or before from) must go: %+v", b.RestingHR)
+	}
+	if len(filters) == 0 || !strings.Contains(filters[0], `>= "2025-10-05"`) {
+		t.Errorf("list filter = %v, want from 2025-10-05", filters)
+	}
+	if len(rollUps) == 0 || !strings.Contains(rollUps[0], `"year":2025,"month":10,"day":5`) {
+		t.Errorf("roll-up window should start 2025-10-05: %v", rollUps)
+	}
+	last := rollUps[len(rollUps)-1]
+	if !strings.Contains(last, `"end":{"date":{"year":2025,"month":11,"day":4}}`) {
+		t.Errorf("last roll-up window should end (exclusive) 2025-11-04: %s", last)
+	}
+}
+
+func TestReadRangeCacheKeyIncludesEnd(t *testing.T) {
+	var calls int
+	srv := fakeGoogle(t, &calls)
+	defer srv.Close()
+	r := newTestReader(srv.URL, allScopes)
+	now := r.Now()
+	r.Now = func() time.Time { return now }
+	_, _ = r.ReadRange(context.Background(), KindSleep, 7, googlehealth.Date{})
+	_, _ = r.ReadRange(context.Background(), KindSleep, 7, googlehealth.Date{Year: 2026, Month: 10, Day: 29})
+	if calls != 1 {
+		t.Errorf("zero end == today: calls = %d, want 1", calls)
+	}
+	_, _ = r.ReadRange(context.Background(), KindSleep, 7, googlehealth.Date{Year: 2026, Month: 10, Day: 28})
+	if calls != 2 {
+		t.Errorf("another end is another key: calls = %d", calls)
 	}
 }

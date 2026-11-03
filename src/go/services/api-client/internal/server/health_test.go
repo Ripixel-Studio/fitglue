@@ -12,17 +12,19 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/health"
 	"github.com/fitglue/server/src/go/internal/infra"
+	"github.com/fitglue/server/src/go/pkg/integrations/googlehealth"
 )
 
 type fakeHealth struct {
 	kind health.Kind
 	days int
+	end  googlehealth.Date
 	v    interface{}
 	err  error
 }
 
-func (f *fakeHealth) Read(ctx context.Context, kind health.Kind, days int) (interface{}, error) {
-	f.kind, f.days = kind, days
+func (f *fakeHealth) ReadRange(ctx context.Context, kind health.Kind, days int, end googlehealth.Date) (interface{}, error) {
+	f.kind, f.days, f.end = kind, days, end
 	return f.v, f.err
 }
 
@@ -87,4 +89,31 @@ func TestHealthRoutesStatuses(t *testing.T) {
 	w := httptest.NewRecorder()
 	newHealthServer(&fakeHealth{}).ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestRouteEndParam(t *testing.T) {
+	f := &fakeHealth{v: &health.MovementResponse{}}
+	s := newHealthServer(f)
+
+	assert.Equal(t, http.StatusBadRequest, getHealth(s, "/api/v2/users/me/body?end=2025-13-01").Code)
+	assert.Equal(t, http.StatusBadRequest, getHealth(s, "/api/v2/users/me/body?end=yesterday").Code)
+
+	assert.Equal(t, http.StatusOK, getHealth(s, "/api/v2/users/me/movement").Code)
+	assert.Equal(t, health.KindMovement, f.kind)
+	assert.Equal(t, 7, f.days)
+	assert.True(t, f.end.IsZero(), "a missing end means today")
+
+	assert.Equal(t, http.StatusOK, getHealth(s, "/api/v2/users/me/body?end=2025-11-03&days=30").Code)
+	assert.Equal(t, "2025-11-03", f.end.String())
+}
+
+func TestRouteMovementNotConnected(t *testing.T) {
+	// A real reader over a grant without the activity scope: 404, never a Google call.
+	r := health.NewReader(func(ctx context.Context) (*health.Grant, error) {
+		return &health.Grant{Scope: "https://www.googleapis.com/auth/googlehealth.sleep.readonly", HTTP: http.DefaultClient}, nil
+	})
+	r.BaseURL = "http://127.0.0.1:1"
+	w := getHealth(newHealthServer(r), "/api/v2/users/me/movement?days=14")
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "NOT_CONNECTED")
 }

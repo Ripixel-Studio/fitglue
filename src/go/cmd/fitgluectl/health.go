@@ -31,10 +31,11 @@ type healthFlags struct {
 	sleep   int
 	body    int
 	food    int
+	move    int
 	probe   bool
 }
 
-// healthCheckCommand runs the sleep, body and nutrition routes' code against
+// healthCheckCommand runs the sleep, body, movement and nutrition routes' code against
 // the live grant and prints counts and date ranges only — never a value —
 // plus which apps wrote weight, body fat and food. Read-only: GETs and
 // dailyRollUp queries (the oauth transport may refresh the access token).
@@ -47,6 +48,7 @@ func healthCheckCommand(ctx context.Context, args []string, stdout, stderr io.Wr
 	fs.IntVar(&f.sleep, "sleep-days", 7, "sleep window")
 	fs.IntVar(&f.body, "body-days", 30, "body window")
 	fs.IntVar(&f.food, "nutrition-days", 7, "nutrition window")
+	fs.IntVar(&f.move, "movement-days", 7, "movement window")
 	fs.BoolVar(&f.probe, "probe", false, "also probe the extra types (steps, AZM, VO2 max, SpO2, respiratory rate): status, point count and key paths of the first point over 14 days")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -100,6 +102,21 @@ func healthCheckCommand(ctx context.Context, args []string, stdout, stderr io.Wr
 		line("body_fat", len(b.BodyFat), func(i int) string { return b.BodyFat[i].Date })
 		line("resting_hr", len(b.RestingHR), func(i int) string { return b.RestingHR[i].Date })
 		line("hrv", len(b.HRV), func(i int) string { return b.HRV[i].Date })
+		line("spo2", len(b.SpO2), func(i int) string { return b.SpO2[i].Date })
+		line("resp_rate", len(b.RespRate), func(i int) string { return b.RespRate[i].Date })
+	})
+	report(health.KindMovement, f.move, func(v interface{}) {
+		m := v.(*health.MovementResponse)
+		line := func(name string, n int, date func(int) string) {
+			var dates []string
+			for i := 0; i < n; i++ {
+				dates = append(dates, date(i))
+			}
+			fmt.Fprintf(stdout, "  %-11s %s\n", name, countRange(dates))
+		}
+		line("steps", len(m.Steps), func(i int) string { return m.Steps[i].Date })
+		line("azm", len(m.AZM), func(i int) string { return m.AZM[i].Date })
+		line("vo2_max", len(m.VO2), func(i int) string { return m.VO2[i].Date })
 	})
 	report(health.KindNutrition, f.food, func(v interface{}) {
 		n := v.(*health.NutritionResponse)
