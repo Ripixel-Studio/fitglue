@@ -12,6 +12,7 @@
 //	fitgluectl trigger parkrun-check                        publish a parkrun results-check trigger
 //	fitgluectl reconcile [--since 14d] [--apply] [--json]   three-way check Hevy × FitGlue × Strava; fixes missed ingests/uploads
 //	fitgluectl health-check                                 sleep/body/nutrition routes against the live grant: counts and dates only
+//	fitgluectl voice-samples [--since 2025-01-01] [--out PATH] his own words from pipeline runs, JSONL 0600; prints counts only
 //
 // It talks to Firestore, GCS and Pub/Sub directly with Application Default Credentials
 // (gcloud auth application-default login, or a service account), so it runs
@@ -46,6 +47,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup / parkrun-check trigger message (what the box timers run)")
 	fmt.Fprintln(os.Stderr, "  reconcile     three-way check of Hevy, FitGlue and Strava; --apply replays missed workouts and reposts missing Strava uploads")
 	fmt.Fprintln(os.Stderr, "  health-check  run the sleep/body/nutrition routes against Google Health; prints counts and date ranges only")
+	fmt.Fprintln(os.Stderr, "  voice-samples his own words from every pipeline run, to a private JSONL (0600); prints counts only")
 }
 
 func main() {
@@ -72,6 +74,8 @@ func main() {
 		err = reconcileCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveReconcile, time.Now)
 	case "health-check":
 		err = healthCheckCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveHealth)
+	case "voice-samples":
+		err = voiceSamplesCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveVoiceSamples)
 	case "-h", "--help", "help":
 		usage()
 		return
