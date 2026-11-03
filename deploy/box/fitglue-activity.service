@@ -24,6 +24,8 @@ Environment=PORT=8105
 Environment=ARTIFACT_BUCKET=fitglue-server-prod-artifacts
 Environment=SHOWCASE_ASSETS_BUCKET=fitglue-server-prod-showcase-assets
 Environment=SITE_EXPORT_SLUG=james
+# S6: one line per index refresh; jarvis-site-rebuild.path rebuilds the site from it.
+Environment=SITE_EXPORT_SIGNAL_FILE=%h/.jarvis/home/site-changed
 Restart=on-failure
 RestartSec=5s
 TimeoutStopSec=30s

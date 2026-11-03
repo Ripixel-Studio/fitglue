@@ -106,5 +106,6 @@ func (s *Service) UpdateRoundupSettings(ctx context.Context, req *pbsvc.UpdateRo
 		s.logger.Error(ctx, "failed to update roundup settings", "error", err)
 		return nil, status.Error(codes.Internal, "failed to save settings")
 	}
+	s.siteProfileChanged(ctx)
 	return updated, nil
 }

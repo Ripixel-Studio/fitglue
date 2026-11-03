@@ -6,6 +6,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -296,7 +300,11 @@ func TestHook_NotifiesHookURL(t *testing.T) {
 		if err := json.Unmarshal([]byte(bodies[0]), &payload); err != nil || payload["slug"] != "james" {
 			t.Fatalf("body should be JSON with the slug, got %q (%v)", bodies[0], err)
 		}
+		if !strings.Contains(strings.Join(bodies, " "), "activity "+runID) {
+			t.Fatalf("the POST names what changed, got %v", bodies)
+		}
 		if ctypes[0] != "application/json" {
+
 			t.Fatalf("content-type %q", ctypes[0])
 		}
 	})
@@ -428,4 +436,103 @@ func TestConfigFromEnv(t *testing.T) {
 			t.Fatal("no bucket anywhere: must be disabled")
 		}
 	})
+}
+
+func TestHook_SignalFile(t *testing.T) {
+	t.Run("OneLinePerRefreshWithReasons", func(t *testing.T) {
+		file := filepath.Join(t.TempDir(), "site-changed")
+		src, w := newFakeSource(), newMemWriter()
+		h := newTestHook(src, w, func(c *HookConfig) { c.SignalFile = file })
+		h.ActivityChanged(context.Background(), runID)
+		h.RoundupChanged(context.Background(), "james", weekKey)
+		h.ActivityChanged(context.Background(), "not-in-profile")
+		h.Wait()
+
+		b, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatalf("signal file not written: %v", err)
+		}
+		lines := strings.Split(strings.TrimSpace(string(b)), "\n")
+		if len(lines) != w.writes("index.json") {
+			t.Fatalf("one line per index refresh: %d lines, %d index writes: %q", len(lines), w.writes("index.json"), b)
+		}
+		all := string(b)
+		for _, want := range []string{"activity " + runID, "roundup " + weekKey, "removed activity not-in-profile"} {
+			if !strings.Contains(all, want) {
+				t.Fatalf("signal should name %q, got %q", want, all)
+			}
+		}
+		f := strings.Fields(lines[0])
+		if len(f) < 3 || f[1] != "fitglue" {
+			t.Fatalf("line shape is '<unix> fitglue <reasons>', got %q", lines[0])
+		}
+		if ts, err := strconv.ParseInt(f[0], 10, 64); err != nil || time.Since(time.Unix(ts, 0)) > time.Minute {
+			t.Fatalf("first field is the unix time of the refresh, got %q", f[0])
+		}
+	})
+	t.Run("AppendsToExisting", func(t *testing.T) {
+		file := filepath.Join(t.TempDir(), "site-changed")
+		if err := os.WriteFile(file, []byte("1 daily\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		h := newTestHook(newFakeSource(), newMemWriter(), func(c *HookConfig) { c.SignalFile = file })
+		h.ProfileChanged(context.Background())
+		h.Wait()
+		b, _ := os.ReadFile(file)
+		if !strings.HasPrefix(string(b), "1 daily\n") || !strings.Contains(string(b), " fitglue profile\n") {
+			t.Fatalf("expected the old line kept and a profile line appended, got %q", b)
+		}
+	})
+	t.Run("NotOnFailedIndex_ReasonsCarried", func(t *testing.T) {
+		file := filepath.Join(t.TempDir(), "site-changed")
+		src, w := newFakeSource(), newMemWriter()
+		w.failing = "index.json"
+		h := newTestHook(src, w, func(c *HookConfig) { c.SignalFile = file })
+		h.ActivityChanged(context.Background(), runID)
+		h.Wait()
+		if _, err := os.Stat(file); !os.IsNotExist(err) {
+			t.Fatalf("a failed index refresh must not signal a rebuild (err=%v)", err)
+		}
+		w.mu.Lock()
+		w.failing = ""
+		w.mu.Unlock()
+		h.ProfileChanged(context.Background())
+		h.Wait()
+		b, _ := os.ReadFile(file)
+		if !strings.Contains(string(b), "activity "+runID) || !strings.Contains(string(b), "profile") {
+			t.Fatalf("the next good refresh carries the earlier reasons, got %q", b)
+		}
+	})
+	t.Run("UnwritableIsSwallowed", func(t *testing.T) {
+		h := newTestHook(newFakeSource(), newMemWriter(), func(c *HookConfig) {
+			c.SignalFile = filepath.Join(t.TempDir(), "missing-dir", "site-changed")
+		})
+		h.ActivityChanged(context.Background(), runID)
+		h.Wait()
+	})
+}
+
+func TestReasonText(t *testing.T) {
+	if got := reasonText(nil); got != "index" {
+		t.Fatalf("%q", got)
+	}
+	var many []string
+	for i := 0; i < maxReasons+3; i++ {
+		many = append(many, "activity x")
+	}
+	if got := reasonText(many); !strings.HasSuffix(got, "(+3 more)") {
+		t.Fatalf("%q", got)
+	}
+}
+
+func TestConfigFromEnv_SignalFile(t *testing.T) {
+	c := ConfigFromEnv(func(k string) string {
+		if k == EnvSignal {
+			return " /home/jarvis/.jarvis/home/site-changed "
+		}
+		return ""
+	}, "b")
+	if c.SignalFile != "/home/jarvis/.jarvis/home/site-changed" {
+		t.Fatalf("%+v", c)
+	}
 }

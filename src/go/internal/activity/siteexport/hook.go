@@ -3,9 +3,11 @@ package siteexport
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +21,7 @@ const (
 	EnvBucket   = "SITE_EXPORT_BUCKET"
 	EnvDisabled = "SITE_EXPORT_DISABLED"
 	EnvHookURL  = "SITE_EXPORT_HOOK_URL"
+	EnvSignal   = "SITE_EXPORT_SIGNAL_FILE"
 
 	// DefaultSlug is the showcase profile exported when SITE_EXPORT_SLUG is
 	// unset. FitGlue has one user.
@@ -45,8 +48,13 @@ type EnvConfig struct {
 	Bucket string
 	// HookURL, when set (SITE_EXPORT_HOOK_URL), is POSTed to after every index
 	// refresh. Unset on Cloud Run; the box sets it to the gateway's
-	// /hooks/fitness-updated.
+	// /hooks/fitness-updated (the kiosk's fitness panels refetch).
 	HookURL string
+	// SignalFile, when set (SITE_EXPORT_SIGNAL_FILE), gets one line appended
+	// after every index refresh: "<unix seconds> fitglue <reasons>". On the box
+	// it is ~/.jarvis/home/site-changed, which a systemd path unit watches to
+	// rebuild james.ripixel.co.uk (jarvis docs/deploys.md, S6).
+	SignalFile string
 	// Disabled is SITE_EXPORT_DISABLED=1 (or true/yes): no hook at all.
 	Disabled bool
 }
@@ -59,10 +67,11 @@ func (c EnvConfig) Prefix() string { return "site/" + c.Slug }
 // SITE_EXPORT_BUCKET is unset — pass the service's showcase-assets bucket.
 func ConfigFromEnv(getenv func(string) string, defaultBucket string) EnvConfig {
 	cfg := EnvConfig{
-		Slug:     strings.TrimSpace(getenv(EnvSlug)),
-		Bucket:   strings.TrimSpace(getenv(EnvBucket)),
-		HookURL:  strings.TrimSpace(getenv(EnvHookURL)),
-		Disabled: isTruthy(getenv(EnvDisabled)),
+		Slug:       strings.TrimSpace(getenv(EnvSlug)),
+		Bucket:     strings.TrimSpace(getenv(EnvBucket)),
+		HookURL:    strings.TrimSpace(getenv(EnvHookURL)),
+		SignalFile: strings.TrimSpace(getenv(EnvSignal)),
+		Disabled:   isTruthy(getenv(EnvDisabled)),
 	}
 	if cfg.Slug == "" {
 		cfg.Slug = DefaultSlug
@@ -93,6 +102,9 @@ type HookConfig struct {
 	Logger infra.Logger
 	// HookURL is POSTed to after each successful index refresh; "" skips it.
 	HookURL string
+	// SignalFile gets a line appended after each successful index refresh;
+	// "" skips it.
+	SignalFile string
 
 	// Zero values take the Default* constants above.
 	ExportTimeout time.Duration
@@ -105,7 +117,8 @@ type HookConfig struct {
 
 // Hook keeps the site folder current after the writes that change it (S1.2):
 // the activity service calls ActivityChanged after a showcase profile entry is
-// persisted and RoundupChanged after a roundup is saved. Every call returns at
+// persisted, updated or removed, RoundupChanged after a roundup is saved and
+// ProfileChanged after the public profile's settings change. Every call returns at
 // once; the export runs in the background with its own timeout, failures are
 // logged at Warn and never reach the caller, and index.json refreshes are
 // coalesced to at most one per IndexDebounce with a refresh always following
@@ -119,6 +132,7 @@ type Hook struct {
 	slug          string
 	logger        infra.Logger
 	hookURL       string
+	signalFile    string
 	exportTimeout time.Duration
 	indexDebounce time.Duration
 	hookTimeout   time.Duration
@@ -132,6 +146,7 @@ type Hook struct {
 	indexTimer *time.Timer // pending index refresh, nil when none is scheduled
 	refreshing bool        // an index refresh is running
 	dirty      bool        // changes arrived while refreshing: run again after
+	reasons    []string    // what changed since the last good refresh, for the notify
 	wg         sync.WaitGroup
 }
 
@@ -142,6 +157,7 @@ func NewHook(cfg HookConfig) *Hook {
 		slug:          cfg.Slug,
 		logger:        cfg.Logger,
 		hookURL:       cfg.HookURL,
+		signalFile:    cfg.SignalFile,
 		exportTimeout: cfg.ExportTimeout,
 		indexDebounce: cfg.IndexDebounce,
 		hookTimeout:   cfg.HookTimeout,
@@ -195,6 +211,20 @@ func (h *Hook) ActivityChanged(_ context.Context, showcaseID string) {
 	}, "activity", showcaseID)
 }
 
+// ProfileChanged schedules an index refresh (the profile's name, bio, links
+// and totals live in index.json). It returns immediately.
+func (h *Hook) ProfileChanged(_ context.Context) {
+	if h == nil {
+		return
+	}
+	h.wg.Add(1)
+	go func() {
+		defer h.wg.Done()
+		h.addReason("profile")
+		h.requestIndex()
+	}()
+}
+
 // RoundupChanged exports roundup/<periodKey>.json in the background and
 // schedules an index refresh. Roundups for a slug other than the hook's are
 // ignored: they are not on the site.
@@ -236,15 +266,32 @@ func (h *Hook) spawn(run func(ctx context.Context) error, kind, id string) {
 		switch {
 		case err == nil:
 			h.logger.Info(ctx, "site export: wrote "+kind, "id", id, "slug", h.slug, "took", time.Since(started).String())
+			h.addReason(kind + " " + id)
 		case errors.Is(err, ErrNotExportable):
 			// Not in the exported profile, no showcase document, or expired:
 			// nothing to write, but the index may need to drop it.
 			h.logger.Info(ctx, "site export: "+kind+" not exportable, skipped", "id", id, "slug", h.slug, "error", err)
+			h.addReason("removed " + kind + " " + id)
 		default:
 			h.logger.Warn(ctx, "site export: "+kind+" export failed", "id", id, "slug", h.slug, "error", err)
 		}
 		h.requestIndex()
 	}()
+}
+
+// maxReasons caps the reasons carried by one notify (a backfill of hundreds
+// of activities says "+N more" instead of listing them).
+const maxReasons = 20
+
+func (h *Hook) addReason(r string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, x := range h.reasons {
+		if x == r {
+			return
+		}
+	}
+	h.reasons = append(h.reasons, r)
 }
 
 // requestIndex asks for index.json to be rewritten. The first request after a
@@ -277,6 +324,8 @@ func (h *Hook) refreshIndex() {
 	h.indexTimer = nil
 	h.refreshing = true
 	h.dirty = false
+	reasons := h.reasons
+	h.reasons = nil
 	h.mu.Unlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), h.exportTimeout)
@@ -284,9 +333,14 @@ func (h *Hook) refreshIndex() {
 	err := RefreshIndex(ctx, h.deps, h.slug)
 	if err != nil {
 		h.logger.Warn(ctx, "site export: index refresh failed", "slug", h.slug, "error", err)
+		// Carry them to the next good refresh: the site has not seen them yet.
+		h.mu.Lock()
+		h.reasons = append(reasons, h.reasons...)
+		h.mu.Unlock()
 	} else {
 		h.logger.Info(ctx, "site export: wrote index", "slug", h.slug, "took", time.Since(started).String())
-		h.notify()
+		h.notify(reasons)
+		h.signal(reasons)
 	}
 	cancel()
 
@@ -299,15 +353,53 @@ func (h *Hook) refreshIndex() {
 	}
 }
 
-// notify POSTs to the hook URL (the box's gateway, S3.2) so the site rebuild
-// can start. Best-effort: a failure is one Warn line.
-func (h *Hook) notify() {
+// reasonText is the reasons as one line: "activity a, roundup w (+3 more)",
+// or "index" when there are none (a refresh nothing named, e.g. a retry).
+func reasonText(reasons []string) string {
+	if len(reasons) == 0 {
+		return "index"
+	}
+	shown := reasons
+	more := ""
+	if len(shown) > maxReasons {
+		shown = shown[:maxReasons]
+		more = fmt.Sprintf(" (+%d more)", len(reasons)-maxReasons)
+	}
+	return strings.Join(shown, ", ") + more
+}
+
+// signal appends one line to the signal file, the box's "public site data
+// changed" queue (S6): a systemd path unit starts the debounced site rebuild
+// while the file exists, and the rebuild consumes it. Best-effort: a failure
+// is one Warn line, and the nightly rebuild is the safety net.
+func (h *Hook) signal(reasons []string) {
+	if h.signalFile == "" {
+		return
+	}
+	line := fmt.Sprintf("%d fitglue %s\n", time.Now().Unix(), strings.ReplaceAll(reasonText(reasons), "\n", " "))
+	f, err := os.OpenFile(h.signalFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err == nil {
+		_, err = f.WriteString(line)
+		if cerr := f.Close(); err == nil {
+			err = cerr
+		}
+	}
+	if err != nil {
+		h.logger.Warn(context.Background(), "site export: signal file write failed", "file", h.signalFile, "error", err)
+		return
+	}
+	h.logger.Info(context.Background(), "site export: site rebuild signalled", "file", h.signalFile, "reasons", reasonText(reasons))
+}
+
+// notify POSTs to the hook URL (the box's gateway) so the kiosk's fitness
+// panels refetch. Best-effort: a failure is one Warn line.
+func (h *Hook) notify(reasons []string) {
 	if h.hookURL == "" {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), h.hookTimeout)
 	defer cancel()
-	body := []byte(fmt.Sprintf(`{"slug":%q,"what":"index"}`, h.slug))
+	body, _ := json.Marshal(map[string]any{"slug": h.slug, "what": "index", "reasons": reasonText(reasons)})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.hookURL, bytes.NewReader(body))
 	if err != nil {
 		h.logger.Warn(ctx, "site export: hook request invalid", "url", h.hookURL, "error", err)
