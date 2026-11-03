@@ -236,3 +236,119 @@ func TestNumAndDate(t *testing.T) {
 		t.Error("daysBetween")
 	}
 }
+
+func rollupServer(t *testing.T, wantPath, body string) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != wantPath {
+			t.Errorf("%s %s", r.Method, r.URL.Path)
+		}
+		fmt.Fprint(w, body)
+	}))
+}
+
+func TestDailyStepsRollUp(t *testing.T) {
+	srv := rollupServer(t, "/v4/users/me/dataTypes/steps/dataPoints:dailyRollUp", `{"rollupDataPoints":[
+		{"civilStartTime":{"date":{"year":2026,"month":11,"day":1}},"civilEndTime":{"date":{"year":2026,"month":11,"day":2}},"steps":{"countSum":"8123"}},
+		{"civilStartTime":{"date":{"year":2026,"month":11,"day":2}},"steps":{"countSum":"10450"}}]}`)
+	defer srv.Close()
+	got, err := NewWithBaseURL(srv.URL, nil).DailySteps(context.Background(), Date{2026, 11, 1}, Date{2026, 11, 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[0].Date.String() != "2026-11-01" || got[0].Value != 8123 || got[1].Value != 10450 {
+		t.Errorf("got %+v", got)
+	}
+}
+
+func TestDailyAZMRollUp(t *testing.T) {
+	srv := rollupServer(t, "/v4/users/me/dataTypes/active-zone-minutes/dataPoints:dailyRollUp", `{"rollupDataPoints":[
+		{"civilStartTime":{"date":{"year":2026,"month":11,"day":1}},"activeZoneMinutes":{"sumInFatBurnHeartZone":"10","sumInCardioHeartZone":"5","sumInPeakHeartZone":"2"}},
+		{"civilStartTime":{"date":{"year":2026,"month":11,"day":2}},"activeZoneMinutes":{"sumInFatBurnHeartZone":"0"}},
+		{"civilStartTime":{"date":{"year":2026,"month":11,"day":3}},"activeZoneMinutes":{"sumInCardioHeartZone":"3"}}]}`)
+	defer srv.Close()
+	got, err := NewWithBaseURL(srv.URL, nil).DailyActiveZoneMinutes(context.Background(), Date{2026, 11, 1}, Date{2026, 11, 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// fat burn counts once, cardio and peak twice; a zero day is dropped.
+	if len(got) != 2 || got[0].Value != 24 || got[1].Date.String() != "2026-11-03" || got[1].Value != 6 {
+		t.Errorf("got %+v", got)
+	}
+}
+
+func TestDailyVO2SpO2Resp(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		switch r.URL.Path {
+		case "/v4/users/me/dataTypes/daily-vo2-max/dataPoints":
+			if q.Get("filter") != `daily_vo2_max.date >= "2026-11-01"` {
+				t.Errorf("filter %q", q.Get("filter"))
+			}
+			fmt.Fprint(w, `{"dataPoints":[{"dailyVo2Max":{"date":{"year":2026,"month":11,"day":1},"vo2Max":"47.5"}}]}`)
+		case "/v4/users/me/dataTypes/daily-oxygen-saturation/dataPoints":
+			if q.Get("filter") != `daily_oxygen_saturation.date >= "2026-11-01"` {
+				t.Errorf("filter %q", q.Get("filter"))
+			}
+			fmt.Fprint(w, `{"dataPoints":[{"dailyOxygenSaturation":{"date":{"year":2026,"month":11,"day":1},"averagePercentage":96.4}}]}`)
+		case "/v4/users/me/dataTypes/daily-respiratory-rate/dataPoints":
+			if q.Get("filter") != `daily_respiratory_rate.date >= "2026-11-01"` {
+				t.Errorf("filter %q", q.Get("filter"))
+			}
+			fmt.Fprint(w, `{"dataPoints":[{"dailyRespiratoryRate":{"date":{"year":2026,"month":11,"day":1},"breathsPerMinute":"14.2"}}]}`)
+		default:
+			t.Errorf("path %s", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+	c := NewWithBaseURL(srv.URL, nil)
+	from := Date{2026, 11, 1}
+	for name, tc := range map[string]struct {
+		fn   func(context.Context, Date) ([]DailyValue, error)
+		want float64
+	}{"vo2": {c.DailyVO2Max, 47.5}, "spo2": {c.DailySpO2, 96.4}, "resp": {c.DailyRespiratoryRate, 14.2}} {
+		got, err := tc.fn(context.Background(), from)
+		if err != nil || len(got) != 1 || got[0].Value != tc.want || got[0].Date.String() != "2026-11-01" {
+			t.Errorf("%s: %+v %v", name, got, err)
+		}
+	}
+}
+
+func TestDailyTypeRefusedIsEmpty(t *testing.T) {
+	for _, code := range []int{400, 403, 404} {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, `{"error":{"code":403,"status":"PERMISSION_DENIED","message":"no"}}`, code)
+		}))
+		_, err := NewWithBaseURL(srv.URL, nil).DailyVO2Max(context.Background(), Date{2026, 11, 1})
+		srv.Close()
+		if !IsTypeRefused(err) {
+			t.Errorf("%d: IsTypeRefused(%v) = false", code, err)
+		}
+	}
+	for _, err := range []error{nil, fmt.Errorf("boom"), &APIError{StatusCode: 500}, &APIError{StatusCode: 429}} {
+		if IsTypeRefused(err) {
+			t.Errorf("IsTypeRefused(%v) = true", err)
+		}
+	}
+}
+
+func TestNutritionFibre(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v4/users/me/dataTypes/nutrition-log/dataPoints:dailyRollUp" {
+			fmt.Fprint(w, `{"rollupDataPoints":[{"civilStartTime":{"date":{"year":2026,"month":10,"day":29}},
+				"nutritionLog":{"nutrients":[{"nutrient":"DIETARY_FIBER","quantity":{"gramsSum":31.5}}]}}]}`)
+			return
+		}
+		fmt.Fprint(w, `{"dataPoints":[{"nutritionLog":{"interval":{"startTime":"2026-10-29T12:30:00Z"},
+			"nutrients":[{"nutrient":"DIETARY_FIBER","quantity":{"grams":4.5}}]}}]}`)
+	}))
+	defer srv.Close()
+	c := NewWithBaseURL(srv.URL, nil)
+	days, err := c.DailyNutrition(context.Background(), Date{2026, 10, 29}, Date{2026, 10, 29})
+	if err != nil || len(days) != 1 || days[0].FibreG != 31.5 {
+		t.Errorf("days %+v %v", days, err)
+	}
+	food, err := c.FoodLog(context.Background(), Date{2026, 10, 29})
+	if err != nil || len(food) != 1 || food[0].FibreG != 4.5 {
+		t.Errorf("food %+v %v", food, err)
+	}
+}

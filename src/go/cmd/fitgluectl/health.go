@@ -22,6 +22,7 @@ import (
 type healthCounts interface {
 	Read(ctx context.Context, kind health.Kind, days int) (interface{}, error)
 	Sources(ctx context.Context, dataType string, days int) (map[string]int, error)
+	Probe(ctx context.Context, dataType string, days int) (status, points int, paths []string, err error)
 }
 
 type healthFlags struct {
@@ -30,6 +31,7 @@ type healthFlags struct {
 	sleep   int
 	body    int
 	food    int
+	probe   bool
 }
 
 // healthCheckCommand runs the sleep, body and nutrition routes' code against
@@ -45,6 +47,7 @@ func healthCheckCommand(ctx context.Context, args []string, stdout, stderr io.Wr
 	fs.IntVar(&f.sleep, "sleep-days", 7, "sleep window")
 	fs.IntVar(&f.body, "body-days", 30, "body window")
 	fs.IntVar(&f.food, "nutrition-days", 7, "nutrition window")
+	fs.BoolVar(&f.probe, "probe", false, "also probe the extra types (steps, AZM, VO2 max, SpO2, respiratory rate): status, point count and key paths of the first point over 14 days")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -126,6 +129,20 @@ func healthCheckCommand(ctx context.Context, args []string, stdout, stderr io.Wr
 		}
 		fmt.Fprintf(stdout, "  %-13s %s\n", c.dataType, formatSources(src))
 	}
+	if f.probe {
+		fmt.Fprintln(stdout, "probe (last 14 days; key paths of the first point, never values):")
+		for _, t := range googlehealth.ProbeTypes {
+			status, n, paths, err := r.Probe(ctx, t.Type, 14)
+			if err != nil {
+				fmt.Fprintf(stdout, "  %-24s error: %v\n", t.Type, err)
+				continue
+			}
+			fmt.Fprintf(stdout, "  %-24s %d points=%d\n", t.Type, status, n)
+			for _, p := range paths {
+				fmt.Fprintf(stdout, "    %s\n", p)
+			}
+		}
+	}
 	return nil
 }
 
@@ -177,6 +194,15 @@ func (l *liveHealth) Sources(ctx context.Context, dataType string, days int) (ma
 	}
 	today := googlehealth.DateOf(l.Reader.Now().In(l.Reader.Location))
 	return googlehealth.New(g.HTTP).Sources(ctx, dataType, today.AddDays(-(days - 1)))
+}
+
+func (l *liveHealth) Probe(ctx context.Context, dataType string, days int) (int, int, []string, error) {
+	g, err := l.grant(ctx)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+	today := googlehealth.DateOf(l.Reader.Now().In(l.Reader.Location))
+	return googlehealth.New(g.HTTP).Probe(ctx, dataType, today.AddDays(-(days - 1)), today)
 }
 
 func openLiveHealth(ctx context.Context, f *healthFlags) (healthCounts, func(), error) {
