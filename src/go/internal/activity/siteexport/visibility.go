@@ -23,8 +23,11 @@ import (
 //
 // Rate limits: lookups stop for the process once Strava's X-RateLimit-Usage reaches
 // the limit minus a reserve (the box shares one app limit with ingest and uploads), on
-// any 429, and after MaxLookups requests; results are cached for TTL, optionally in a
-// file so repeated runs make progress.
+// any 429, and after MaxLookups requests. Answers are cached in a file shared by the
+// service and fitgluectl (DefaultVisibilityCachePath): "everyone" for 30 days,
+// anything else for 7. An unknown result (an error) is never cached. A backfill over
+// hundreds of activities therefore fills in over several runs, the entries the export
+// reaches first (newest first) being linked first, and later runs skip what is cached.
 type StravaVisibility struct {
 	// Token returns an access token for the owner.
 	Token func(ctx context.Context, uid string) (string, error)
@@ -33,9 +36,9 @@ type StravaVisibility struct {
 	HTTP    *http.Client
 	// CachePath persists the cache as JSON; memory only when empty.
 	CachePath string
-	// TTL bounds how long an answer is trusted; 24h when 0.
-	TTL time.Duration
-	// MaxLookups caps API requests per process; 60 when 0.
+	// PublicTTL and OtherTTL bound how long an answer is trusted; 30 days and 7 when 0.
+	PublicTTL, OtherTTL time.Duration
+	// MaxLookups caps API requests per process; 90 when 0.
 	MaxLookups int
 	// Reserve is how far below the 15-minute/daily limits to stop; 20 when 0.
 	Reserve int
@@ -78,16 +81,12 @@ func (v *StravaVisibility) Public(ctx context.Context, stravaID string, owner fu
 	v.mu.Lock()
 	defer v.mu.Unlock() // serialises lookups, which also keeps requests under the rate limit
 	v.load()
-	ttl := v.TTL
-	if ttl == 0 {
-		ttl = 24 * time.Hour
-	}
-	if e, ok := v.cache[stravaID]; ok && v.now().Sub(e.At) < ttl {
+	if e, ok := v.cache[stravaID]; ok && v.now().Sub(e.At) < v.ttl(e.Public) {
 		return e.Public, nil
 	}
 	max := v.MaxLookups
 	if max == 0 {
-		max = 60
+		max = 90
 	}
 	if v.blocked || v.lookups >= max {
 		return false, fmt.Errorf("%w: lookup budget spent", errVisibilityUnknown)
@@ -160,6 +159,19 @@ func (v *StravaVisibility) noteUsage(resp *http.Response) {
 	}
 }
 
+func (v *StravaVisibility) ttl(public bool) time.Duration {
+	if public {
+		if v.PublicTTL > 0 {
+			return v.PublicTTL
+		}
+		return 30 * 24 * time.Hour
+	}
+	if v.OtherTTL > 0 {
+		return v.OtherTTL
+	}
+	return 7 * 24 * time.Hour
+}
+
 func (v *StravaVisibility) put(id string, pub bool) {
 	v.cache[id] = visEntry{Public: pub, At: v.now()}
 	v.save()
@@ -182,14 +194,28 @@ func (v *StravaVisibility) load() {
 	}
 }
 
+// save merges with what another process wrote since we loaded (newer entry wins) and
+// replaces the file atomically, so the service and fitgluectl can share it.
 func (v *StravaVisibility) save() {
 	if v.CachePath == "" {
 		return
 	}
+	var onDisk map[string]visEntry
+	if b, err := os.ReadFile(v.CachePath); err == nil {
+		_ = json.Unmarshal(b, &onDisk)
+	}
+	for k, e := range onDisk {
+		if cur, ok := v.cache[k]; !ok || e.At.After(cur.At) {
+			v.cache[k] = e
+		}
+	}
 	b, err := json.Marshal(v.cache)
 	if err == nil {
 		if err = os.MkdirAll(filepath.Dir(v.CachePath), 0o755); err == nil {
-			err = os.WriteFile(v.CachePath, b, 0o600)
+			tmp := v.CachePath + "." + strconv.Itoa(os.Getpid()) + ".tmp"
+			if err = os.WriteFile(tmp, b, 0o600); err == nil {
+				err = os.Rename(tmp, v.CachePath)
+			}
 		}
 	}
 	if err != nil {
@@ -197,9 +223,21 @@ func (v *StravaVisibility) save() {
 	}
 }
 
+// DefaultVisibilityCachePath is the cache file the service and fitgluectl share (both
+// run as the box user): STRAVA_VISIBILITY_CACHE, else <user cache dir>/fitglue/strava-visibility.json,
+// else "" (memory only).
+func DefaultVisibilityCachePath(getenv func(string) string) string {
+	if p := getenv("STRAVA_VISIBILITY_CACHE"); p != "" {
+		return p
+	}
+	if dir, err := os.UserCacheDir(); err == nil {
+		return filepath.Join(dir, "fitglue", "strava-visibility.json")
+	}
+	return ""
+}
+
 // NewStravaVisibility is the production checker: tokens from the user's stored
-// Strava connection (tokenFor), Strava's API root, and a cache file under the user
-// cache directory when one exists (the service passes "" and caches in memory).
+// Strava connection (tokenFor), Strava's API root, and a shared cache file (DefaultVisibilityCachePath).
 func NewStravaVisibility(baseURL, cachePath string, tokenFor func(ctx context.Context, uid string) (string, error), logf func(string, ...any)) *StravaVisibility {
 	return &StravaVisibility{Token: tokenFor, BaseURL: baseURL, CachePath: cachePath, Logf: logf}
 }

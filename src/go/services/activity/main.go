@@ -89,7 +89,7 @@ func main() {
 			Logger:     logger,
 			Deps: siteexport.Deps{
 				Source: siteexport.ServiceSource{Service: svc, Store: store, Visibility: siteexport.NewStravaVisibility(
-					stravamap.APIBase, "", stravaTokenFor(infradb.NewFirestoreAdapter(fsClient)), nil)},
+					stravamap.APIBase, siteexport.DefaultVisibilityCachePath(os.Getenv), stravaTokenFor(infradb.NewFirestoreAdapter(fsClient)), nil)},
 				Writer: &siteexport.GCSWriter{Client: gcsClient, Bucket: cfg.Bucket, Prefix: cfg.Prefix()},
 				Zones:  siteexport.ZonesFromEnv(os.Getenv),
 			},

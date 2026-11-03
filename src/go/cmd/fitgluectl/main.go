@@ -24,7 +24,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	firestore "cloud.google.com/go/firestore"
@@ -115,10 +114,7 @@ func connectGCP(ctx context.Context, f *exportSiteFlags) (siteexport.Source, sit
 	store := activity.NewFirestoreStore(fs)
 	blobs := &storage.StorageAdapter{Client: gcsClient}
 	svc := activity.NewService(store, blobs, nil, f.project+"-artifacts", f.bucket, infra.NewLoggerWithComponent("fitgluectl"))
-	cache := ""
-	if dir, err := os.UserCacheDir(); err == nil {
-		cache = filepath.Join(dir, "fitglue", "strava-visibility.json")
-	}
+	cache := siteexport.DefaultVisibilityCachePath(os.Getenv)
 	db := infradb.NewFirestoreAdapter(fs)
 	vis := siteexport.NewStravaVisibility(stravamap.APIBase, cache, func(ctx context.Context, uid string) (string, error) {
 		tok, err := oauth.NewFirestoreTokenSourceFromDB(db, uid, "strava").Token(ctx)

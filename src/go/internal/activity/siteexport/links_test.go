@@ -237,3 +237,95 @@ func TestStravaVisibilityRateLimit(t *testing.T) {
 		t.Errorf("budget cap: %v %v", ok, err)
 	}
 }
+
+// A backfill larger than the per-process cap fills in over several runs: the second
+// run (a new process sharing the cache file) skips what the first cached and spends
+// its budget on the rest, in the order given (newest first). Unknown answers are not
+// cached, so they are retried.
+func TestStravaVisibilityBackfillProgress(t *testing.T) {
+	hits := map[string]int{}
+	fail := map[string]bool{"6": true}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Path[len("/activities/"):]
+		hits[id]++
+		if fail[id] {
+			w.WriteHeader(500)
+			return
+		}
+		_, _ = w.Write([]byte(`{"private":false,"visibility":"everyone"}`))
+	}))
+	defer srv.Close()
+	path := t.TempDir() + "/vis.json"
+	run := func(max int) *StravaVisibility {
+		return &StravaVisibility{Token: func(context.Context, string) (string, error) { return "t", nil },
+			BaseURL: srv.URL, CachePath: path, MaxLookups: max}
+	}
+	own := func(context.Context) (string, error) { return "u", nil }
+	ids := []string{"10", "9", "8", "7", "6", "5"} // newest first
+	var linked []string
+	pass := func(v *StravaVisibility) {
+		linked = nil
+		for _, id := range ids {
+			if ok, _ := v.Public(context.Background(), id, own); ok {
+				linked = append(linked, id)
+			}
+		}
+	}
+	pass(run(3))
+	if strings.Join(linked, ",") != "10,9,8" {
+		t.Fatalf("first run should link the newest three: %v", linked)
+	}
+	pass(run(3))
+	if strings.Join(linked, ",") != "10,9,8,7,5" {
+		t.Fatalf("second run should keep the cached three and add the next: %v", linked)
+	}
+	for _, id := range []string{"10", "9", "8"} {
+		if hits[id] != 1 {
+			t.Errorf("cached id %s fetched %d times", id, hits[id])
+		}
+	}
+	pass(run(3))
+	if strings.Join(linked, ",") != "10,9,8,7,5" || hits["7"] != 1 || hits["5"] != 1 {
+		t.Fatalf("third run: %v, hits %v", linked, hits)
+	}
+	if hits["6"] != 2 {
+		t.Errorf("an unknown (500) answer must be retried, not cached: %d fetches", hits["6"])
+	}
+}
+
+func TestStravaVisibilityTTLs(t *testing.T) {
+	now := time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC)
+	body := `{"private":false,"visibility":"followers_only"}`
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		_, _ = w.Write([]byte(body))
+	}))
+	defer srv.Close()
+	v := &StravaVisibility{Token: func(context.Context, string) (string, error) { return "t", nil }, BaseURL: srv.URL, Now: func() time.Time { return now }}
+	own := func(context.Context) (string, error) { return "u", nil }
+	v.Public(context.Background(), "1", own) // followers-only: cached 7 days
+	now = now.Add(6 * 24 * time.Hour)
+	v.Public(context.Background(), "1", own)
+	if calls != 1 {
+		t.Fatalf("non-public answer should be trusted for 7 days, calls=%d", calls)
+	}
+	now = now.Add(2 * 24 * time.Hour)
+	v.Public(context.Background(), "1", own)
+	if calls != 2 {
+		t.Fatalf("non-public answer should expire after 7 days, calls=%d", calls)
+	}
+	body = `{"private":false,"visibility":"everyone"}`
+	now = now.Add(8 * 24 * time.Hour)
+	v.Public(context.Background(), "1", own) // now public: 30 days
+	now = now.Add(29 * 24 * time.Hour)
+	v.Public(context.Background(), "1", own)
+	if calls != 3 {
+		t.Fatalf("public answer should be trusted for 30 days, calls=%d", calls)
+	}
+	now = now.Add(2 * 24 * time.Hour)
+	v.Public(context.Background(), "1", own)
+	if calls != 4 {
+		t.Fatalf("public answer should expire after 30 days, calls=%d", calls)
+	}
+}
