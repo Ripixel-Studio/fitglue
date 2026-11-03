@@ -54,25 +54,25 @@ func TestSensitive(t *testing.T) {
 }
 
 func TestNamesFreeRejectsUnseenProperNoun(t *testing.T) {
-	if !NamesFree("Colwick delivered again.", "Colwick parkrun") {
+	if !namesFree("Colwick delivered again.", "Colwick parkrun") {
 		t.Error("context name should pass")
 	}
-	if NamesFree("Sarah would be proud.", "Colwick parkrun") {
+	if namesFree("Sarah would be proud.", "Colwick parkrun") {
 		t.Error("Sarah should fail")
 	}
-	if NamesFree("Ran past Tom at the lights.", "Colwick parkrun") {
+	if namesFree("Ran past Tom at the lights.", "Colwick parkrun") {
 		t.Error("mid-sentence Tom should fail")
 	}
-	if !NamesFree("Easy 5 KM at 140 BPM, Strava says PB.", "") {
+	if !namesFree("Easy 5 KM at 140 BPM, Strava says PB.", "") {
 		t.Error("units and allowlist should pass")
 	}
-	if !NamesFree(`He said "Nice" and left.`, "") {
+	if !namesFree(`He said "Nice" and left.`, "") {
 		t.Error("after quote should pass")
 	}
 }
 
 func TestNamesFreeAllowsSentenceStart(t *testing.T) {
-	if !NamesFree("Legs were toast. Proper toast.", "") {
+	if !namesFree("Legs were toast. Proper toast.", "") {
 		t.Error("sentence starts should pass")
 	}
 }
@@ -84,5 +84,38 @@ func TestLine(t *testing.T) {
 	}
 	if Line("\xff\xfeok", 10) != "ok" {
 		t.Errorf("utf8: %q", Line("\xff\xfeok", 10))
+	}
+}
+
+func TestPossessiveNames(t *testing.T) {
+	for _, s := range []string{"Ran. Chris's proud.", "Ran. Jess's proud.", "Ran. Chris’s proud."} {
+		if namesFree(s, "") {
+			t.Errorf("%q should fail", s)
+		}
+	}
+}
+
+func TestScrubGaps(t *testing.T) {
+	for in, want := range map[string]string{
+		"Run w/Tom":                      "Run",
+		"Run with Tom, Dan and Sarah":    "Run",
+		"Run with Tom, Dan & Sarah Jane": "Run",
+		"Run, ft Tom":                    "Run",
+		"Run with Tom's mates":           "Run mates",
+	} {
+		if got := Scrub(in); got != want {
+			t.Errorf("Scrub(%q)=%q want %q", in, got, want)
+		}
+	}
+}
+
+func TestCheck(t *testing.T) {
+	if Check("Colwick again. Legs gone.", "Colwick parkrun") != nil {
+		t.Error("clean line should pass")
+	}
+	for _, s := range []string{"Day 30 sober.", "Pints after.", "Sarah would be proud.", "Ran with Tom."} {
+		if Check(s, "Colwick parkrun") == nil {
+			t.Errorf("%q should fail", s)
+		}
 	}
 }

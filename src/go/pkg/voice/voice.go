@@ -4,6 +4,7 @@ package voice
 
 import (
 	_ "embed"
+	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -55,8 +56,11 @@ func Guide() string {
 }
 
 var (
-	capWord   = `\p{Lu}[\p{L}'’-]*`
-	personRe  = regexp.MustCompile(`(?:^|\s)(?:with|w/|ft\.?|feat\.?|&|and)\s+` + capWord + `(?:\s+` + capWord + `){0,2}`)
+	capWord  = `\p{Lu}[\p{L}'’-]*`
+	nameRun  = capWord + `(?:\s+` + capWord + `){0,2}(?:['’]s)?`
+	personRe = regexp.MustCompile(`(?:^|\s)(?:w/\s*|(?:with|ft\.?|feat\.?|&|and)\s+)` + nameRun +
+		`(?:\s*(?:,|,?\s*(?:and|&))\s*` + nameRun + `)*`)
+	trailConn = regexp.MustCompile(`(?i)\s+(?:with|w/|ft\.?|feat\.?|&|and)\s*$`)
 	handleRe  = regexp.MustCompile(`@\w+`)
 	spacesRe  = regexp.MustCompile(`\s+`)
 	mdRe      = regexp.MustCompile("[*#`]")
@@ -76,8 +80,9 @@ func Scrub(s string) string {
 	s = handleRe.ReplaceAllString(s, "")
 	// A bare trailing connector left by a removed handle ("Hyrox with ").
 	s = personRe.ReplaceAllString(s, "")
-	s = regexp.MustCompile(`(?i)\s+(?:with|w/|ft\.?|feat\.?|&|and)\s*$`).ReplaceAllString(s, "")
-	return strings.TrimSpace(spacesRe.ReplaceAllString(s, " "))
+	s = trailConn.ReplaceAllString(s, "")
+	s = strings.TrimSpace(spacesRe.ReplaceAllString(s, " "))
+	return strings.TrimRight(s, " ,;")
 }
 
 // Sensitive reports whether s touches recovery vocabulary. Fails closed: it
@@ -132,11 +137,11 @@ func allCaps(t string) bool {
 	return has
 }
 
-// NamesFree is false when out contains a capitalised word that is not at a
+// namesFree is false when out contains a capitalised word that is not at a
 // sentence start (or just after a quote), not in context, not allowlisted and
 // not an all-caps unit. Sentence-initial words fail only if they are a known
 // first name and absent from context.
-func NamesFree(out, context string) bool {
+func namesFree(out, context string) bool {
 	ctx := contextTokens(context)
 	for _, loc := range tokenRe.FindAllStringIndex(out, -1) {
 		tok := out[loc[0]:loc[1]]
@@ -149,7 +154,7 @@ func NamesFree(out, context string) bool {
 		}
 		if i := strings.TrimRight(out[:loc[0]], " \t\n"); i == "" || strings.HasSuffix(i, `"`) ||
 			strings.HasSuffix(i, "“") || strings.HasSuffix(i, ".") || strings.HasSuffix(i, "!") || strings.HasSuffix(i, "?") {
-			if commonFirstNames[strings.TrimRight(tok, "'’s")] || commonFirstNames[tok] {
+			if commonFirstNames[strings.TrimSuffix(strings.TrimSuffix(tok, "'s"), "’s")] {
 				return false
 			}
 			continue
@@ -157,6 +162,19 @@ func NamesFree(out, context string) bool {
 		return false
 	}
 	return true
+}
+
+// Check is the one output guard: nil only if out names nobody (given the
+// context it was written from) and touches no recovery vocabulary. Callers
+// must use this, never the halves.
+func Check(out, context string) error {
+	if Sensitive(out) {
+		return errors.New("voice: output touches sensitive vocabulary")
+	}
+	if !namesFree(out, context) {
+		return errors.New("voice: output names someone")
+	}
+	return nil
 }
 
 // Line tidies AI text to one line: whitespace collapsed, Markdown stripped,
