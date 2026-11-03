@@ -13,7 +13,7 @@ Go backend — 7 Cloud Run microservices communicating via gRPC, fronted by 3 HT
 | Messaging | Cloud Pub/Sub |
 | File storage | Google Cloud Storage |
 | Auth | Static bearer token (`FITGLUE_API_TOKEN`); one user (`FITGLUE_OWNER_UID`) |
-| AI | Gemini (AI enrichers) |
+| AI | Claude via the box CLI (`pkg/claude`) |
 | FIT files | muktihari/fit |
 | Error tracking | Sentry — optional, one `SENTRY_DSN` for all services; unset means no-op |
 | Container | Docker (distroless, multi-stage) |

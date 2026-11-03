@@ -75,7 +75,7 @@ resource "google_storage_bucket_iam_member" "version_config_web_ci_access" {
   member = "serviceAccount:circleci-web-deployer@${var.project_id}.iam.gserviceaccount.com"
 }
 
-# Showcase assets bucket - stores generated images (AI banners, route thumbnails, muscle heatmaps)
+# Showcase assets bucket - stores generated images (route thumbnails, muscle heatmaps)
 resource "google_storage_bucket" "showcase_assets_bucket" {
   name     = "${var.project_id}-showcase-assets"
   location = var.region

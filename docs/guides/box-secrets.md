@@ -9,7 +9,7 @@ box runs; it stays only until F4.2 deletes it with the Cloud Run services.
 
 | Thing | Where | Who reads it |
 |---|---|---|
-| Provider app credentials, webhook verify tokens, `OAUTH_STATE_SECRET`, `GEMINI_API_KEY`, `FITGLUE_API_TOKEN`, `FITGLUE_OWNER_UID` | `~/.jarvis/fitglue.env` (mode 600) | every unit; `fitgluectl` via a shell that sources it |
+| Provider app credentials, webhook verify tokens, `OAUTH_STATE_SECRET`, `FITGLUE_API_TOKEN`, `FITGLUE_OWNER_UID` | `~/.jarvis/fitglue.env` (mode 600) | every unit; `fitgluectl` via a shell that sources it |
 | Deployment settings (`PROJECT_ID`, buckets, `ENVIRONMENT`, `LOG_LEVEL`, `ASSETS_BASE_URL`, `SITE_EXPORT_SLUG`, …) | the unit files, **and** repeated in `fitglue.env` so a shell running `fitgluectl` sees them. The unit value and the file value must agree; the file wins when they differ. | units, `fitgluectl` |
 | Per-box values (`PUBSUB_PUSH_AUDIENCE`, `FITGLUE_PUBLIC_BASE_URL`, `WEB_URL`, `SITE_EXPORT_HOOK_URL`, `SENTRY_DSN`) | `fitglue.env` only | pipeline/activity/destination, api-client, activity |
 | Google Cloud identity | `~/.jarvis/fitglue-box-sa.json` (F3.2; `GOOGLE_APPLICATION_CREDENTIALS` in the units) | every unit. **It has no `secretmanager.secretAccessor`** and must not get one. |
@@ -19,7 +19,7 @@ box runs; it stays only until F4.2 deletes it with the Cloud Run services.
 Keys the example lists and the values written on 2026-10-25:
 
 - **From Secret Manager** (`fitglue-server-prod`, copied once under James's
-  own gcloud identity): `OAUTH_STATE_SECRET`, `GEMINI_API_KEY`,
+  own gcloud identity): `OAUTH_STATE_SECRET`,
   `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_WEBHOOK_VERIFY_TOKEN`
   (← `strava-verify-token`), `FITBIT_CLIENT_ID`, `FITBIT_CLIENT_SECRET`,
   `FITBIT_OAUTH_CLIENT_SECRET` (same value as `FITBIT_CLIENT_SECRET`; the

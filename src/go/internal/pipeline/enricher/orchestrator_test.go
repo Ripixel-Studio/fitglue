@@ -24,6 +24,7 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	shared "github.com/fitglue/server/src/go/pkg"
+	firestoreconv "github.com/fitglue/server/src/go/pkg/storage/firestore"
 )
 
 // MockDatabase implements shared.Database
@@ -961,5 +962,48 @@ func TestMergeEnrichmentsAllFields(t *testing.T) {
 				t.Errorf("mergeEnrichments dropped field %q — update the merge function to include it", fd.FullName())
 			}
 		}
+	}
+}
+
+// TestStoredPipelineWithDeletedEnricherDecodes: a saved pipeline that still lists the
+// deleted AI banner enricher (as the number 28 or the old enum name) loads, and the
+// orchestrator skips that enricher quietly instead of failing the pipeline.
+func TestStoredPipelineWithDeletedEnricherDecodes(t *testing.T) {
+	for name, providerType := range map[string]interface{}{
+		"number": int64(28),
+		"name":   "ENRICHER_PROVIDER_AI_BANNER",
+	} {
+		t.Run(name, func(t *testing.T) {
+			stored := map[string]interface{}{
+				"id":           "p1",
+				"sources":      []interface{}{"SOURCE_HEVY"},
+				"destinations": []interface{}{int64(pbplugin.DestinationType_DESTINATION_STRAVA)},
+				"enrichers": []interface{}{
+					map[string]interface{}{"provider_type": providerType, "typed_config": map[string]interface{}{"mode": "banner"}},
+				},
+			}
+			db := &MockDatabase{
+				GetUserFunc: func(ctx context.Context, id string) (*user.Record, error) {
+					return &user.Record{UserProfile: &pbuser.UserProfile{UserId: id}}, nil
+				},
+				GetUserPipelinesFunc: func(ctx context.Context, userId string) ([]*pbpipeline.PipelineConfig, error) {
+					return []*pbpipeline.PipelineConfig{firestoreconv.FirestoreToPipeline(stored)}, nil
+				},
+			}
+			o := NewOrchestrator(db, &MockBlobStore{}, "bucket")
+			res, err := o.Process(context.Background(), covLogger(), enricherPayload(), "parent", "exec", false)
+			if err != nil {
+				t.Fatalf("a deleted enricher must not fail the pipeline, got %v", err)
+			}
+			var skipped bool
+			for _, pe := range res.ProviderExecutions {
+				if pe.Status == "SKIPPED" && pe.Error == "retired enricher" {
+					skipped = true
+				}
+			}
+			if !skipped {
+				t.Errorf("expected a retired-enricher SKIPPED execution, got %+v", res.ProviderExecutions)
+			}
+		})
 	}
 }

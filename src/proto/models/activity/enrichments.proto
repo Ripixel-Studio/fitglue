@@ -10,6 +10,8 @@ option go_package = "github.com/fitglue/server/src/go/pkg/types/pb/models/activi
 // Each sub-message is optional — only present if the corresponding enricher
 // was configured and ran. Replaces enrichment_metadata map<string,string>.
 message ActivityEnrichments {
+  reserved 9;
+  reserved "ai_banner";
   optional HeartRateSummary heart_rate = 1;
   optional HeartRateZonesSummary heart_rate_zones = 2;
   optional EffortScoreSummary effort = 3;
@@ -18,7 +20,6 @@ message ActivityEnrichments {
   optional RecoverySummary recovery = 6;
   optional StreakSummary streak = 7;
   optional AiSummary ai_summary = 8;
-  optional AiBanner ai_banner = 9;
   optional PaceSummary pace = 10;
   optional CadenceSummary cadence = 11;
   optional PowerSummary power = 12;
@@ -111,14 +112,8 @@ enum StreakDayState {
 
 message AiSummary {
   string html = 1;                              // sanitised HTML — may contain <b> and <span>
-  string model = 2;                             // e.g. "gemini-1.5-flash"
+  string model = 2;                             // e.g. "claude-sonnet"
   google.protobuf.Timestamp generated_at = 3;
-}
-
-message AiBanner {
-  string image_url = 1;        // CDN URL
-  string prompt_hash = 2;      // for cache-busting
-  string generator_version = 3;
 }
 
 message PaceSummary {

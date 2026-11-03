@@ -36,7 +36,6 @@ import (
 	// Register providers
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/activity_filter"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/ai_activity_type"
-	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/ai_banner"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/ai_companion"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/auto_increment"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/best_efforts"

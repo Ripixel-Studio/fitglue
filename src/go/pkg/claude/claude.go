@@ -1,5 +1,5 @@
-// Package claude calls the box's `claude` CLI as a tool-less model. It replaces
-// Gemini/Vertex for FitGlue's AI text. The usage window is shared with Jarvis, so
+// Package claude calls the box's `claude` CLI as a tool-less model for FitGlue's
+// AI text. The usage window is shared with Jarvis, so
 // a spent window surfaces as ErrLimited and the caller skips its AI line; there
 // is no retry here.
 package claude

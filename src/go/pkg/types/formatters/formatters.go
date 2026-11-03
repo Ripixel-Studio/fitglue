@@ -733,8 +733,6 @@ func FormatEnricherProviderType(value pbplugin.EnricherProviderType) string {
 		return "Muscle Heatmap Image"
 	case pbplugin.EnricherProviderType_ENRICHER_PROVIDER_ROUTE_THUMBNAIL:
 		return "Route Thumbnail"
-	case pbplugin.EnricherProviderType_ENRICHER_PROVIDER_AI_BANNER:
-		return "Ai Banner"
 	case pbplugin.EnricherProviderType_ENRICHER_PROVIDER_FIT_FILE_HEART_RATE:
 		return "Fit File Heart Rate"
 	case pbplugin.EnricherProviderType_ENRICHER_PROVIDER_HYBRID_RACE_TAGGER:
@@ -867,9 +865,6 @@ func ParseEnricherProviderType(input string) pbplugin.EnricherProviderType {
 		"enricher_provider_route_thumbnail":      pbplugin.EnricherProviderType_ENRICHER_PROVIDER_ROUTE_THUMBNAIL,
 		"route_thumbnail":                        pbplugin.EnricherProviderType_ENRICHER_PROVIDER_ROUTE_THUMBNAIL,
 		"route thumbnail":                        pbplugin.EnricherProviderType_ENRICHER_PROVIDER_ROUTE_THUMBNAIL,
-		"enricher_provider_ai_banner":            pbplugin.EnricherProviderType_ENRICHER_PROVIDER_AI_BANNER,
-		"ai_banner":                              pbplugin.EnricherProviderType_ENRICHER_PROVIDER_AI_BANNER,
-		"ai banner":                              pbplugin.EnricherProviderType_ENRICHER_PROVIDER_AI_BANNER,
 		"enricher_provider_fit_file_heart_rate":  pbplugin.EnricherProviderType_ENRICHER_PROVIDER_FIT_FILE_HEART_RATE,
 		"fit_file_heart_rate":                    pbplugin.EnricherProviderType_ENRICHER_PROVIDER_FIT_FILE_HEART_RATE,
 		"fit file heart rate":                    pbplugin.EnricherProviderType_ENRICHER_PROVIDER_FIT_FILE_HEART_RATE,

@@ -31,7 +31,7 @@ FitGlue uses a **type-safe, self-registering plugin architecture** for extensibl
 | **Detection** | Parkrun Detector, Location Naming, Condition Matcher |
 | **Transform** | Type Mapper, Auto Increment, Logic Gate, Activity Filter |
 | **Input** | User Input, Hybrid Race Tagger |
-| **AI** | AI Companion, AI Banner |
+| **AI** | AI Companion |
 
 ### Destinations (Data Export)
 | Destination | Auth Type | Features |
@@ -150,7 +150,7 @@ Some enrichers are restricted to higher tiers:
 |------|---------------------|
 | Free | Heart Rate Summary, Elevation, Type Mapper, User Input |
 | Pro | All Free + Weather, Location, Training Load, Personal Records |
-| Athlete | All Pro + AI Companion, AI Banner, Spotify Tracks |
+| Athlete | All Pro + AI Companion, Spotify Tracks |
 
 Tier enforcement is done via `pb.PluginManifest.Tier` and checked during enrichment by `service.pipeline`.
 

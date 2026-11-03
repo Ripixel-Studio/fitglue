@@ -9,7 +9,6 @@
 # secrets (names, env key in fitglue.env):
 #   fitglue-api-token            FITGLUE_API_TOKEN
 #   oauth-state-secret           OAUTH_STATE_SECRET
-#   gemini-api-key               GEMINI_API_KEY
 #   strava-client-id             STRAVA_CLIENT_ID
 #   strava-client-secret         STRAVA_CLIENT_SECRET
 #   strava-verify-token          STRAVA_WEBHOOK_VERIFY_TOKEN
@@ -251,25 +250,6 @@ resource "google_secret_manager_secret" "trainingpeaks_client_secret" {
 
 resource "google_secret_manager_secret_version" "trainingpeaks_client_secret_initial" {
   secret      = google_secret_manager_secret.trainingpeaks_client_secret.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
-# =============================================================================
-# Gemini API key for AI description enricher
-# =============================================================================
-resource "google_secret_manager_secret" "gemini_api_key" {
-  secret_id = "gemini-api-key"
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "gemini_api_key_initial" {
-  secret      = google_secret_manager_secret.gemini_api_key.id
   secret_data = "PLACEHOLDER_REPLACE_ME"
 
   lifecycle {
