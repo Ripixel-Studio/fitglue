@@ -120,21 +120,55 @@ func TestCheck(t *testing.T) {
 	}
 }
 
-// A sentence can end on an emoji in his captions; the next capital is grammar.
+// A sentence can end on an emoji; the next capital must still be a known non-name.
 func TestCheckSentenceStartAfterEmoji(t *testing.T) {
 	if err := Check("Legs on fire 🥵 Still smiling 💪 Bloody brutal… Cooked", "Run 8.2 km"); err != nil {
 		t.Errorf("emoji-separated sentences should pass: %v", err)
 	}
-	if Check("Legs on fire 🥵 Sarah would be proud", "Run") == nil {
-		t.Error("a first name after an emoji must still fail")
+}
+
+func TestCheckRejectsNamesAfterBoundaries(t *testing.T) {
+	for _, s := range []string{
+		"Legs on fire 🥵 Sarah would be proud", "Legs on fire 🥵 and Sarah",
+		"🔥 Priya smashed it", "Brutal… Kev came too", "Legs gone 🥵 Priya paced it",
+		"PB 🎉 Gav was there", "Cooked ❤️ Becca", "8.2 km + Kev on the hills",
+		"5k → Priya pacing", "Sub-25 = Kev buying coffee", "Hills £ Kev", "Kev paced it.",
+		"Done. Priya smashed it", "Priya paced it",
+	} {
+		if Check(s, "Type: ACTIVITY_TYPE_RUN") == nil {
+			t.Errorf("%q should fail", s)
+		}
 	}
-	if Check("Legs on fire 🥵 and Sarah", "Run") == nil {
-		t.Error("a mid-sentence name after an emoji must still fail")
+}
+
+func TestContextNeverWhitelistsFirstName(t *testing.T) {
+	if Check("Tom paced it", "Original Name: Tom") == nil {
+		t.Error("a known first name in context must still fail")
 	}
 }
 
 func TestCheckAllowsFirstPersonI(t *testing.T) {
 	if err := Check("Legs gone 🥵 and I'm still standing, I think", "Run"); err != nil {
 		t.Errorf("first person must pass: %v", err)
+	}
+}
+
+func TestEndsInEmoji(t *testing.T) {
+	for _, s := range []string{"x 🔥", "x ❤️", "x 💪🏽", "x 🥵"} {
+		if !endsInEmoji(s) {
+			t.Errorf("%q should end in emoji", s)
+		}
+	}
+	for _, s := range []string{"x +", "x =", "x →", "x £", "x ^", "x ~", "x <", "x"} {
+		if endsInEmoji(s) {
+			t.Errorf("%q must not count", s)
+		}
+	}
+}
+
+func TestLineCutsOnWordBoundary(t *testing.T) {
+	got := Line(strings.Repeat("legs gone ", 40), 25)
+	if got != "legs gone legs gone legs" {
+		t.Errorf("got %q", got)
 	}
 }

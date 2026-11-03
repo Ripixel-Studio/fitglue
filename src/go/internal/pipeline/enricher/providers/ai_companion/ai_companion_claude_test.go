@@ -12,6 +12,7 @@ import (
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
+	"github.com/fitglue/server/src/go/pkg/voice"
 )
 
 type fakeAI struct {
@@ -46,6 +47,8 @@ func TestCompanionUsesHaikuAndGuide(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("FITGLUE_VOICE_FILE", g)
+	voice.ResetGuideCache()
+	t.Cleanup(voice.ResetGuideCache)
 	f, meta, name, desc := run(t, "Morning Run", &fakeAI{out: "Legs shaking, still smiling 🥵"})
 	if f.req.Model != "haiku" {
 		t.Errorf("model %q", f.req.Model)
@@ -100,5 +103,28 @@ func TestCompanionOutputCappedAt280(t *testing.T) {
 	body := strings.TrimPrefix(desc, "✨ AI Summary:\n")
 	if n := len([]rune(body)); n == 0 || n > 280 {
 		t.Errorf("body length %d", n)
+	}
+}
+
+func TestCompanionNameFromHisDescriptionIsRejected(t *testing.T) {
+	p := NewAICompanionProvider()
+	p.AI = &fakeAI{out: "Kev paced it, I died 🥵"}
+	act := &pbactivity.StandardizedActivity{Name: "Tempo", Description: "Kev paced me the whole way",
+		Type: pbactivity.ActivityType_ACTIVITY_TYPE_RUN}
+	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u"}}
+	res, _ := p.Enrich(context.Background(), discardLogger(), act, u, nil, false)
+	if res.Description != "" || res.Metadata["reason"] != "voice_guard" {
+		t.Errorf("name from his description must not pass: %v %q", res.Metadata, res.Description)
+	}
+}
+
+func TestCompanionLabelAlwaysOn(t *testing.T) {
+	p := NewAICompanionProvider()
+	p.AI = &fakeAI{out: "Legs gone 🥵"}
+	act := &pbactivity.StandardizedActivity{Name: "Run", Type: pbactivity.ActivityType_ACTIVITY_TYPE_RUN}
+	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u"}}
+	res, _ := p.Enrich(context.Background(), discardLogger(), act, u, map[string]string{"section_header": "false"}, false)
+	if !strings.HasPrefix(res.Description, "✨ AI Summary:\n") {
+		t.Errorf("label must be mandatory: %q", res.Description)
 	}
 }

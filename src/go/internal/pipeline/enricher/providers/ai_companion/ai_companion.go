@@ -54,8 +54,6 @@ func (p *AICompanionProvider) ShouldDefer() bool {
 }
 
 func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
-	showSectionHeader := inputs["section_header"] != "false" // Default to true
-
 	// Build context from activity
 	activityContext := buildActivityContext(activity)
 
@@ -107,9 +105,8 @@ func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, a
 	}
 
 	result := &aiResult{Description: line}
-	if showSectionHeader {
-		result.Description = "✨ AI Summary:\n" + result.Description
-	}
+	// The label is mandatory: it is what marks the line as AI, not his.
+	result.Description = "✨ AI Summary:\n" + result.Description
 
 	logger.Info("AI Companion content generated successfully")
 
@@ -178,10 +175,27 @@ func (p *AICompanionProvider) generate(ctx context.Context, activityContext stri
 		return "", err
 	}
 	line := voice.Line(out, maxLineChars)
-	if line == "" || voice.Check(line, activityContext) != nil {
+	if line == "" || voice.Check(line, checkContext(activityContext)) != nil {
 		return "", nil
 	}
 	return line, nil
+}
+
+// checkContext is the only context voice.Check sees: fitness vocabulary (type,
+// metrics, exercise names from set data). Never his name, description or other
+// enrichers' text, so a name he wrote cannot whitelist itself in the output.
+func checkContext(activityContext string) string {
+	if i := strings.Index(activityContext, "\n\nOther Enricher Descriptions:"); i >= 0 {
+		activityContext = activityContext[:i]
+	}
+	var keep []string
+	for _, l := range strings.Split(activityContext, "\n") {
+		if strings.HasPrefix(l, "Original ") {
+			continue
+		}
+		keep = append(keep, l)
+	}
+	return strings.Join(keep, "\n")
 }
 
 // buildPrompt returns the fixed system prompt (the voice guide plus the task)

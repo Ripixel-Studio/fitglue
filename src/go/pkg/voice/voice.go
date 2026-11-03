@@ -29,6 +29,10 @@ var (
 	guideVal string
 )
 
+// ResetGuideCache drops the cached guide so a test can point FITGLUE_VOICE_FILE
+// at its own file regardless of test order.
+func ResetGuideCache() { guideMu.Lock(); guideAt = time.Time{}; guideVal = ""; guideMu.Unlock() }
+
 // Guide returns the voice guide, re-read at most every 10 minutes, capped at 6 KB.
 // Missing or empty file gives the embedded fallback.
 func Guide() string {
@@ -124,11 +128,84 @@ func contextTokens(c string) map[string]bool {
 	return m
 }
 
-// endsInEmoji: an emoji ends a caption sentence in James's voice ("brutal 🥵 Still
-// smiling"), so a capital after one is a sentence start, not a name.
+// endsInEmoji: a real emoji (Extended_Pictographic ranges, VS16, ZWJ, skin
+// tones) ends a caption sentence in James's voice ("brutal 🥵 Still smiling").
+// Math, currency and arrow symbols (+ = → £) are never a boundary.
 func endsInEmoji(s string) bool {
 	r, _ := utf8.DecodeLastRuneInString(s)
-	return r == 0xFE0F || r == 0x200D || unicode.IsSymbol(r)
+	switch {
+	case r == 0xFE0F, r == 0x200D:
+		return true
+	case r >= 0x1F000 && r <= 0x1FAFF, r >= 0x2600 && r <= 0x27BF, r >= 0x2B00 && r <= 0x2BFF,
+		r >= 0x2300 && r <= 0x23FF, r == 0x203C, r == 0x2049, r == 0x2122, r == 0x2139:
+		return true
+	}
+	return false
+}
+
+// starters are capitalised words that are not names: sentence openers,
+// numbers, and activity words. After a sentence boundary a capital word must be
+// one of these (or fitness context / allow); anything else fails the check.
+var starters = func() map[string]bool {
+	m := map[string]bool{}
+	for _, w := range strings.Fields(`a an the this that these those it its there here then than so but and or
+	nor yet if when while what why how who where which whose because since until after before again also
+	almost another any all both each either every few more most much many some such no not nothing none
+	one two three four five six seven eight nine ten eleven twelve fifteen twenty thirty forty fifty sixty
+	seventy eighty ninety hundred first second third last next half quarter whole
+	i me my mine we us our you your he him his she her they them their let lets
+	is was were be been being am are do does did done doing have has had having can could will would shall
+	should may might must get got gets getting go goes going gone went come came coming make made makes
+	take took taken keep kept give gave put set ran run running runs rode ride riding walk walked walking
+	swam swim swimming lifted lift lifting hit hits hitting push pushed pushing pull pulled pulling
+	felt feel feels feeling think thought know knew see saw look looked say said still just only even ever
+	never always often sometimes now today tonight tomorrow yesterday later soon already finally actually
+	honestly basically literally properly proper really very quite pretty absolutely totally completely
+	well yes yeah yep nope no ok okay oh ah ha haha hah hmm um uh ugh urgh eek phew wow whoa blimey
+	cheers right sure fine good great nice lovely proper decent solid strong steady easy hard tough
+	brutal brutally horrific horrifically killer savage savagely cooked knackered shattered wrecked
+	destroyed dead dying died spent done smashed crushed nailed bossed cheeky cheekily sweaty sweat
+	hot cold warm wet dry windy rainy sunny muggy freezing boiling chilly grim mad mental unhinged
+	wild proper legs leg quads quad calves glutes glute hamstrings hams hammies lungs lung heart hr
+	arms arm shoulders shoulder back core abs chest feet foot knees knee hips hip ankles lats traps
+	cardio zone zones pace paces pacing tempo intervals interval reps rep sets set squats squat deadlift
+	deadlifts bench press presses row rows rowing curl curls lunges lunge plank planks burpees burpee
+	sled sleds sleds wall balls ball box jumps jump skier skiers hyrox parkrun strava hevy
+	km mile miles minutes minute mins min hours hour seconds second secs sec sesh session sessions
+	workout workouts training train trained trains effort efforts hills hill hilly flat trail trails
+	road roads track treadmill gym garage turbo spin bike cycling cycle swimming pool lake sea
+	morning afternoon evening night lunch lunchtime dinner breakfast early late
+	mondays tuesdays wednesdays thursdays fridays saturdays sundays weekend weekends week weeks
+	month months year years day days time times lap laps mile miles kilometre kilometres
+	big small little lil huge tiny long short quick slow fast faster slower better worse best worst
+	new old different same other another next previous recent once twice thrice
+	lessgo lessgooo thoughts note notes ps pb pr pbs prs hrs bpm watts watt kg kgs lb lbs
+	oof ouch yikes gah argh eh meh bit bits lot lots loads load plenty enough
+	somehow someday somewhere nowhere everywhere anywhere everything anything something
+	nobody everybody everyone anyone someone whoever whatever whenever wherever
+	not nah yup yay woohoo hooray hurrah boom bam pow zoom whoosh
+	bloody bloomin flipping holy chuffed proud gutted buzzing blown wiped hurting hurts aching sore stiff
+	grinding grind grinded sweating suffering suffered suffer pain painful agony misery fun funny
+	forty-five twenty-five`) {
+		m[w] = true
+	}
+	return m
+}()
+
+// startsOK reports whether a capitalised word at a sentence boundary is a known
+// non-name: starters, or the first hyphen/apostrophe segment of one.
+func startsOK(tok string) bool {
+	l := strings.ToLower(tok)
+	if starters[l] {
+		return true
+	}
+	if i := strings.IndexAny(l, "'’"); i > 0 && starters[l[:i]] {
+		return true
+	}
+	if i := strings.Index(l, "-"); i > 0 && starters[l[:i]] {
+		return true
+	}
+	return false
 }
 
 func allCaps(t string) bool {
@@ -156,16 +233,23 @@ func namesFree(out, context string) bool {
 		if !unicode.IsUpper(r) {
 			continue
 		}
-		if ctx[tok] || allow[tok] || (allCaps(tok) && utf8.RuneCountInString(tok) > 1) {
+		base := strings.TrimSuffix(strings.TrimSuffix(tok, "'s"), "’s")
+		known := commonFirstNames[base]
+		// Context never whitelists a known first name, and callers pass only
+		// fitness vocabulary (never his free text) as context.
+		if (ctx[tok] && !known) || allow[tok] || (allCaps(tok) && utf8.RuneCountInString(tok) > 1) {
 			continue
+		}
+		if known {
+			return false
 		}
 		if i := strings.TrimRight(out[:loc[0]], " \t\n"); i == "" || strings.HasSuffix(i, `"`) ||
 			strings.HasSuffix(i, "“") || strings.HasSuffix(i, ".") || strings.HasSuffix(i, "!") || strings.HasSuffix(i, "?") ||
 			strings.HasSuffix(i, "…") || endsInEmoji(i) {
-			if commonFirstNames[strings.TrimSuffix(strings.TrimSuffix(tok, "'s"), "’s")] {
-				return false
+			if startsOK(tok) {
+				continue
 			}
-			continue
+			return false
 		}
 		return false
 	}
@@ -197,6 +281,12 @@ func Line(s string, max int) string {
 	cut := string([]rune(s)[:max])
 	if i := strings.LastIndexAny(cut, ".!?"); i >= 0 {
 		return cut[:i+1]
+	}
+	// No sentence end: cut on a word boundary unless the next rune already is one.
+	if next := []rune(s)[max]; next != ' ' {
+		if i := strings.LastIndex(cut, " "); i > 0 {
+			cut = cut[:i]
+		}
 	}
 	return strings.TrimSpace(cut)
 }

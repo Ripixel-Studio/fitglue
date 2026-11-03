@@ -3,6 +3,7 @@ package ai_activity_type
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -92,11 +93,16 @@ func (p *AIActivityTypeProvider) Enrich(
 	}
 	rawResponse, err := classify(ctx, ai, systemInstruction, userData)
 	if err != nil {
+		reason := "classify_failed"
+		if errors.Is(err, claude.ErrLimited) {
+			reason = "usage_limited"
+		}
 		logger.Warn("ai-activity-type: Claude call failed", "error", err)
 		return &providers.EnrichmentResult{
 			Metadata: map[string]string{
-				"status": "error",
-				"reason": err.Error(),
+				"status":        "error",
+				"reason":        reason,
+				"status_detail": err.Error(),
 			},
 		}, nil // Don't fail the pipeline
 	}

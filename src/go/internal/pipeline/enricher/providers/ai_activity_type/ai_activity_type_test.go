@@ -74,7 +74,7 @@ func TestActivityTypeClaudeErrorDoesNotFail(t *testing.T) {
 	p.AI = &fakeAI{err: claude.ErrLimited}
 	act := &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT}
 	res, err := p.Enrich(context.Background(), aiLogger(), act, nil, nil, false)
-	if err != nil || res.Metadata["status"] != "error" {
+	if err != nil || res.Metadata["status"] != "error" || res.Metadata["reason"] != "usage_limited" {
 		t.Errorf("err %v meta %v", err, res.Metadata)
 	}
 	if act.Type != pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT {
