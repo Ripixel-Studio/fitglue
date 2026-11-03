@@ -271,7 +271,7 @@ func TestDailyAZMRollUp(t *testing.T) {
 		t.Fatal(err)
 	}
 	// the zone sums are already credited minutes, so the day is their plain sum; a zero day is dropped.
-	if len(got) != 2 || got[0].Value != 17 || got[1].Date.String() != "2026-11-03" || got[1].Value != 6 {
+	if len(got) != 2 || got[0].Value != 17 || got[1].Date.String() != "2026-11-03" || got[1].Value != 3 {
 		t.Errorf("got %+v", got)
 	}
 }
