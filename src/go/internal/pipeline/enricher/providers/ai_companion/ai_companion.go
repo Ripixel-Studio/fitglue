@@ -2,11 +2,12 @@ package ai_companion
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	"log/slog"
-	"os"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
@@ -14,14 +15,16 @@ import (
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 
+	"github.com/fitglue/server/src/go/pkg/claude"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	"github.com/fitglue/server/src/go/pkg/voice"
 )
 
-// AICompanionProvider generates AI-powered activity descriptions using Google Gemini.
+// AICompanionProvider generates AI-powered activity descriptions in the athlete's voice using Claude Haiku.
+// The companion line sits alongside his own text; it never rewrites it.
 type AICompanionProvider struct {
 	Service *bootstrap.Service
+	AI      claude.Completer // nil means claude.Default()
 }
 
 func init() {
@@ -51,49 +54,28 @@ func (p *AICompanionProvider) ShouldDefer() bool {
 }
 
 func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
-	// Get configuration
-	mode := inputs["mode"]
-	if mode == "" {
-		mode = "description" // Default
-	}
-
-	showSectionHeader := inputs["section_header"] != "false" // Default to true
-
 	// Build context from activity
 	activityContext := buildActivityContext(activity)
 
-	// Include enriched description from other enrichers (injected by orchestrator Phase 2)
-	if enrichedDesc := inputs["enriched_description"]; enrichedDesc != "" {
-		activityContext += "\n\nOther Enricher Descriptions:\n" + enrichedDesc
+	// Include enriched description from other enrichers (injected by orchestrator Phase 2).
+	// Scrubbed like the name; left out entirely if it touches sensitive vocabulary.
+	if enrichedDesc := inputs["enriched_description"]; enrichedDesc != "" && !voice.Sensitive(enrichedDesc) {
+		activityContext += "\n\nOther Enricher Descriptions:\n" + voice.Scrub(enrichedDesc)
 	}
 
-	// Get Gemini API key
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		logger.Warn("GEMINI_API_KEY not set, skipping AI companion")
-		return &providers.EnrichmentResult{
-			Skipped:    true,
-			SkipReason: "GEMINI_API_KEY not configured",
-			Metadata: map[string]string{
-				"status":        "skipped",
-				"reason":        "api_key_not_configured",
-				"status_detail": "GEMINI_API_KEY environment variable not set",
-			},
-		}, nil
-	}
-
-	// Repost cache: return stored result instead of calling Gemini again.
+	// Repost cache: return stored result instead of calling Claude again.
+	// The key is versioned so Gemini-era lines are never reused, and a cached
+	// line must pass voice.Check again; a failure falls through to regenerate.
 	externalId := inputs["external_id"]
 	if inputs["is_repost"] == "true" && externalId != "" && p.Service != nil && p.Service.DB != nil {
-		if data, err := p.Service.DB.GetBoosterData(ctx, user.UserId, "ai_companion"); err == nil && data != nil {
-			if cached, ok := data["cached_external_id"].(string); ok && cached == externalId {
-				cachedDesc, _ := data["cached_description"].(string)
-				cachedName, _ := data["cached_name"].(string)
+		if data, err := p.Service.DB.GetBoosterData(ctx, user.UserId, cacheKey); err == nil && data != nil {
+			cachedDesc, _ := data["cached_description"].(string)
+			if cached, ok := data["cached_external_id"].(string); ok && cached == externalId && cachedDesc != "" &&
+				voice.Check(strings.TrimPrefix(cachedDesc, aiLabel), checkContext(activityContext)) == nil {
 				logger.Info("AI Companion: returning cached result for repost", "external_id", externalId)
 				return &providers.EnrichmentResult{
-					Name:        cachedName,
 					Description: cachedDesc,
-					Metadata:    map[string]string{"status": "success", "mode": mode, "cache": "hit"},
+					Metadata:    map[string]string{"status": "success", "cache": "hit"},
 					Enrichments: &pbactivity.ActivityEnrichments{
 						AiSummary: &pbactivity.AiSummary{Html: cachedDesc},
 					},
@@ -102,45 +84,46 @@ func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, a
 		}
 	}
 
-	// Generate content using Gemini
-	result, err := p.generateWithGemini(ctx, apiKey, mode, activityContext)
+	// Generate the companion line. Every output passes voice.Check before use.
+	line, err := p.generate(ctx, activityContext)
 	if err != nil {
-		logger.Error("Failed to generate AI companion content", "error", err)
+		reason := "generation_failed"
+		if errors.Is(err, claude.ErrLimited) {
+			reason = "usage_limited"
+		}
+		logger.Warn("Failed to generate AI companion content", "error", err)
 		return &providers.EnrichmentResult{
 			Metadata: map[string]string{
 				"status":        "error",
-				"reason":        "generation_failed",
+				"reason":        reason,
 				"status_detail": err.Error(),
 			},
 		}, nil // Don't return error to avoid pipeline failure
 	}
-
-	if showSectionHeader && result.Description != "" {
-		result.Description = "✨ AI Summary:\n" + result.Description
+	if line == "" {
+		logger.Info("AI Companion line dropped by voice guard")
+		return &providers.EnrichmentResult{
+			Metadata: map[string]string{"status": "skipped", "reason": "voice_guard"},
+		}, nil
 	}
 
-	logger.Info("AI Companion content generated successfully",
-		"mode", mode,
-		"has_title", result.Title != "",
-		"has_description", result.Description != "",
-	)
+	result := &aiResult{Description: line}
+	// The label is mandatory: it is what marks the line as AI, not his.
+	result.Description = aiLabel + result.Description
 
-	// Cache result so reposts don't re-call Gemini.
+	logger.Info("AI Companion content generated successfully")
+
+	// Cache result so reposts don't re-call Claude.
 	if externalId != "" && p.Service != nil && p.Service.DB != nil {
-		_ = p.Service.DB.SetBoosterData(ctx, user.UserId, "ai_companion", map[string]interface{}{
+		_ = p.Service.DB.SetBoosterData(ctx, user.UserId, cacheKey, map[string]interface{}{
 			"cached_external_id": externalId,
 			"cached_description": result.Description,
-			"cached_name":        result.Title,
 		})
 	}
 
 	return &providers.EnrichmentResult{
-		Name:        result.Title,
 		Description: result.Description,
-		Metadata: map[string]string{
-			"status": "success",
-			"mode":   mode,
-		},
+		Metadata:    map[string]string{"status": "success"},
 		Enrichments: &pbactivity.ActivityEnrichments{
 			AiSummary: &pbactivity.AiSummary{
 				Html: result.Description,
@@ -150,7 +133,6 @@ func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, a
 }
 
 type aiResult struct {
-	Title       string
 	Description string
 }
 
@@ -160,9 +142,7 @@ type aiResult struct {
 func sanitiseForPrompt(s string) string {
 	const maxLen = 500
 	// Activity names/descriptions come from third-party providers and can carry
-	// invalid UTF-8. The Gemini client marshals the prompt into a proto string
-	// field, which rejects invalid UTF-8 outright ("proto: field ... Part.text
-	// contains invalid UTF-8", SERVER-1) — so strip it before it reaches the API.
+	// invalid UTF-8; strip it before it reaches the model.
 	s = strings.ToValidUTF8(s, "")
 	if len(s) > maxLen {
 		s = s[:maxLen]
@@ -175,78 +155,67 @@ func sanitiseForPrompt(s string) string {
 	return s
 }
 
-func (p *AICompanionProvider) generateWithGemini(ctx context.Context, apiKey, mode, activityContext string) (*aiResult, error) {
-	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+// cacheKey versions the repost cache by model/voice. Bump it when either
+// changes; the pre-Haiku key "ai_companion" holds unguarded Gemini text and is
+// never read.
+const cacheKey = "ai_companion_haiku_v3"
+
+const aiLabel = "✨ AI Summary:\n"
+
+const taskBlock = `Write the companion line for this session: 1–3 sentences, at most 280 characters, in the voice above. Use only facts in the data. No names. No 'you'. Never claim he wrote it. Never mention alcohol, drink, drugs, pubs or recovery.`
+
+const maxLineChars = 280
+
+// generate asks Haiku for the companion line. It returns "" when the output
+// fails voice.Line/voice.Check (never publish it); errors are Claude's
+// (including claude.ErrLimited).
+func (p *AICompanionProvider) generate(ctx context.Context, activityContext string) (string, error) {
+	ai := p.AI
+	if ai == nil {
+		ai = claude.Default()
 	}
-	defer client.Close()
-
-	model := client.GenerativeModel("gemini-2.5-flash")
-
-	// Configure model for short, punchy outputs.
-	// gemini-2.5-flash thinking tokens count toward MaxOutputTokens, so 1024
-	// gives the model enough budget to think and still produce a full summary.
-	model.SetTemperature(0.7)
-	model.SetTopP(0.9)
-	model.SetMaxOutputTokens(1024)
-
-	// Structural separation: fixed instructions go in SystemInstruction; user-controlled
-	// activity data is passed only in the user-role content part.
-	systemInstr, userContent := buildPrompt(mode)
-	model.SystemInstruction = genai.NewUserContent(genai.Text(systemInstr))
-
-	resp, err := model.GenerateContent(ctx, genai.Text(userContent+"\n\nActivity Context:\n"+sanitiseForPrompt(activityContext)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate content: %w", err)
-	}
-
-	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		return nil, fmt.Errorf("no content generated")
-	}
-
-	// Parse response
-	rawOutput := ""
-	for _, part := range resp.Candidates[0].Content.Parts {
-		if text, ok := part.(genai.Text); ok {
-			rawOutput += string(text)
+	system, prompt := buildPrompt(activityContext)
+	line, _, err := voice.Generate(func(extra string) (string, error) {
+		sys := system
+		if extra != "" {
+			sys += "\n\n" + extra
 		}
+		return ai.Complete(ctx, claude.Request{
+			Model:   claude.ModelHaiku,
+			System:  sys,
+			Prompt:  prompt,
+			Timeout: 60 * time.Second,
+		})
+	}, maxLineChars, checkContext(activityContext))
+	if err != nil {
+		return "", err
 	}
-
-	return parseAIResponse(mode, rawOutput), nil
+	return line, nil
 }
 
-// buildPrompt returns the fixed system instruction and the mode-specific user
-// content request as separate strings. User-controlled activity context is NOT
-// included here — it is appended at call site after sanitisation, keeping
-// instructions and data structurally separated at the API level.
-func buildPrompt(mode string) (systemInstruction, userContent string) {
-	systemInstruction = `You are an activity reviewer. Generate a casual, engaging summary of the fitness activity provided in the user message.
-
-Guidelines:
-- Provide a casual summary or review of the effort.
-- DO NOT talk to the user directly (avoid "you", "your", or addressing them as "runner", "athlete", etc.).
-- Maintain an objective yet positive tone.
-- Generic punchy reactions like "Nice one!" or "Solid session" are acceptable as part of the summary.
-- Avoid motivational "coach" cliches (e.g., "Keep pushing", "You've got this").
-- Use fitness terminology naturally.
-- Reference specific details from the workout.`
-
-	switch mode {
-	case "title":
-		userContent = `Generate a creative, engaging title for this workout (max 50 characters).
-Respond with ONLY the title, nothing else.`
-	case "both":
-		userContent = `Generate both a title and description for this workout.
-Format your response exactly as:
-TITLE: [creative title, max 50 chars]
-DESCRIPTION: [engaging description, 2-3 sentences max]`
-	default: // "description"
-		userContent = `Generate an engaging description for this workout (2-3 sentences max).
-Respond with ONLY the description, nothing else.`
+// checkContext is the only context voice.Check sees: fitness vocabulary (type,
+// metrics, exercise names from set data). Never his name, description or other
+// enrichers' text, so a name he wrote cannot whitelist itself in the output.
+func checkContext(activityContext string) string {
+	if i := strings.Index(activityContext, "\n\nOther Enricher Descriptions:"); i >= 0 {
+		activityContext = activityContext[:i]
 	}
+	var keep []string
+	for _, l := range strings.Split(activityContext, "\n") {
+		if strings.HasPrefix(l, "Original ") {
+			continue
+		}
+		keep = append(keep, l)
+	}
+	return strings.Join(keep, "\n")
+}
 
-	return systemInstruction, userContent
+// buildPrompt returns the fixed system prompt (the voice guide plus the task)
+// and the data-only user prompt, so instructions and activity data stay apart.
+func buildPrompt(activityContext string) (system, prompt string) {
+	system = voice.Guide() + "\n\n" + taskBlock
+	prompt = "Activity Context:\n" + sanitiseForPrompt(activityContext)
+	return system, prompt
 }
 
 func buildActivityContext(activity *pbactivity.StandardizedActivity) string {
@@ -258,8 +227,15 @@ func buildActivityContext(activity *pbactivity.StandardizedActivity) string {
 	}
 
 	// Activity name (original)
-	if activity.Name != "" {
-		parts = append(parts, fmt.Sprintf("Original Name: %s", activity.Name))
+	// Sensitive text never reaches a model: leave name and description out
+	// together; otherwise scrub people out of both.
+	if !voice.Sensitive(activity.Name + " " + activity.Description) {
+		if n := voice.Scrub(activity.Name); n != "" {
+			parts = append(parts, fmt.Sprintf("Original Name: %s", n))
+		}
+		if d := voice.Scrub(activity.Description); d != "" {
+			parts = append(parts, fmt.Sprintf("Original Description: %s", d))
+		}
 	}
 
 	// Duration and distance from sessions
@@ -410,50 +386,4 @@ func buildActivityContext(activity *pbactivity.StandardizedActivity) string {
 	}
 
 	return strings.Join(parts, "\n")
-}
-
-func parseAIResponse(mode, rawOutput string) *aiResult {
-	result := &aiResult{}
-	output := strings.TrimSpace(rawOutput)
-
-	switch mode {
-	case "title":
-		result.Title = cleanTitle(output)
-	case "both":
-		lines := strings.Split(output, "\n")
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(strings.ToUpper(line), "TITLE:") {
-				result.Title = cleanTitle(strings.TrimPrefix(line, "TITLE:"))
-				result.Title = cleanTitle(strings.TrimPrefix(result.Title, "Title:"))
-			} else if strings.HasPrefix(strings.ToUpper(line), "DESCRIPTION:") {
-				result.Description = cleanDescription(strings.TrimPrefix(line, "DESCRIPTION:"))
-				result.Description = cleanDescription(strings.TrimPrefix(result.Description, "Description:"))
-			}
-		}
-	default: // "description"
-		result.Description = cleanDescription(output)
-	}
-
-	return result
-}
-
-func cleanTitle(s string) string {
-	s = strings.TrimSpace(s)
-	// Remove markdown formatting if present
-	s = strings.Trim(s, "*_`")
-	// Limit title length
-	if len(s) > 100 {
-		s = s[:97] + "..."
-	}
-	return s
-}
-
-func cleanDescription(s string) string {
-	s = strings.TrimSpace(s)
-	// Remove markdown formatting if present
-	s = strings.Trim(s, "*_`")
-	// Note: No length limit for descriptions,
-	// LLM is prompted for 2-3 sentences.
-	return s
 }

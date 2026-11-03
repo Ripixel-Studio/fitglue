@@ -26,7 +26,6 @@ Environment=ARTIFACT_BUCKET=fitglue-server-prod-artifacts
 Environment=GCS_ARTIFACT_BUCKET=fitglue-server-prod-artifacts
 Environment=SHOWCASE_ASSETS_BUCKET=fitglue-server-prod-showcase-assets
 Environment=ASSETS_BASE_URL=https://assets.fitglue.tech
-Environment=GCP_REGION=us-central1
 Restart=on-failure
 RestartSec=5s
 TimeoutStopSec=30s

@@ -32,6 +32,29 @@ func (fakeCounts) Sources(ctx context.Context, dataType string, days int) (map[s
 	return map[string]int{"com.renpho.health": 23, "GOOGLE_WEB_API": 25}, nil
 }
 
+func (fakeCounts) Probe(ctx context.Context, dataType string, days int) (int, int, []string, error) {
+	if dataType == "steps" {
+		return 200, 14, []string{"civilStartTime.date.day", "steps.countSum"}, nil
+	}
+	return 403, 0, nil, nil
+}
+
+func TestHealthCheckProbe(t *testing.T) {
+	var out, errOut bytes.Buffer
+	open := func(ctx context.Context, f *healthFlags) (healthCounts, func(), error) {
+		return fakeCounts{}, func() {}, nil
+	}
+	if err := healthCheckCommand(context.Background(), []string{"--uid", "u1", "--probe"}, &out, &errOut, open); err != nil {
+		t.Fatal(err)
+	}
+	s := out.String()
+	for _, want := range []string{"steps                    200 points=14", "    steps.countSum", "daily-vo2-max            403 points=0"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("missing %q in\n%s", want, s)
+		}
+	}
+}
+
 func TestHealthCheckPrintsCountsNotValues(t *testing.T) {
 	var out, errOut bytes.Buffer
 	open := func(ctx context.Context, f *healthFlags) (healthCounts, func(), error) {

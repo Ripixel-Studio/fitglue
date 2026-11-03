@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/fitglue/server/src/go/internal/infra"
+	"github.com/fitglue/server/src/go/pkg/claude"
 	pbsvc "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
 )
 
@@ -30,6 +31,9 @@ type Service struct {
 	showcaseAssetsBucket string
 	logger               infra.Logger
 	siteExporter         SiteExporter
+
+	// AI writes roundup summaries; nil means claude.Default().
+	AI claude.Completer
 }
 
 func NewService(store ActivityStore, blobStore BlobStore, publisher Publisher, bucketName string, showcaseAssetsBucket string, logger infra.Logger) *Service {

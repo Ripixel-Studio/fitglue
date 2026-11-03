@@ -170,7 +170,7 @@ func TestDeriveKmSplits(t *testing.T) {
 // BuildActivity carries both keys, sorts the series by time, and omits them when absent.
 func TestBuildActivity_RaceAndSortedSeries(t *testing.T) {
 	sc := showcase("Hyrox Birmingham - Open Men's Doubles", roxfitDoubles, hrRecords(4529, func(int) int32 { return 160 }), 4529)
-	b, err := BuildActivity(sc, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "x"}, raceStart, farZones)
+	b, err := BuildActivity(sc, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "x"}, raceStart, farZones, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

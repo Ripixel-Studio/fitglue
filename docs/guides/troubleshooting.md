@@ -100,7 +100,7 @@ Use this table to jump straight to the right service, code, and logs for any fai
    - **Fitbit HR**: Valid Fitbit OAuth tokens, HR data must exist for time range
    - **Spotify Tracks**: Valid Spotify OAuth tokens
    - **Parkrun**: Activity must match location/time heuristics
-   - **AI Companion/Banner**: Gemini API key
+   - **AI Companion**: the `claude` CLI on the box (`pkg/claude`)
 
 ### Common Causes
 

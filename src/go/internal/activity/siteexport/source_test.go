@@ -11,6 +11,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/infra"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
+	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 )
 
 // fakeStore implements only the ActivityStore methods the export path uses;
@@ -170,4 +171,8 @@ func TestServiceSource(t *testing.T) {
 	if file["activity"].(map[string]any)["enrichments"] == nil {
 		t.Error("hydrated enrichments missing from the export")
 	}
+}
+
+func (s *fakeStore) GetPipelineRun(context.Context, string, string) (*pbpipeline.PipelineRun, error) {
+	return nil, nil
 }

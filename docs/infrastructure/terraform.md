@@ -194,7 +194,6 @@ written by F3.1's units). Its email is the `fitglue_box_sa_email` output:
 | `roles/datastore.user` | project | Firestore read/write |
 | `roles/pubsub.publisher` | project | publish to the pipeline/destination/trigger topics |
 | `roles/pubsub.subscriber` | project | consume subscriptions (F3.4 timers, `fitgluectl`) |
-| `roles/aiplatform.user` | project | `ai_banner` calls Vertex AI Imagen with ADC; only the prompt step uses `GEMINI_API_KEY` |
 | `roles/storage.objectAdmin` | `{project}-artifacts`, `{project}-showcase-assets` | per-bucket, not project-level: the version-config bucket is out of reach |
 | `roles/run.invoker` | Cloud Run `pipeline` | parity with `parkrun-agent`, so the parkrun agent can switch to this key in F3.4(e); goes with `cloud_run.tf` in F4 |
 

@@ -33,13 +33,6 @@ resource "google_project_iam_member" "cr_storage_admin" {
   member   = "serviceAccount:${google_service_account.cloud_run_sa[each.key].email}"
 }
 
-# AI Platform User - allows enricher to call Vertex AI Imagen API
-resource "google_project_iam_member" "cr_aiplatform_user" {
-  project = var.project_id
-  role    = "roles/aiplatform.user"
-  member  = "serviceAccount:${google_service_account.cloud_run_sa["pipeline"].email}"
-}
-
 # Service Account Token Creator - allows getSignedUrl() for GCS objects
 resource "google_project_iam_member" "cr_token_creator" {
   project = var.project_id
@@ -104,9 +97,6 @@ resource "google_project_iam_member" "pubsub_sa_subscriber" {
 #   datastore.user            Firestore read/write (all six services)
 #   pubsub.publisher          publish to the pipeline/destination/trigger topics
 #   pubsub.subscriber         ack/pull on subscriptions (F3.4 timers, fitgluectl)
-#   aiplatform.user           ai_banner still calls Vertex AI Imagen with ADC
-#                             (only the prompt step uses GEMINI_API_KEY); the
-#                             cr-pipeline-sa holds this today for the same reason
 #   storage.objectAdmin       per bucket, artifacts + showcase-assets only
 #   run.invoker on pipeline   what parkrun-agent had; the parkrun agent uses
 #                             this key since F3.4(e) and talks to the box
@@ -129,7 +119,6 @@ locals {
     "roles/datastore.user",
     "roles/pubsub.publisher",
     "roles/pubsub.subscriber",
-    "roles/aiplatform.user",
   ]
 }
 

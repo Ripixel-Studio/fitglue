@@ -162,13 +162,15 @@ fitgluectl connections              # googlehealth row, external id = health use
 The owner's API serves them from the same grant (`internal/health`, client in
 `pkg/integrations/googlehealth/daily.go`); Jarvis reads them and never calls
 Google itself. Bearer token as every `/users/me` route; `?days` is 1–90; the
-window is today (the box's civil day) and the `days − 1` days before it.
+window is today (the box's civil day) and the `days − 1` days before it, or
+ends on `?end=YYYY-MM-DD` (inclusive; a bad date is 400; nothing after `end` is returned).
 
 | Route | Default | Shape | Needs scope |
 |---|---|---|---|
 | `GET /api/v2/users/me/sleep?days=7` | 7 | `{nights[{date, start, end, minutes_asleep, efficiency, stages?{deep, light, rem, wake}, nap?, main_sleep?}]}` — oldest first, naps included | `googlehealth.sleep.readonly` |
-| `GET /api/v2/users/me/body?days=30` | 30 | `{weights[{date, kg}], body_fat[{date, pct}], resting_hr[{date, bpm}], hrv[{date, ms}]}` — one per day, oldest first | `googlehealth.health_metrics_and_measurements.readonly` |
-| `GET /api/v2/users/me/nutrition?days=7` | 7 | `{days[{date, kcal, protein_g, carbs_g, fat_g, meals[{type, name, kcal, at}]}]}` — days with anything logged, oldest first | `googlehealth.nutrition.readonly` |
+| `GET /api/v2/users/me/body?days=30` | 30 | `{weights[{date, kg}], body_fat[{date, pct}], resting_hr[{date, bpm}], hrv[{date, ms}], spo2[{date, pct}], respiratory_rate[{date, brpm}]}` — one per day, oldest first | `googlehealth.health_metrics_and_measurements.readonly` |
+| `GET /api/v2/users/me/movement?days=7` | 7 | `{steps[{date, count}], active_zone_minutes[{date, minutes}], vo2_max[{date, ml_kg_min}]}` — one per day, oldest first; AZM is the plain sum of the credited zone sums; a type the account does not serve (Google 400/403/404) is `[]` | `googlehealth.activity_and_fitness.readonly` |
+| `GET /api/v2/users/me/nutrition?days=7` | 7 | `{days[{date, kcal, protein_g, carbs_g, fat_g, fibre_g, meals[{type, name, kcal, at}]}]}` — days with anything logged, oldest first | `googlehealth.nutrition.readonly` |
 
 - **404 `NOT_CONNECTED`** when there is no enabled grant, the stored scope
   list lacks the route's scope, or Google answers 403 / `ACCOUNT_NOT_LINKED`;

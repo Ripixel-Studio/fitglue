@@ -13,7 +13,6 @@ resource "google_project_service" "apis" {
     "compute.googleapis.com",
     "dns.googleapis.com",
     "eventarc.googleapis.com",
-    "aiplatform.googleapis.com",
     "cloudtasks.googleapis.com",
     "sheets.googleapis.com",
     # Google Health API: heart rate, sleep, body, food (replaces the Fitbit Web API).

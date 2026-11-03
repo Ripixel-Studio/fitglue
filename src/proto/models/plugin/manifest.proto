@@ -58,7 +58,7 @@ enum PipelineStage {
   PIPELINE_STAGE_GATE = 1;        // condition matcher, activity filter, logic gate
   PIPELINE_STAGE_ENRICHMENT = 2;  // trackers + achievements (parkrun, PRs, goals, streaks, milestones)
   PIPELINE_STAGE_METRICS = 3;     // computed metrics (pace, HR, power, zones, effort, training load, recovery, cadence, speed, elevation, intervals, running dynamics, calories)
-  PIPELINE_STAGE_CONTEXT_AI = 4;  // LLM + external APIs (location naming, weather, AI banner, type mapper, AI companion, AI activity type)
+  PIPELINE_STAGE_CONTEXT_AI = 4;  // LLM + external APIs (location naming, weather, type mapper, AI companion, AI activity type)
   PIPELINE_STAGE_INPUT = 5;       // user input prompts (user input, manual workout entry, photo upload)
   PIPELINE_STAGE_VIZ = 6;         // visual outputs (muscle heatmap, muscle heatmap image, route thumbnail, workout summary)
 }

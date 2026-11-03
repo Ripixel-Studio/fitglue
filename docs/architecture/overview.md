@@ -81,7 +81,7 @@ Each source:
 - **Detection**: Parkrun, Location Naming, Condition Matcher
 - **Transform**: Type Mapper, Auto Increment, Logic Gate, Activity Filter
 - **Input**: User Input, Hybrid Race Tagger
-- **AI**: AI Companion, AI Banner
+- **AI**: AI Companion
 
 ### 4. Routing & Destination Upload
 

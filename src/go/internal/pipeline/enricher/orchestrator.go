@@ -295,6 +295,19 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 		var provider providers.Provider
 		var ok bool
 
+		// A saved pipeline can still list an enricher that has been deleted (the AI banner,
+		// number 28, or an unknown name that decodes to UNSPECIFIED). Skip it quietly: it is
+		// not a configuration problem worth a Sentry warning on every run.
+		if cfg.ProviderType == pbplugin.EnricherProviderType_ENRICHER_PROVIDER_UNSPECIFIED || cfg.ProviderType == retiredAIBannerProviderType {
+			logger.Info("Skipping retired enricher", "type", int32(cfg.ProviderType))
+			providerExecutions = append(providerExecutions, ProviderExecution{
+				ProviderName: fmt.Sprintf("TYPE:%s", cfg.ProviderType),
+				Status:       "SKIPPED",
+				Error:        "retired enricher",
+			})
+			continue
+		}
+
 		// Lookup by Type
 		provider, ok = o.providersByType[cfg.ProviderType]
 		if !ok {
@@ -1280,6 +1293,10 @@ type configuredEnricher struct {
 	TypedConfig  map[string]string
 	NonBlocking  bool
 }
+
+// retiredAIBannerProviderType is the reserved number of the deleted AI banner enricher.
+// Pipelines saved before it was deleted may still carry it.
+const retiredAIBannerProviderType = pbplugin.EnricherProviderType(28)
 
 // resolvePipeline looks up a single pipeline by ID from the user's pipelines collection.
 // Returns nil if the pipeline is not found or is disabled.

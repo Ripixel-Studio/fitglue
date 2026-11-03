@@ -12,6 +12,7 @@
 //	fitgluectl trigger parkrun-check                        publish a parkrun results-check trigger
 //	fitgluectl reconcile [--since 14d] [--apply] [--json]   three-way check Hevy × FitGlue × Strava; fixes missed ingests/uploads
 //	fitgluectl health-check                                 sleep/body/nutrition routes against the live grant: counts and dates only
+//	fitgluectl voice-samples [--since 2025-01-01] [--out PATH] his own words from pipeline runs, JSONL 0600; prints counts only
 //
 // It talks to Firestore, GCS and Pub/Sub directly with Application Default Credentials
 // (gcloud auth application-default login, or a service account), so it runs
@@ -32,6 +33,9 @@ import (
 	"github.com/fitglue/server/src/go/internal/activity/siteexport"
 	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/fitglue/server/src/go/internal/user"
+	stravamap "github.com/fitglue/server/src/go/pkg/domain/sourcemap/strava"
+	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
+	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/storage"
 )
 
@@ -46,6 +50,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup / parkrun-check trigger message (what the box timers run)")
 	fmt.Fprintln(os.Stderr, "  reconcile     three-way check of Hevy, FitGlue and Strava; --apply replays missed workouts and reposts missing Strava uploads")
 	fmt.Fprintln(os.Stderr, "  health-check  run the sleep/body/nutrition routes against Google Health; prints counts and date ranges only")
+	fmt.Fprintln(os.Stderr, "  voice-samples his own words from every pipeline run, to a private JSONL (0600); prints counts only")
 }
 
 func main() {
@@ -72,6 +77,8 @@ func main() {
 		err = reconcileCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveReconcile, time.Now)
 	case "health-check":
 		err = healthCheckCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveHealth)
+	case "voice-samples":
+		err = voiceSamplesCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveVoiceSamples)
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -107,7 +114,16 @@ func connectGCP(ctx context.Context, f *exportSiteFlags) (siteexport.Source, sit
 	store := activity.NewFirestoreStore(fs)
 	blobs := &storage.StorageAdapter{Client: gcsClient}
 	svc := activity.NewService(store, blobs, nil, f.project+"-artifacts", f.bucket, infra.NewLoggerWithComponent("fitgluectl"))
-	source := siteexport.ServiceSource{Service: svc, Store: store}
+	cache := siteexport.DefaultVisibilityCachePath(os.Getenv)
+	db := infradb.NewFirestoreAdapter(fs)
+	vis := siteexport.NewStravaVisibility(stravamap.APIBase, cache, func(ctx context.Context, uid string) (string, error) {
+		tok, err := oauth.NewFirestoreTokenSourceFromDB(db, uid, "strava").Token(ctx)
+		if err != nil {
+			return "", err
+		}
+		return tok.AccessToken, nil
+	}, nil)
+	source := siteexport.ServiceSource{Service: svc, Store: store, Visibility: vis}
 
 	var writer siteexport.Writer
 	if !f.dryRun {

@@ -77,7 +77,7 @@ per service:
 
 | Unit | Extra |
 |---|---|
-| pipeline | `ARTIFACT_BUCKET`, `GCS_ARTIFACT_BUCKET` = `fitglue-server-prod-artifacts`; `SHOWCASE_ASSETS_BUCKET` = `fitglue-server-prod-showcase-assets`; `ASSETS_BASE_URL=https://assets.fitglue.tech`; `GCP_REGION=us-central1` (Imagen endpoint) |
+| pipeline | `ARTIFACT_BUCKET`, `GCS_ARTIFACT_BUCKET` = `fitglue-server-prod-artifacts`; `SHOWCASE_ASSETS_BUCKET` = `fitglue-server-prod-showcase-assets`; `ASSETS_BASE_URL=https://assets.fitglue.tech` |
 | activity | `ARTIFACT_BUCKET`, `SHOWCASE_ASSETS_BUCKET`, `SITE_EXPORT_SLUG=james` |
 | destination | `GCS_ARTIFACT_BUCKET`, `SHOWCASE_ASSETS_BUCKET` |
 
@@ -86,7 +86,7 @@ key set there overrides the unit): `FITGLUE_API_TOKEN`, `FITGLUE_OWNER_UID`,
 `PUBSUB_PUSH_AUDIENCE` (+ optional `PUBSUB_PUSH_SERVICE_ACCOUNT`),
 `OAUTH_STATE_SECRET`, `FITGLUE_PUBLIC_BASE_URL` (`API_URL` is the legacy
 fallback), `WEB_URL`, `SITE_EXPORT_HOOK_URL` (+ optional `SITE_EXPORT_BUCKET`,
-`SITE_EXPORT_DISABLED`), `GEMINI_API_KEY`, the provider
+`SITE_EXPORT_DISABLED`), the provider
 client pairs (`STRAVA_*`, `FITBIT_*` incl. `FITBIT_OAUTH_CLIENT_SECRET` and
 `FITBIT_SUBSCRIBER_VERIFICATION_TOKEN`, `TRAININGPEAKS_*`, `GITHUB_*` incl.
 `GITHUB_WEBHOOK_SECRET`, `SPOTIFY_*`), `SENTRY_DSN`, and the optional
@@ -202,7 +202,7 @@ Everything stateful:
 
 Identity for all of it is the `fitglue-box` service account key at
 `~/.jarvis/fitglue-box-sa.json` (F3.2: datastore.user, pubsub
-publisher/subscriber, aiplatform.user, objectAdmin on the two buckets,
+publisher/subscriber, objectAdmin on the two buckets,
 run.invoker on the Cloud Run pipeline). A unit can be run against the box's
 gcloud ADC instead by dropping in `UnsetEnvironment=GOOGLE_APPLICATION_CREDENTIALS`
 — fine for a smoke test, not for the live deployment.

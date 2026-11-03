@@ -2,6 +2,8 @@ package ai_companion
 
 import (
 	"context"
+	"errors"
+	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"io"
 	"log/slog"
 	"strings"
@@ -39,8 +41,7 @@ func TestSanitiseForPrompt(t *testing.T) {
 	}
 }
 
-// SERVER-1: Gemini rejected prompts with "proto: field ... Part.text contains
-// invalid UTF-8". Two ways that happened: invalid bytes arriving from a
+// SERVER-1: a model client rejected prompts with invalid UTF-8. Two ways that happened: invalid bytes arriving from a
 // provider, and the 500-byte truncation slicing a multi-byte rune in half.
 func TestSanitiseForPrompt_AlwaysValidUTF8(t *testing.T) {
 	// Truncation boundary lands inside a 4-byte emoji.
@@ -61,41 +62,6 @@ func TestSanitiseForPrompt_AlwaysValidUTF8(t *testing.T) {
 	}
 	if got != "Morning run  with friends " {
 		t.Errorf("unexpected sanitised output %q", got)
-	}
-}
-
-func TestBuildPrompt(t *testing.T) {
-	for _, mode := range []string{"title", "both", "description", ""} {
-		sys, userContent := buildPrompt(mode)
-		if sys == "" || userContent == "" {
-			t.Errorf("mode %q: empty prompt parts", mode)
-		}
-		if !strings.Contains(sys, "activity reviewer") {
-			t.Errorf("mode %q: system instruction missing core text", mode)
-		}
-	}
-	_, both := buildPrompt("both")
-	if !strings.Contains(both, "TITLE:") || !strings.Contains(both, "DESCRIPTION:") {
-		t.Errorf("both mode should request TITLE and DESCRIPTION, got %q", both)
-	}
-}
-
-func TestParseAIResponse(t *testing.T) {
-	// title mode
-	if r := parseAIResponse("title", "  *Epic Morning Run*  "); r.Title != "Epic Morning Run" {
-		t.Errorf("title parse = %q", r.Title)
-	}
-	// description mode
-	if r := parseAIResponse("description", "Solid tempo effort."); r.Description != "Solid tempo effort." {
-		t.Errorf("description parse = %q", r.Description)
-	}
-	// both mode
-	r := parseAIResponse("both", "TITLE: Big Lift Day\nDESCRIPTION: Heavy squats all round.")
-	if r.Title != "Big Lift Day" {
-		t.Errorf("both title = %q", r.Title)
-	}
-	if r.Description != "Heavy squats all round." {
-		t.Errorf("both description = %q", r.Description)
 	}
 }
 
@@ -148,17 +114,21 @@ func TestBuildActivityContext_Strength(t *testing.T) {
 }
 
 func TestAICompanion_Enrich_RepostCacheHit(t *testing.T) {
-	t.Setenv("GEMINI_API_KEY", "fake-key")
 	mockDB := &mocks.MockDatabase{
 		GetBoosterDataFunc: func(ctx context.Context, userId, boosterId string) (map[string]interface{}, error) {
+			if boosterId != cacheKey {
+				return nil, nil
+			}
 			return map[string]interface{}{
 				"cached_external_id": "ext-7",
-				"cached_description": "A great session.",
+				"cached_description": "✨ AI Summary:\nA great session.",
 				"cached_name":        "Sweat Fest",
 			}, nil
 		},
 	}
 	p := NewAICompanionProvider()
+	f := &fakeAI{err: errors.New("must not be called")}
+	p.AI = f
 	p.SetService(&bootstrap.Service{DB: mockDB})
 
 	activity := &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_RUN}
@@ -172,10 +142,63 @@ func TestAICompanion_Enrich_RepostCacheHit(t *testing.T) {
 	if res.Metadata["status"] != "success" || res.Metadata["cache"] != "hit" {
 		t.Fatalf("expected cache hit, got %v", res.Metadata)
 	}
-	if res.Description != "A great session." || res.Name != "Sweat Fest" {
+	if res.Description != "✨ AI Summary:\nA great session." || res.Name != "" {
 		t.Errorf("unexpected cached content: name=%q desc=%q", res.Name, res.Description)
 	}
 	if res.Enrichments == nil || res.Enrichments.AiSummary == nil {
 		t.Error("expected AiSummary enrichment")
+	}
+	if f.calls != 0 {
+		t.Errorf("cache hit must not call Claude, got %d calls", f.calls)
+	}
+}
+
+func repostCacheTest(t *testing.T, key, desc string, ai *fakeAI) (*providers.EnrichmentResult, []string) {
+	var keys []string
+	mockDB := &mocks.MockDatabase{
+		GetBoosterDataFunc: func(ctx context.Context, userId, boosterId string) (map[string]interface{}, error) {
+			keys = append(keys, boosterId)
+			if boosterId != key {
+				return nil, nil
+			}
+			return map[string]interface{}{"cached_external_id": "ext-7", "cached_description": desc}, nil
+		},
+	}
+	p := NewAICompanionProvider()
+	p.AI = ai
+	p.SetService(&bootstrap.Service{DB: mockDB})
+	activity := &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_RUN}
+	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u1"}}
+	res, err := p.Enrich(context.Background(), discardLogger(), activity, u, map[string]string{"is_repost": "true", "external_id": "ext-7"}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return res, keys
+}
+
+func TestAICompanion_RepostIgnoresOldGeminiKey(t *testing.T) {
+	f := &fakeAI{err: errors.New("generation attempted")}
+	res, keys := repostCacheTest(t, "ai_companion", "✨ AI Summary:\nOld gemini line.", f)
+	if res.Metadata["cache"] == "hit" || res.Description != "" {
+		t.Fatalf("old-key cache must not be reused: %v", res.Metadata)
+	}
+	if f.calls == 0 {
+		t.Error("expected regeneration")
+	}
+	for _, k := range keys {
+		if k == "ai_companion" {
+			t.Error("old key must never be read")
+		}
+	}
+}
+
+func TestAICompanion_RepostCachedLineIsChecked(t *testing.T) {
+	f := &fakeAI{err: errors.New("generation attempted")}
+	res, _ := repostCacheTest(t, cacheKey, "✨ AI Summary:\nBeer legs today.", f)
+	if res.Metadata["cache"] == "hit" || res.Description != "" {
+		t.Fatalf("failing cached line must not be served: %v", res.Metadata)
+	}
+	if f.calls == 0 {
+		t.Error("expected regeneration after failed cache check")
 	}
 }

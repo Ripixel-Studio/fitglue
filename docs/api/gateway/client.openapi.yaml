@@ -1802,8 +1802,6 @@ components:
                     $ref: '#/components/schemas/StreakSummary'
                 aiSummary:
                     $ref: '#/components/schemas/AiSummary'
-                aiBanner:
-                    $ref: '#/components/schemas/AiBanner'
                 pace:
                     $ref: '#/components/schemas/PaceSummary'
                 cadence:
@@ -1844,15 +1842,6 @@ components:
                 ActivityEnrichments holds typed outputs from the enricher pipeline.
                  Each sub-message is optional — only present if the corresponding enricher
                  was configured and ran. Replaces enrichment_metadata map<string,string>.
-        AiBanner:
-            type: object
-            properties:
-                imageUrl:
-                    type: string
-                promptHash:
-                    type: string
-                generatorVersion:
-                    type: string
         AiSummary:
             type: object
             properties:
@@ -2120,7 +2109,6 @@ components:
                         - ENRICHER_PROVIDER_LOCATION_NAMING
                         - ENRICHER_PROVIDER_MUSCLE_HEATMAP_IMAGE
                         - ENRICHER_PROVIDER_ROUTE_THUMBNAIL
-                        - ENRICHER_PROVIDER_AI_BANNER
                         - ENRICHER_PROVIDER_FIT_FILE_HEART_RATE
                         - ENRICHER_PROVIDER_HYBRID_RACE_TAGGER
                         - ENRICHER_PROVIDER_RUNNING_DYNAMICS

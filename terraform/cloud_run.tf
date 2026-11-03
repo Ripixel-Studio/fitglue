@@ -183,19 +183,6 @@ resource "google_cloud_run_v2_service" "backend" {
       # Secrets (from Secret Manager)
       # ═══════════════════════════════════════════════════════════════
 
-      # ── Gemini key — pipeline (enrichers) + activity (roundup AI summary) ──
-      dynamic "env" {
-        for_each = contains(["pipeline", "activity"], each.key) ? [1] : []
-        content {
-          name = "GEMINI_API_KEY"
-          value_source {
-            secret_key_ref {
-              secret  = google_secret_manager_secret.gemini_api_key.secret_id
-              version = "latest"
-            }
-          }
-        }
-      }
       dynamic "env" {
         for_each = each.key == "pipeline" ? [1] : []
         content {

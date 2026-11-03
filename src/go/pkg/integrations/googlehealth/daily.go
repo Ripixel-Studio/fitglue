@@ -30,6 +30,21 @@ package googlehealth
 //     nutrition_log.interval.civil_start_time >= "YYYY-MM-DD", each
 //     {interval, energy.kcal, totalCarbohydrate.grams, totalFat.grams,
 //     nutrients[], mealType (optional), foodDisplayName}.
+//   - Steps and active-zone-minutes roll up per civil day (R2a.1, probed
+//     2026-11-03): steps.countSum (int64 string); activeZoneMinutes.
+//     {sumInFatBurnHeartZone, sumInCardioHeartZone, sumInPeakHeartZone}
+//     (a zone with nothing is omitted). The sums are already credited
+//     minutes (a raw point's activeZoneMinutes is 1 for fat burn, 2 for
+//     cardio or peak; checked live 2026-11-03: 13 cardio points summed 26,
+//     matching the cardio roll-up), so the day total is the plain sum.
+//   - daily-vo2-max (dailyVo2Max.{date, vo2Max}), daily-oxygen-saturation
+//     (dailyOxygenSaturation.{date, averagePercentage}) and
+//     daily-respiratory-rate (dailyRespiratoryRate.{date, breathsPerMinute})
+//     are list types like daily resting HR, filter daily_<name>.date. VO2 max
+//     returned no points in the probe window: the reader exists, the route
+//     serves it empty. A type the grant lacks answers 400/403/404
+//     (IsTypeRefused).
+//   - Fibre is the nutrient DIETARY_FIBER on both the roll-up and entries.
 //   - dataSourceFamily all-sources (the default) is needed for anything a
 //     third-party app writes through Health Connect: MacroFactor's food
 //     (com.sbs.diet) and the Renpho scale (com.renpho.health) arrive with
@@ -39,10 +54,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -233,6 +250,14 @@ type rollUpResponse struct {
 		BodyFat *struct {
 			BodyFatPercentageAvg *Num `json:"bodyFatPercentageAvg"`
 		} `json:"bodyFat"`
+		Steps *struct {
+			CountSum Num `json:"countSum"`
+		} `json:"steps"`
+		ActiveZoneMinutes *struct {
+			FatBurn Num `json:"sumInFatBurnHeartZone"`
+			Cardio  Num `json:"sumInCardioHeartZone"`
+			Peak    Num `json:"sumInPeakHeartZone"`
+		} `json:"activeZoneMinutes"`
 		NutritionLog *struct {
 			Energy *struct {
 				KcalSum Num `json:"kcalSum"`
@@ -307,11 +332,59 @@ func (c *Client) DailyBodyFatPct(ctx context.Context, from, to Date) ([]DailyVal
 	return out, err
 }
 
+// DailySteps is the day's step count for each civil day in [from, to] that
+// has one, oldest first.
+func (c *Client) DailySteps(ctx context.Context, from, to Date) ([]DailyValue, error) {
+	var out []DailyValue
+	err := c.rollUp(ctx, "steps", from, to, func(r rollUpResponse) {
+		for _, p := range r.RollupDataPoints {
+			if p.Steps != nil && p.Steps.CountSum > 0 {
+				out = append(out, DailyValue{p.CivilStartTime.Date.date(), float64(p.Steps.CountSum)})
+			}
+		}
+	})
+	sortDaily(out)
+	return out, err
+}
+
+// DailyActiveZoneMinutes is the day's active zone minutes (the roll-up's
+// zone sums are already credited, so the plain sum) for each civil day in [from, to] that has any,
+// oldest first.
+func (c *Client) DailyActiveZoneMinutes(ctx context.Context, from, to Date) ([]DailyValue, error) {
+	var out []DailyValue
+	err := c.rollUp(ctx, "active-zone-minutes", from, to, func(r rollUpResponse) {
+		for _, p := range r.RollupDataPoints {
+			if a := p.ActiveZoneMinutes; a != nil {
+				if v := float64(a.FatBurn) + float64(a.Cardio) + float64(a.Peak); v > 0 {
+					out = append(out, DailyValue{p.CivilStartTime.Date.date(), v})
+				}
+			}
+		}
+	})
+	sortDaily(out)
+	return out, err
+}
+
+func sortDaily(v []DailyValue) {
+	sort.SliceStable(v, func(i, j int) bool { return v[i].Date.String() < v[j].Date.String() })
+}
+
+// IsTypeRefused reports an API error of 400, 403 or 404: the grant or the
+// account does not serve this data type, which callers treat as empty.
+func IsTypeRefused(err error) bool {
+	var ae *APIError
+	if !errors.As(err, &ae) {
+		return false
+	}
+	return ae.StatusCode == http.StatusBadRequest || ae.StatusCode == http.StatusForbidden || ae.StatusCode == http.StatusNotFound
+}
+
 // NutritionDay is one civil day's food-log totals.
 type NutritionDay struct {
 	Date                    Date
 	Kcal                    float64
 	ProteinG, CarbsG, FatG  float64
+	FibreG                  float64
 	HasProtein, HasCarbsFat bool
 }
 
@@ -337,6 +410,8 @@ func (c *Client) DailyNutrition(ctx context.Context, from, to Date) ([]Nutrition
 			}
 			for _, nu := range n.Nutrients {
 				switch nu.Nutrient {
+				case "DIETARY_FIBER":
+					day.FibreG = float64(nu.Quantity.GramsSum)
 				case "PROTEIN":
 					day.ProteinG, day.HasProtein = float64(nu.Quantity.GramsSum), true
 				case "CARBOHYDRATES":
@@ -363,6 +438,7 @@ type FoodEntry struct {
 	ProteinG float64
 	CarbsG   float64
 	FatG     float64
+	FibreG   float64
 	// Source is the writing app's package name (com.sbs.diet is MacroFactor),
 	// else the platform.
 	Source string
@@ -451,6 +527,8 @@ func (c *Client) FoodLog(ctx context.Context, from Date) ([]FoodEntry, error) {
 			}
 			for _, nu := range n.Nutrients {
 				switch nu.Nutrient {
+				case "DIETARY_FIBER":
+					e.FibreG = float64(nu.Quantity.Grams)
 				case "PROTEIN":
 					e.ProteinG = float64(nu.Quantity.Grams)
 				case "CARBOHYDRATES":
@@ -472,6 +550,18 @@ type dailyList struct {
 			Date           apiDate `json:"date"`
 			BeatsPerMinute Num     `json:"beatsPerMinute"`
 		} `json:"dailyRestingHeartRate"`
+		DailyVO2Max *struct {
+			Date   apiDate `json:"date"`
+			VO2Max Num     `json:"vo2Max"`
+		} `json:"dailyVo2Max"`
+		DailyOxygenSaturation *struct {
+			Date              apiDate `json:"date"`
+			AveragePercentage Num     `json:"averagePercentage"`
+		} `json:"dailyOxygenSaturation"`
+		DailyRespiratoryRate *struct {
+			Date             apiDate `json:"date"`
+			BreathsPerMinute Num     `json:"breathsPerMinute"`
+		} `json:"dailyRespiratoryRate"`
 		DailyHeartRateVariability *struct {
 			Date                                    apiDate `json:"date"`
 			AverageHeartRateVariabilityMilliseconds Num     `json:"averageHeartRateVariabilityMilliseconds"`
@@ -490,6 +580,24 @@ func (c *Client) DailyRestingHR(ctx context.Context, from Date) ([]DailyValue, e
 // day on or after from, all sources; one value per day.
 func (c *Client) DailyHRV(ctx context.Context, from Date) ([]DailyValue, error) {
 	return c.daily(ctx, "daily-heart-rate-variability", "daily_heart_rate_variability", from)
+}
+
+// DailyVO2Max is the daily cardio fitness score (VO2 max) for each civil day
+// on or after from.
+func (c *Client) DailyVO2Max(ctx context.Context, from Date) ([]DailyValue, error) {
+	return c.daily(ctx, "daily-vo2-max", "daily_vo2_max", from)
+}
+
+// DailySpO2 is the daily average blood oxygen (percent) for each civil day on
+// or after from.
+func (c *Client) DailySpO2(ctx context.Context, from Date) ([]DailyValue, error) {
+	return c.daily(ctx, "daily-oxygen-saturation", "daily_oxygen_saturation", from)
+}
+
+// DailyRespiratoryRate is the daily breathing rate (breaths per minute) for
+// each civil day on or after from.
+func (c *Client) DailyRespiratoryRate(ctx context.Context, from Date) ([]DailyValue, error) {
+	return c.daily(ctx, "daily-respiratory-rate", "daily_respiratory_rate", from)
 }
 
 func (c *Client) daily(ctx context.Context, dataType, filterName string, from Date) ([]DailyValue, error) {
@@ -511,6 +619,12 @@ func (c *Client) daily(ctx context.Context, dataType, filterName string, from Da
 				v = DailyValue{dp.DailyRestingHeartRate.Date.date(), float64(dp.DailyRestingHeartRate.BeatsPerMinute)}
 			case dp.DailyHeartRateVariability != nil:
 				v = DailyValue{dp.DailyHeartRateVariability.Date.date(), float64(dp.DailyHeartRateVariability.AverageHeartRateVariabilityMilliseconds)}
+			case dp.DailyVO2Max != nil:
+				v = DailyValue{dp.DailyVO2Max.Date.date(), float64(dp.DailyVO2Max.VO2Max)}
+			case dp.DailyOxygenSaturation != nil:
+				v = DailyValue{dp.DailyOxygenSaturation.Date.date(), float64(dp.DailyOxygenSaturation.AveragePercentage)}
+			case dp.DailyRespiratoryRate != nil:
+				v = DailyValue{dp.DailyRespiratoryRate.Date.date(), float64(dp.DailyRespiratoryRate.BreathsPerMinute)}
 			default:
 				continue
 			}
@@ -631,4 +745,95 @@ func (c *Client) Sources(ctx context.Context, dataType string, from Date) (map[s
 		return resp.NextPageToken, nil
 	})
 	return out, err
+}
+
+// ProbeTypes are the extra data types health-check --probe reads, with how
+// each is read: "rollup" (POST dailyRollUp) or its snake_case filter name
+// (GET list).
+var ProbeTypes = []struct{ Type, Filter string }{
+	{"steps", ""},
+	{"active-zone-minutes", ""},
+	{"daily-vo2-max", "daily_vo2_max"},
+	{"daily-oxygen-saturation", "daily_oxygen_saturation"},
+	{"daily-respiratory-rate", "daily_respiratory_rate"},
+}
+
+// Probe calls dataType once over [from, to] and reports the HTTP status, the
+// point count and the JSON key paths of the first point — never a value. An
+// API refusal is a status, not an error.
+func (c *Client) Probe(ctx context.Context, dataType string, from, to Date) (status, points int, paths []string, err error) {
+	var raw json.RawMessage
+	filter := ""
+	for _, t := range ProbeTypes {
+		if t.Type == dataType {
+			filter = t.Filter
+		}
+	}
+	if filter == "" {
+		req := rollUpRequest{WindowSizeDays: 1, PageSize: MaxRollUpDays, DataSourceFamily: DataSourceAll}
+		req.Range.Start = civilOut(from)
+		req.Range.End = civilOut(to.AddDays(1))
+		err = c.post(ctx, "/v4/users/me/dataTypes/"+dataType+"/dataPoints:dailyRollUp", req, &raw)
+	} else {
+		q := url.Values{}
+		q.Set("filter", fmt.Sprintf(`%s.date >= "%s"`, filter, from))
+		q.Set("pageSize", "1000")
+		q.Set("dataSourceFamily", DataSourceAll)
+		err = c.get(ctx, "/v4/users/me/dataTypes/"+dataType+"/dataPoints", q, &raw)
+	}
+	if err != nil {
+		var ae *APIError
+		if errors.As(err, &ae) {
+			return ae.StatusCode, 0, nil, nil
+		}
+		return 0, 0, nil, err
+	}
+	var resp map[string][]json.RawMessage
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return 200, 0, nil, nil
+	}
+	pts := resp["dataPoints"]
+	if pts == nil {
+		pts = resp["rollupDataPoints"]
+	}
+	if len(pts) > 0 {
+		var first interface{}
+		if err := json.Unmarshal(pts[0], &first); err == nil {
+			set := map[string]bool{}
+			keyPaths("", first, set)
+			for p := range set {
+				paths = append(paths, p)
+			}
+			sort.Strings(paths)
+		}
+	}
+	return 200, len(pts), paths, nil
+}
+
+func keyPaths(prefix string, v interface{}, out map[string]bool) {
+	switch x := v.(type) {
+	case map[string]interface{}:
+		for k, c := range x {
+			p := k
+			if prefix != "" {
+				p = prefix + "." + k
+			}
+			if _, leaf := c.(map[string]interface{}); !leaf {
+				if _, arr := c.([]interface{}); !arr {
+					out[p] = true
+					continue
+				}
+			}
+			keyPaths(p, c, out)
+		}
+	case []interface{}:
+		if len(x) == 0 {
+			out[prefix+"[]"] = true
+		}
+		for _, c := range x {
+			keyPaths(prefix+"[]", c, out)
+		}
+	default:
+		out[prefix] = true
+	}
 }
