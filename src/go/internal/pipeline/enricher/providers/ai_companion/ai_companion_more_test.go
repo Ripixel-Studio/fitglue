@@ -2,6 +2,7 @@ package ai_companion
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"strings"
@@ -39,8 +40,7 @@ func TestSanitiseForPrompt(t *testing.T) {
 	}
 }
 
-// SERVER-1: Gemini rejected prompts with "proto: field ... Part.text contains
-// invalid UTF-8". Two ways that happened: invalid bytes arriving from a
+// SERVER-1: a model client rejected prompts with invalid UTF-8. Two ways that happened: invalid bytes arriving from a
 // provider, and the 500-byte truncation slicing a multi-byte rune in half.
 func TestSanitiseForPrompt_AlwaysValidUTF8(t *testing.T) {
 	// Truncation boundary lands inside a 4-byte emoji.
@@ -61,41 +61,6 @@ func TestSanitiseForPrompt_AlwaysValidUTF8(t *testing.T) {
 	}
 	if got != "Morning run  with friends " {
 		t.Errorf("unexpected sanitised output %q", got)
-	}
-}
-
-func TestBuildPrompt(t *testing.T) {
-	for _, mode := range []string{"title", "both", "description", ""} {
-		sys, userContent := buildPrompt(mode)
-		if sys == "" || userContent == "" {
-			t.Errorf("mode %q: empty prompt parts", mode)
-		}
-		if !strings.Contains(sys, "activity reviewer") {
-			t.Errorf("mode %q: system instruction missing core text", mode)
-		}
-	}
-	_, both := buildPrompt("both")
-	if !strings.Contains(both, "TITLE:") || !strings.Contains(both, "DESCRIPTION:") {
-		t.Errorf("both mode should request TITLE and DESCRIPTION, got %q", both)
-	}
-}
-
-func TestParseAIResponse(t *testing.T) {
-	// title mode
-	if r := parseAIResponse("title", "  *Epic Morning Run*  "); r.Title != "Epic Morning Run" {
-		t.Errorf("title parse = %q", r.Title)
-	}
-	// description mode
-	if r := parseAIResponse("description", "Solid tempo effort."); r.Description != "Solid tempo effort." {
-		t.Errorf("description parse = %q", r.Description)
-	}
-	// both mode
-	r := parseAIResponse("both", "TITLE: Big Lift Day\nDESCRIPTION: Heavy squats all round.")
-	if r.Title != "Big Lift Day" {
-		t.Errorf("both title = %q", r.Title)
-	}
-	if r.Description != "Heavy squats all round." {
-		t.Errorf("both description = %q", r.Description)
 	}
 }
 
@@ -148,7 +113,6 @@ func TestBuildActivityContext_Strength(t *testing.T) {
 }
 
 func TestAICompanion_Enrich_RepostCacheHit(t *testing.T) {
-	t.Setenv("GEMINI_API_KEY", "fake-key")
 	mockDB := &mocks.MockDatabase{
 		GetBoosterDataFunc: func(ctx context.Context, userId, boosterId string) (map[string]interface{}, error) {
 			return map[string]interface{}{
@@ -159,6 +123,8 @@ func TestAICompanion_Enrich_RepostCacheHit(t *testing.T) {
 		},
 	}
 	p := NewAICompanionProvider()
+	f := &fakeAI{err: errors.New("must not be called")}
+	p.AI = f
 	p.SetService(&bootstrap.Service{DB: mockDB})
 
 	activity := &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_RUN}
@@ -172,10 +138,13 @@ func TestAICompanion_Enrich_RepostCacheHit(t *testing.T) {
 	if res.Metadata["status"] != "success" || res.Metadata["cache"] != "hit" {
 		t.Fatalf("expected cache hit, got %v", res.Metadata)
 	}
-	if res.Description != "A great session." || res.Name != "Sweat Fest" {
+	if res.Description != "A great session." || res.Name != "" {
 		t.Errorf("unexpected cached content: name=%q desc=%q", res.Name, res.Description)
 	}
 	if res.Enrichments == nil || res.Enrichments.AiSummary == nil {
 		t.Error("expected AiSummary enrichment")
+	}
+	if f.calls != 0 {
+		t.Errorf("cache hit must not call Claude, got %d calls", f.calls)
 	}
 }

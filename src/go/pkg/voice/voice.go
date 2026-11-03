@@ -95,7 +95,7 @@ var allow = map[string]bool{
 	"Monday": true, "Tuesday": true, "Wednesday": true, "Thursday": true, "Friday": true,
 	"Saturday": true, "Sunday": true,
 	"Strava": true, "Hevy": true, "Hyrox": true, "parkrun": true, "Zone": true, "PB": true,
-	"PR": true, "HR": true, "HRV": true, "VO2": true, "VO₂": true, "AI": true,
+	"PR": true, "I": true, "I'm": true, "I’m": true, "I'll": true, "I’ll": true, "I've": true, "I’ve": true, "I'd": true, "I’d": true, "HR": true, "HRV": true, "VO2": true, "VO₂": true, "AI": true,
 }
 
 // commonFirstNames: a sentence-initial capital is normally just grammar, but
@@ -122,6 +122,13 @@ func contextTokens(c string) map[string]bool {
 		m[t] = true
 	}
 	return m
+}
+
+// endsInEmoji: an emoji ends a caption sentence in James's voice ("brutal 🥵 Still
+// smiling"), so a capital after one is a sentence start, not a name.
+func endsInEmoji(s string) bool {
+	r, _ := utf8.DecodeLastRuneInString(s)
+	return r == 0xFE0F || r == 0x200D || unicode.IsSymbol(r)
 }
 
 func allCaps(t string) bool {
@@ -153,7 +160,8 @@ func namesFree(out, context string) bool {
 			continue
 		}
 		if i := strings.TrimRight(out[:loc[0]], " \t\n"); i == "" || strings.HasSuffix(i, `"`) ||
-			strings.HasSuffix(i, "“") || strings.HasSuffix(i, ".") || strings.HasSuffix(i, "!") || strings.HasSuffix(i, "?") {
+			strings.HasSuffix(i, "“") || strings.HasSuffix(i, ".") || strings.HasSuffix(i, "!") || strings.HasSuffix(i, "?") ||
+			strings.HasSuffix(i, "…") || endsInEmoji(i) {
 			if commonFirstNames[strings.TrimSuffix(strings.TrimSuffix(tok, "'s"), "’s")] {
 				return false
 			}

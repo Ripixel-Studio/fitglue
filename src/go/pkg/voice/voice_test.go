@@ -119,3 +119,22 @@ func TestCheck(t *testing.T) {
 		}
 	}
 }
+
+// A sentence can end on an emoji in his captions; the next capital is grammar.
+func TestCheckSentenceStartAfterEmoji(t *testing.T) {
+	if err := Check("Legs on fire 🥵 Still smiling 💪 Bloody brutal… Cooked", "Run 8.2 km"); err != nil {
+		t.Errorf("emoji-separated sentences should pass: %v", err)
+	}
+	if Check("Legs on fire 🥵 Sarah would be proud", "Run") == nil {
+		t.Error("a first name after an emoji must still fail")
+	}
+	if Check("Legs on fire 🥵 and Sarah", "Run") == nil {
+		t.Error("a mid-sentence name after an emoji must still fail")
+	}
+}
+
+func TestCheckAllowsFirstPersonI(t *testing.T) {
+	if err := Check("Legs gone 🥵 and I'm still standing, I think", "Run"); err != nil {
+		t.Errorf("first person must pass: %v", err)
+	}
+}

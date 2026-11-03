@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fitglue/server/src/go/pkg/claude"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 )
@@ -38,15 +39,62 @@ func TestAIActivityType_SkipsSpecificType(t *testing.T) {
 	}
 }
 
-func TestAIActivityType_SkipsWhenNoAPIKey(t *testing.T) {
-	t.Setenv("GEMINI_API_KEY", "")
-	act := &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT}
-	res, err := NewAIActivityTypeProvider().Enrich(context.Background(), aiLogger(), act, nil, nil, false)
+type fakeAI struct {
+	req   claude.Request
+	calls int
+	out   string
+	err   error
+}
+
+func (f *fakeAI) Complete(_ context.Context, r claude.Request) (string, error) {
+	f.req = r
+	f.calls++
+	return f.out, f.err
+}
+
+func TestActivityTypeHaiku(t *testing.T) {
+	f := &fakeAI{out: "ACTIVITY_TYPE_RUN"}
+	p := NewAIActivityTypeProvider()
+	p.AI = f
+	act := &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT, Name: "Lunch"}
+	res, err := p.Enrich(context.Background(), aiLogger(), act, nil, nil, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if !res.Skipped || res.Metadata["reason"] != "api_key_not_configured" {
-		t.Errorf("expected skip when no API key, got %+v", res)
+	if f.req.Model != "haiku" {
+		t.Errorf("model %q", f.req.Model)
+	}
+	if act.Type != pbactivity.ActivityType_ACTIVITY_TYPE_RUN || res.Metadata["status"] != "success" {
+		t.Errorf("type %v meta %v", act.Type, res.Metadata)
+	}
+}
+
+func TestActivityTypeClaudeErrorDoesNotFail(t *testing.T) {
+	p := NewAIActivityTypeProvider()
+	p.AI = &fakeAI{err: claude.ErrLimited}
+	act := &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT}
+	res, err := p.Enrich(context.Background(), aiLogger(), act, nil, nil, false)
+	if err != nil || res.Metadata["status"] != "error" {
+		t.Errorf("err %v meta %v", err, res.Metadata)
+	}
+	if act.Type != pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT {
+		t.Error("type changed on error")
+	}
+}
+
+func TestActivityTypeScrubbedAndSensitiveOmitted(t *testing.T) {
+	f := &fakeAI{out: "ACTIVITY_TYPE_RUN"}
+	p := NewAIActivityTypeProvider()
+	p.AI = f
+	act := &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT, Name: "Tempo w/ Tom"}
+	_, _ = p.Enrich(context.Background(), aiLogger(), act, nil, nil, false)
+	if strings.Contains(f.req.Prompt, "Tom") {
+		t.Errorf("name not scrubbed: %s", f.req.Prompt)
+	}
+	act = &pbactivity.StandardizedActivity{Type: pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT, Name: "walk to NA meeting"}
+	_, _ = p.Enrich(context.Background(), aiLogger(), act, nil, nil, false)
+	if strings.Contains(f.req.Prompt, "NA meeting") {
+		t.Errorf("sensitive name sent: %s", f.req.Prompt)
 	}
 }
 
