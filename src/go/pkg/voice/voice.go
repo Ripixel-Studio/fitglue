@@ -18,6 +18,29 @@ import (
 //go:embed fallback.md
 var fallback string
 
+// words.txt: lowercase English words of 2-10 letters, from SCOWL (Spell Checker
+// Oriented Word Lists, Kevin Atkinson; permissive MIT-style licence), the
+// british-english + american-english lists shipped as Debian wbritish/wamerican
+// 2020.12.07, proper nouns excluded. No frequency data was available, so it is
+// the plain ~53k list rather than a 10-20k frequency cut.
+//
+//go:embed words.txt
+var wordsTxt string
+
+var commonWords = func() map[string]bool {
+	m := map[string]bool{}
+	for _, w := range strings.Fields(wordsTxt) {
+		m[w] = true
+	}
+	return m
+}()
+
+// commonWord: the lowercase form is an ordinary English word. Callers must also
+// check the first-names list; a name that is a word (Will, Grace) stays blocked.
+func commonWord(tok string) bool {
+	return commonWords[strings.ToLower(tok)]
+}
+
 const (
 	guideTTL = 10 * time.Minute
 	guideCap = 6 * 1024
@@ -112,7 +135,11 @@ var commonFirstNames = func() map[string]bool {
 	Richard Ben Sam Andy Andrew Adam Alex Nick Luke Will Harry Henry Ed Ian Gary Gareth Simon Sean Phil Tony
 	Sarah Sara Sally Sophie Sophia Emma Emily Em Kate Katie Kath Claire Clare Laura Lucy Lisa Liz Beth Anna
 	Anne Annie Amy Amanda Becky Rebecca Charlotte Hannah Helen Holly Jen Jenny Jess Jessica Julie Karen Kim
-	Louise Lou Megan Mel Nicola Nic Rachel Rach Ruth Sue Susan Tash Zoe Abi Abbie`) {
+	Louise Lou Megan Mel Nicola Nic Rachel Rach Ruth Sue Susan Tash Zoe Abi Abbie
+	Grace Rose Bill Billy Bob Bobby Joy Hope Faith Max Ray Rory Kev Kevin Neil Ross Craig Chloe Ella Eve Eva
+	Ivy Jane Joan Josh Joshua Lee Leo Liam Lily Lucas Mia Nina Olivia Oliver Ollie Pat Priya Ryan Sophie Tess
+	Toby Tina Vicky Victoria Wendy April May June August Mary Maria Jordan Jamie Charlie Frank Fred George
+	Hugh Jake Jay Jeff Jerry Kyle Larry Mick Nathan Ned Nigel Owen Pam Pippa Rod Roy Sid Stan Stu Ted Tara`) {
 		m[n] = true
 	}
 	return m
@@ -246,7 +273,7 @@ func namesFree(out, context string) bool {
 		if i := strings.TrimRight(out[:loc[0]], " \t\n"); i == "" || strings.HasSuffix(i, `"`) ||
 			strings.HasSuffix(i, "“") || strings.HasSuffix(i, ".") || strings.HasSuffix(i, "!") || strings.HasSuffix(i, "?") ||
 			strings.HasSuffix(i, "…") || endsInEmoji(i) {
-			if startsOK(tok) {
+			if startsOK(tok) || commonWord(tok) {
 				continue
 			}
 			return false
@@ -289,4 +316,30 @@ func Line(s string, max int) string {
 		}
 	}
 	return strings.TrimSpace(cut)
+}
+
+// RetryNote is appended to the system prompt on the one retry after a failed Check.
+const RetryNote = "Your previous attempt was rejected. Do not name or refer to anyone. Open with a plain word."
+
+// Generate runs gen (extra is "" first, RetryNote on the retry), tidies the
+// output with Line and checks it with Check. One retry on a failed check; if the
+// second attempt fails too it returns "" so the caller keeps its non-AI text.
+// A gen error (including claude.ErrLimited) is returned at once, no retry.
+// attempts is 1 or 2.
+func Generate(gen func(extra string) (string, error), max int, checkContext string) (line string, attempts int, err error) {
+	for attempts = 1; attempts <= 2; attempts++ {
+		extra := ""
+		if attempts == 2 {
+			extra = RetryNote
+		}
+		out, gerr := gen(extra)
+		if gerr != nil {
+			return "", attempts, gerr
+		}
+		l := Line(out, max)
+		if l != "" && Check(l, checkContext) == nil {
+			return l, attempts, nil
+		}
+	}
+	return "", 2, nil
 }

@@ -1,6 +1,7 @@
 package voice
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -170,5 +171,55 @@ func TestLineCutsOnWordBoundary(t *testing.T) {
 	got := Line(strings.Repeat("legs gone ", 40), 25)
 	if got != "legs gone legs gone legs" {
 		t.Errorf("got %q", got)
+	}
+}
+
+func TestCommonWordsPassAtBoundary(t *testing.T) {
+	for _, s := range []string{"Nobody saw that coming", "Apparently my legs work", "Four runs. Honestly, knackered 💪"} {
+		if err := Check(s, ""); err != nil {
+			t.Errorf("%q should pass: %v", s, err)
+		}
+	}
+}
+
+func TestNamesStillFailAtBoundary(t *testing.T) {
+	for _, s := range []string{"Priya smashed it", "🔥 Zoltan", "Four runs. Kev kept up", "Will smashed it", "Grace was there"} {
+		if Check(s, "") == nil {
+			t.Errorf("%q should fail", s)
+		}
+	}
+}
+
+func TestGenerateRetry(t *testing.T) {
+	var extras []string
+	seq := []string{"Priya smashed it", "Nobody saw that coming 💪"}
+	got, n, err := Generate(func(extra string) (string, error) {
+		extras = append(extras, extra)
+		o := seq[0]
+		seq = seq[1:]
+		return o, nil
+	}, 280, "")
+	if err != nil || got != "Nobody saw that coming 💪" || n != 2 {
+		t.Fatalf("got %q n=%d err=%v", got, n, err)
+	}
+	if extras[0] != "" || extras[1] != RetryNote {
+		t.Errorf("extras = %q", extras)
+	}
+	// Both fail: empty, never the raw output.
+	calls := 0
+	got, n, _ = Generate(func(string) (string, error) { calls++; return "Priya smashed it", nil }, 280, "")
+	if got != "" || calls != 2 || n != 2 {
+		t.Errorf("both-fail: %q calls=%d", got, calls)
+	}
+	// First passes: no retry. Error: no retry.
+	calls = 0
+	got, n, _ = Generate(func(string) (string, error) { calls++; return "Legs shaking 💪", nil }, 280, "")
+	if got == "" || calls != 1 || n != 1 {
+		t.Errorf("first-pass: %q calls=%d", got, calls)
+	}
+	calls = 0
+	_, _, err = Generate(func(string) (string, error) { calls++; return "", errors.New("limited") }, 280, "")
+	if err == nil || calls != 1 {
+		t.Errorf("error path: err=%v calls=%d", err, calls)
 	}
 }

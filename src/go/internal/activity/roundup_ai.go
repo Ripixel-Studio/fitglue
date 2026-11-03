@@ -277,20 +277,26 @@ func generateRoundupAISummary(ctx context.Context, logger infra.Logger, ai claud
 	if ai == nil {
 		ai = claude.Default()
 	}
-	out, err := ai.Complete(ctx, claude.Request{
-		Model:   claude.ModelSonnet,
-		System:  voice.Guide() + "\n\n" + roundupTaskBlock,
-		Prompt:  roundupUserPrompt + "\n\nPeriod data:\n" + buildRoundupSummaryContext(roundup),
-		Timeout: roundupAISummaryTimeout,
-	})
+	text, attempts, err := voice.Generate(func(extra string) (string, error) {
+		sys := voice.Guide() + "\n\n" + roundupTaskBlock
+		if extra != "" {
+			sys += "\n\n" + extra
+		}
+		return ai.Complete(ctx, claude.Request{
+			Model:   claude.ModelSonnet,
+			System:  sys,
+			Prompt:  roundupUserPrompt + "\n\nPeriod data:\n" + buildRoundupSummaryContext(roundup),
+			Timeout: roundupAISummaryTimeout,
+		})
+	}, maxRoundupSummaryChars, roundupCheckContext(roundup))
 	if err != nil {
 		logger.Warn(ctx, "roundup AI summary: Claude unavailable", "error", err, "limited", errors.Is(err, claude.ErrLimited))
 		return ""
 	}
-	text := voice.Line(out, maxRoundupSummaryChars)
-	if text == "" || voice.Check(text, roundupCheckContext(roundup)) != nil {
-		logger.Warn(ctx, "roundup AI summary: output failed the voice check, dropped")
-		return ""
+	if text == "" {
+		logger.Warn(ctx, "roundup AI summary: output failed the voice check twice, dropped")
+	} else if attempts == 2 {
+		logger.Info(ctx, "roundup AI summary: passed the voice check on retry")
 	}
 	return text
 }
@@ -304,8 +310,7 @@ const roundupTaskBlock = `Write the roundup for this period: ONE paragraph of 4-
 const roundupUserPrompt = `Write the roundup paragraph now.`
 
 // calendarWords are weekday and month names: date vocabulary the prompt itself
-// carries, not names. A month that is also a first name (April, June) stays
-// rejected because voice.Check never lets context whitelist a known first name.
+// carries, not names (voice.Check already allowlists them).
 const calendarWords = "Monday Tuesday Wednesday Thursday Friday Saturday Sunday January February March April May June July August September October November December"
 
 // roundupCheckContext is the only context voice.Check sees for a roundup:

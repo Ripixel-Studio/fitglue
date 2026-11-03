@@ -165,18 +165,20 @@ func (p *AICompanionProvider) generate(ctx context.Context, activityContext stri
 		ai = claude.Default()
 	}
 	system, prompt := buildPrompt(activityContext)
-	out, err := ai.Complete(ctx, claude.Request{
-		Model:   claude.ModelHaiku,
-		System:  system,
-		Prompt:  prompt,
-		Timeout: 60 * time.Second,
-	})
+	line, _, err := voice.Generate(func(extra string) (string, error) {
+		sys := system
+		if extra != "" {
+			sys += "\n\n" + extra
+		}
+		return ai.Complete(ctx, claude.Request{
+			Model:   claude.ModelHaiku,
+			System:  sys,
+			Prompt:  prompt,
+			Timeout: 60 * time.Second,
+		})
+	}, maxLineChars, checkContext(activityContext))
 	if err != nil {
 		return "", err
-	}
-	line := voice.Line(out, maxLineChars)
-	if line == "" || voice.Check(line, checkContext(activityContext)) != nil {
-		return "", nil
 	}
 	return line, nil
 }

@@ -518,3 +518,32 @@ func TestRoundupErrorIsEmpty(t *testing.T) {
 		}
 	}
 }
+
+type seqCompleter struct {
+	outs    []string
+	systems []string
+}
+
+func (s *seqCompleter) Complete(_ context.Context, r claude.Request) (string, error) {
+	s.systems = append(s.systems, r.System)
+	o := s.outs[0]
+	if len(s.outs) > 1 {
+		s.outs = s.outs[1:]
+	}
+	return o, nil
+}
+
+func TestRoundupRetriesOnceThenPasses(t *testing.T) {
+	f := &seqCompleter{outs: []string{"Priya kept up 💪", "Four runs and legs shaking 💪"}}
+	got := generateRoundupAISummary(context.Background(), infra.NewLogger(), f, syntheticRoundup())
+	if got == "" || len(f.systems) != 2 {
+		t.Fatalf("got %q after %d calls", got, len(f.systems))
+	}
+	if !strings.Contains(f.systems[1], "Do not name or refer to anyone") || strings.Contains(f.systems[0], "Do not name or refer to anyone") {
+		t.Errorf("retry instruction only belongs on the second call")
+	}
+	f = &seqCompleter{outs: []string{"Priya kept up 💪"}}
+	if got := generateRoundupAISummary(context.Background(), infra.NewLogger(), f, syntheticRoundup()); got != "" || len(f.systems) != 2 {
+		t.Errorf("two failures must give empty after exactly 2 calls: %q %d", got, len(f.systems))
+	}
+}
