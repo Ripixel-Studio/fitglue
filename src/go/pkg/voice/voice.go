@@ -21,8 +21,9 @@ var fallback string
 // words.txt: lowercase English words of 2-10 letters, from SCOWL (Spell Checker
 // Oriented Word Lists, Kevin Atkinson; permissive MIT-style licence), the
 // british-english + american-english lists shipped as Debian wbritish/wamerican
-// 2020.12.07, proper nouns excluded. No frequency data was available, so it is
-// the plain ~53k list rather than a 10-20k frequency cut.
+// 2020.12.07, every word whose capitalised form is a proper noun in those lists removed
+// (Dawn, Ruby, Ken, Smith ...), then ~40 safe sentence starters added back by
+// hand. No frequency data was available, so it is a ~52k list, not 10-20k.
 //
 //go:embed words.txt
 var wordsTxt string
@@ -117,7 +118,7 @@ func Scrub(s string) string {
 func Sensitive(s string) bool { return recoveryR.MatchString(s) }
 
 var allow = map[string]bool{
-	"January": true, "February": true, "March": true, "April": true, "May": true, "June": true,
+	"January": true, "February": true, "March": true,
 	"July": true, "August": true, "September": true, "October": true, "November": true, "December": true,
 	"Monday": true, "Tuesday": true, "Wednesday": true, "Thursday": true, "Friday": true,
 	"Saturday": true, "Sunday": true,
@@ -261,6 +262,12 @@ func namesFree(out, context string) bool {
 			continue
 		}
 		base := strings.TrimSuffix(strings.TrimSuffix(tok, "'s"), "’s")
+		if ambiguousMonths[tok] {
+			if dateShaped(out[:loc[0]], out[loc[1]:]) {
+				continue
+			}
+			return false
+		}
 		known := commonFirstNames[base]
 		// Context never whitelists a known first name, and callers pass only
 		// fitness vocabulary (never his free text) as context.
@@ -281,6 +288,34 @@ func namesFree(out, context string) bool {
 		return false
 	}
 	return true
+}
+
+// ambiguousMonths are months that are also first names. They pass only in a
+// date-shaped position, anywhere else they count as a name.
+var ambiguousMonths = map[string]bool{"April": true, "May": true, "June": true}
+
+// dateShaped: the month sits next to a number ("3 May", "May 3") or follows
+// "in", "since" or "last".
+func dateShaped(before, after string) bool {
+	if f := strings.Fields(before); len(f) > 0 {
+		last := strings.ToLower(strings.Trim(f[len(f)-1], ".,;:!?\"'()"))
+		switch last {
+		case "in", "since", "last":
+			return true
+		}
+		if r, _ := utf8.DecodeRuneInString(last); unicode.IsDigit(r) {
+			return true
+		}
+		if r, _ := utf8.DecodeLastRuneInString(last); unicode.IsDigit(r) {
+			return true
+		}
+	}
+	if f := strings.Fields(after); len(f) > 0 {
+		if r, _ := utf8.DecodeRuneInString(f[0]); unicode.IsDigit(r) {
+			return true
+		}
+	}
+	return false
 }
 
 // Check is the one output guard: nil only if out names nobody (given the

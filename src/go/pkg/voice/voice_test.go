@@ -223,3 +223,38 @@ func TestGenerateRetry(t *testing.T) {
 		t.Errorf("error path: err=%v calls=%d", err, calls)
 	}
 }
+
+func TestWordNamesFailAtBoundary(t *testing.T) {
+	for _, n := range strings.Fields("Dawn Ruby Amber Robin Hazel Penny Heather Daisy Ken Victor Colleen Terry Smith Iris Jasmine Olive Violet Pearl Rick Carol Sandy Drew Roger Martin Wade Dale") {
+		if Check(n+" smashed it", "") == nil {
+			t.Errorf("%s smashed it should fail", n)
+		}
+		if Check("Four runs. "+n+" kept up", "") == nil {
+			t.Errorf("Four runs. %s kept up should fail", n)
+		}
+	}
+}
+
+func TestSafeStartersPass(t *testing.T) {
+	for _, w := range strings.Fields("Nobody Apparently Somehow Legs Turns Honestly Still Proper Absolute Somewhere Everyone") {
+		if err := Check(w+" worked", ""); err != nil {
+			t.Errorf("%s should pass: %v", w, err)
+		}
+	}
+}
+
+func TestAmbiguousMonths(t *testing.T) {
+	for _, s := range []string{"Last ran in May 💪", "Since June I'm faster", "Great week. 3 May was brutal", "May 3 was brutal", "Best since April"} {
+		if err := Check(s, ""); err != nil {
+			t.Errorf("%q should pass: %v", s, err)
+		}
+	}
+	for _, s := range []string{"May smashed it", "Ran with May", "April was cold", "Done. June joined me", "Ran with April and it hurt"} {
+		if Check(s, "") == nil {
+			t.Errorf("%q should fail", s)
+		}
+	}
+	if Check("January was cold", "") != nil {
+		t.Errorf("January stays allowed")
+	}
+}
