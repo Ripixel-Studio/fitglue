@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -50,9 +52,34 @@ func TestEnvPasslist(t *testing.T) {
 
 func TestRunTimeoutKillsProcess(t *testing.T) {
 	start := time.Now()
-	_, err := fake(t, "sleep 10").Complete(context.Background(), Request{Prompt: "p", Timeout: 200 * time.Millisecond})
+	pidf := filepath.Join(t.TempDir(), "pid")
+	_, err := fake(t, "echo $$ > "+pidf+"; sleep 10").Complete(context.Background(), Request{Prompt: "p", Timeout: 200 * time.Millisecond})
 	if err == nil || time.Since(start) > time.Second {
 		t.Fatalf("err=%v after %v", err, time.Since(start))
+	}
+	b, rerr := os.ReadFile(pidf)
+	if rerr != nil {
+		t.Fatal(rerr)
+	}
+	pid, _ := strconv.Atoi(strings.TrimSpace(string(b)))
+	time.Sleep(100 * time.Millisecond)
+	if pid <= 0 || syscall.Kill(pid, 0) == nil {
+		t.Fatalf("process %d still alive", pid)
+	}
+}
+
+func TestLimitNoticeOnExitZero(t *testing.T) {
+	_, err := fake(t, "echo 'Claude usage limit reached. Your limit will reset at 5pm'").Complete(context.Background(), Request{Prompt: "p"})
+	if !errors.Is(err, ErrLimited) {
+		t.Fatalf("%v", err)
+	}
+}
+
+func TestLongAnswerMentioningLimitsIsKept(t *testing.T) {
+	body := "printf 'usage limit reached %s'" + " \"$(head -c 600 /dev/zero | tr '\\0' x)\""
+	out, err := fake(t, body).Complete(context.Background(), Request{Prompt: "p"})
+	if err != nil || len(out) < 600 {
+		t.Fatalf("%d %v", len(out), err)
 	}
 }
 

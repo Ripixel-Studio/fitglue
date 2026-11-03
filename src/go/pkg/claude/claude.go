@@ -97,7 +97,7 @@ func (c CLI) Complete(ctx context.Context, r Request) (string, error) {
 
 	if err := cmd.Run(); err != nil {
 		// The CLI prints the limit notice on stdout; inspect it, never log it.
-		if limitText.Match(stdout.Bytes()) || limitText.Match(stderr.Bytes()) {
+		if isLimited(stdout.Bytes()) || isLimited(stderr.Bytes()) {
 			return "", ErrLimited
 		}
 		if ctx.Err() != nil {
@@ -113,5 +113,19 @@ func (c CLI) Complete(ctx context.Context, r Request) (string, error) {
 	if out == "" {
 		return "", errors.New("claude: empty answer")
 	}
+	// A limit notice can arrive with exit 0; a short answer that is one must
+	// not be published as text.
+	if isLimited([]byte(out)) {
+		return "", ErrLimited
+	}
 	return out, nil
+}
+
+// maxLimitNotice mirrors usagegate LIMIT_TEXT_MAX: a limit notice is one short
+// line, a real answer that mentions limits is longer. Only that much is scanned.
+const maxLimitNotice = 400
+
+func isLimited(b []byte) bool {
+	b = bytes.TrimSpace(b)
+	return len(b) <= maxLimitNotice && limitText.Match(b)
 }
