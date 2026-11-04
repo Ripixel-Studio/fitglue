@@ -183,7 +183,10 @@ func TestThumbnailForActivity_TrimmedFromHome(t *testing.T) {
 
 func TestThumbnailForActivity_LoopInsideZoneIsPlaceholder(t *testing.T) {
 	zones := siteexport.NewZones([3]float64{10.0, 10.0, siteexport.HomeZoneRadiusM})
-	if string(ThumbnailForActivity(walkNorth(300), zones)) != PlaceholderSVG {
+	// walkNorth steps 0.00002 deg (~2.2 m) a point, so 200 points reach ~445 m: wholly inside the
+	// 500 m zone. (300 points reach ~667 m and rightly leave a visible tail outside it, since
+	// routes are trimmed only at the start and end within the radius.)
+	if string(ThumbnailForActivity(walkNorth(200), zones)) != PlaceholderSVG {
 		t.Error("a loop inside the zone must give the placeholder")
 	}
 }
