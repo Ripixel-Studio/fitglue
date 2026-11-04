@@ -112,9 +112,10 @@ type activityFile struct {
 	Entry         json.RawMessage `json:"entry"`
 	Series        *Series         `json:"series"`
 	RoutePoints   [][]float64     `json:"routePoints"`
-	Race          *Race           `json:"race,omitempty"`     // §3.4, Hyrox races with splits only
-	KmSplits      []KmSplit       `json:"kmSplits,omitempty"` // §3.5, distance activities with HR only
-	Links         *Links          `json:"links,omitempty"`    // C4, public Strava/Hevy pages
+	RouteHidden   bool            `json:"routeHidden,omitempty"` // route withheld near home
+	Race          *Race           `json:"race,omitempty"`        // §3.4, Hyrox races with splits only
+	KmSplits      []KmSplit       `json:"kmSplits,omitempty"`    // §3.5, distance activities with HR only
+	Links         *Links          `json:"links,omitempty"`       // C4, public Strava/Hevy pages
 }
 
 type roundupFile struct {
@@ -203,6 +204,7 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 		Entry:         entryJSON,
 		Series:        series,
 		RoutePoints:   route,
+		RouteHidden:   routeHidden(showcase.ActivityData, zones, whole),
 		Race:          race,
 		KmSplits:      kmSplits,
 		Links:         links,

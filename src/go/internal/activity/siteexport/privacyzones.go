@@ -13,28 +13,21 @@ import (
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 )
 
-// Privacy zones (life hub spec §5b): the public site must never show where James
-// lives. Every coordinate the export publishes is trimmed against a set of circular
-// zones at the source, so the bucket never holds an untrimmed route.
+// Privacy zones (life hub spec, "Route privacy, revised"): the public site must never
+// show where James lives, but like Strava it only hides the START and END of a route
+// when they are within HomeZoneRadiusM of a home. Everything between is published,
+// including mid-route passes near home. A route that never leaves the zone is hidden
+// entirely (routePoints [] and routeHidden true).
 //
-// The zones come from two files on the box, never committed and never in the bucket:
-//
-//	places.json         {"homes":[{"lat":..,"lon":..}]}            each home is an 800 m zone
-//	privacy-zones.json  {"zones":[{"lat":..,"lng":..,"radiusM":..}]}  learned spots (optional)
-//
-// places.json missing or unreadable fails closed: routePoints is [] for every
-// activity that is not kept whole.
+// The zones are the homes in places.json ({"homes":[{"lat":..,"lon":..}]}), never
+// committed and never in the bucket. places.json missing or unreadable fails closed:
+// routePoints is [] and routeHidden true for every activity not kept whole.
 
-// Env var names for the zone files; the defaults are the box paths.
-const (
-	EnvPlacesFile = "SITE_EXPORT_PLACES_FILE"
-	EnvZonesFile  = "SITE_EXPORT_ZONES_FILE"
+// EnvPlacesFile names the env var overriding the places.json path.
+const EnvPlacesFile = "SITE_EXPORT_PLACES_FILE"
 
-	// HomeZoneRadiusM is the radius of the zone around each home in places.json.
-	HomeZoneRadiusM = 800.0
-	// minSegmentPoints: a stretch of route shorter than this after trimming is dropped.
-	minSegmentPoints = 5
-)
+// HomeZoneRadiusM is the radius of the zone around each home in places.json.
+const HomeZoneRadiusM = 500.0
 
 type zone struct {
 	lat, lng, radiusM float64
@@ -62,28 +55,21 @@ func NewZones(circles ...[3]float64) *Zones {
 // StaticZones is a ZoneSource returning a fixed set (tests).
 func StaticZones(z *Zones) ZoneSource { return func() (*Zones, error) { return z, nil } }
 
-// ZonesFromEnv reads SITE_EXPORT_PLACES_FILE / SITE_EXPORT_ZONES_FILE through getenv,
-// defaulting to ~/.jarvis/home/places.json and ~/.jarvis/home/privacy-zones.json.
+// ZonesFromEnv reads SITE_EXPORT_PLACES_FILE through getenv, defaulting to
+// ~/.jarvis/home/places.json.
 func ZonesFromEnv(getenv func(string) string) ZoneSource {
-	dir := ""
-	if home, err := os.UserHomeDir(); err == nil {
-		dir = filepath.Join(home, ".jarvis", "home")
-	}
 	places := strings.TrimSpace(getenv(EnvPlacesFile))
 	if places == "" {
-		places = filepath.Join(dir, "places.json")
+		if home, err := os.UserHomeDir(); err == nil {
+			places = filepath.Join(home, ".jarvis", "home", "places.json")
+		}
 	}
-	learned := strings.TrimSpace(getenv(EnvZonesFile))
-	if learned == "" {
-		learned = filepath.Join(dir, "privacy-zones.json")
-	}
-	return func() (*Zones, error) { return LoadZones(places, learned) }
+	return func() (*Zones, error) { return LoadZones(places) }
 }
 
-// LoadZones reads the homes (required: no homes is an error, never an empty set) and
-// the learned zones (optional when the file does not exist; present but corrupt is an
-// error). Errors never include coordinates.
-func LoadZones(placesPath, learnedPath string) (*Zones, error) {
+// LoadZones reads the homes (required: no homes is an error, never an empty set).
+// Errors never include coordinates.
+func LoadZones(placesPath string) (*Zones, error) {
 	b, err := os.ReadFile(placesPath)
 	if err != nil {
 		return nil, fmt.Errorf("places file unreadable: %w", errors.Unwrap(err))
@@ -106,29 +92,6 @@ func LoadZones(placesPath, learnedPath string) (*Zones, error) {
 	}
 	if len(z.zones) == 0 {
 		return nil, errors.New("places file lists no homes")
-	}
-	lb, err := os.ReadFile(learnedPath)
-	switch {
-	case errors.Is(err, os.ErrNotExist):
-		return z, nil
-	case err != nil:
-		return nil, errors.New("privacy zones file unreadable")
-	}
-	var learned struct {
-		Zones []struct {
-			Lat     *float64 `json:"lat"`
-			Lng     *float64 `json:"lng"`
-			RadiusM *float64 `json:"radiusM"`
-		} `json:"zones"`
-	}
-	if err := json.Unmarshal(lb, &learned); err != nil {
-		return nil, errors.New("privacy zones file is not valid JSON")
-	}
-	for _, l := range learned.Zones {
-		if l.Lat == nil || l.Lng == nil || l.RadiusM == nil {
-			return nil, errors.New("privacy zones file has an incomplete zone")
-		}
-		z.zones = append(z.zones, zone{*l.Lat, *l.Lng, *l.RadiusM})
 	}
 	return z, nil
 }
@@ -153,26 +116,36 @@ func haversineM(lat1, lng1, lat2, lng2 float64) float64 {
 	return 2 * earthM * math.Asin(math.Min(1, math.Sqrt(a)))
 }
 
-// trimTrack drops every point inside a zone, splits the track where points were
-// dropped, discards segments shorter than minSegmentPoints and returns the longest
-// remaining one (never joining across a zone). nil when nothing survives.
+// trimTrack hides the start and end like Strava: it drops the leading points while
+// they are inside a zone and the trailing points the same way, and keeps everything
+// between as one polyline. Empty when the whole track stays inside the zones.
 func (z *Zones) trimTrack(pts [][]float64) [][]float64 {
-	var best, cur [][]float64
-	flush := func() {
-		if len(cur) >= minSegmentPoints && len(cur) > len(best) {
-			best = cur
-		}
-		cur = nil
+	start := 0
+	for start < len(pts) && z.Contains(pts[start][0], pts[start][1]) {
+		start++
 	}
-	for _, p := range pts {
-		if z.Contains(p[0], p[1]) {
-			flush()
-			continue
-		}
-		cur = append(cur, p)
+	if start == len(pts) {
+		return nil
 	}
-	flush()
-	return best
+	end := len(pts)
+	for end > start && z.Contains(pts[end-1][0], pts[end-1][1]) {
+		end--
+	}
+	return pts[start:end]
+}
+
+// routeHidden reports whether a non-whole activity's route was withheld for privacy:
+// it has a GPS track, but zones are unavailable or the trimmed track is too short to
+// publish. Whole activities and activities with no usable GPS are never hidden.
+func routeHidden(data *pbactivity.StandardizedActivity, zones *Zones, whole bool) bool {
+	if whole {
+		return false
+	}
+	pts := trackPoints(trackRecords(data))
+	if len(pts) < minRoutePoints {
+		return false
+	}
+	return zones == nil || len(zones.trimTrack(pts)) < minRoutePoints
 }
 
 var parkrunRE = regexp.MustCompile(`(?i)parkrun`)
@@ -229,8 +202,8 @@ func activityDistanceM(data *pbactivity.StandardizedActivity) float64 {
 }
 
 // ThumbnailTrack is the full-resolution track a route thumbnail may be drawn from:
-// the whole track for a whole activity, the longest segment outside the zones
-// otherwise, and nil (fail closed) for a non-whole activity without zones. Fewer than
+// the whole track for a whole activity, the track with its start and end
+// trimmed otherwise, and nil (fail closed) for a non-whole activity without zones. Fewer than
 // minRoutePoints points also gives nil: draw a placeholder.
 func ThumbnailTrack(data *pbactivity.StandardizedActivity, zones *Zones, whole bool) [][]float64 {
 	pts := trackPoints(trackRecords(data))
