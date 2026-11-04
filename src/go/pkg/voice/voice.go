@@ -185,6 +185,48 @@ func endsInEmoji(s string) bool {
 	return false
 }
 
+// isEmojiRune reports pictographic and emoji machinery: emoji blocks, dingbats,
+// misc symbols, arrows-supplement symbols, variation selectors, ZWJ, keycap,
+// tag characters. Plain arrows, currency and maths are not emoji.
+func isEmojiRune(r rune) bool {
+	switch {
+	case r == 0xFE0E, r == 0xFE0F, r == 0x200D, r == 0x20E3, r == 0x24C2, r == 0x3030, r == 0x303D,
+		r == 0x3297, r == 0x3299, r == 0x203C, r == 0x2049, r == 0x2122, r == 0x2139:
+		return true
+	case r >= 0x1F000 && r <= 0x1FAFF, r >= 0x2600 && r <= 0x27BF, r >= 0x2B00 && r <= 0x2BFF,
+		r >= 0x2300 && r <= 0x23FF, r >= 0xE0020 && r <= 0xE007F, r >= 0x2934 && r <= 0x2935:
+		return true
+	}
+	return false
+}
+
+var (
+	emojiGapRe  = regexp.MustCompile(`[ \t]{2,}`)
+	emojiPuncRe = regexp.MustCompile(`[ \t]+([.,!?;:])`)
+)
+
+// StripEmoji removes every emoji from AI-written text (James's call: emoji
+// cheapen the zine look), then tidies the gaps they leave. Text without emoji
+// is returned untouched. Never call it on his own words.
+func StripEmoji(s string) string {
+	if !strings.ContainsFunc(s, isEmojiRune) {
+		return s
+	}
+	s = strings.Map(func(r rune) rune {
+		if isEmojiRune(r) {
+			return -1
+		}
+		return r
+	}, s)
+	s = emojiGapRe.ReplaceAllString(s, " ")
+	s = emojiPuncRe.ReplaceAllString(s, "$1")
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		lines[i] = strings.TrimSpace(l)
+	}
+	return strings.TrimSpace(strings.Join(lines, "\n"))
+}
+
 // starters are capitalised words that are not names: sentence openers,
 // numbers, and activity words. After a sentence boundary a capital word must be
 // one of these (or fitness context / allow); anything else fails the check.
@@ -433,7 +475,7 @@ func Check(out, context string) error {
 // Line tidies AI text to one line: whitespace collapsed, Markdown stripped,
 // cut at the last sentence end within max runes, valid UTF-8.
 func Line(s string, max int) string {
-	s = strings.ToValidUTF8(s, "")
+	s = StripEmoji(strings.ToValidUTF8(s, ""))
 	s = mdRe.ReplaceAllString(s, "")
 	s = strings.TrimSpace(spacesRe.ReplaceAllString(s, " "))
 	if utf8.RuneCountInString(s) <= max {

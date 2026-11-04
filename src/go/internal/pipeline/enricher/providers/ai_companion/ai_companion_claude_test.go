@@ -62,7 +62,7 @@ func TestCompanionUsesHaikuAndGuide(t *testing.T) {
 	if name != "" {
 		t.Errorf("Name must stay empty, got %q", name)
 	}
-	if meta["status"] != "success" || !strings.HasPrefix(desc, "✨ AI Summary:\n") {
+	if meta["status"] != "success" || !strings.HasPrefix(desc, "AI Summary:\n") {
 		t.Errorf("meta %v desc %q", meta, desc)
 	}
 }
@@ -100,7 +100,7 @@ func TestCompanionClaudeErrorDoesNotFail(t *testing.T) {
 func TestCompanionOutputCappedAt280(t *testing.T) {
 	long := strings.Repeat("Legs gone. ", 60)
 	_, _, _, desc := run(t, "Morning Run", &fakeAI{out: long})
-	body := strings.TrimPrefix(desc, "✨ AI Summary:\n")
+	body := strings.TrimPrefix(desc, "AI Summary:\n")
 	if n := len([]rune(body)); n == 0 || n > 280 {
 		t.Errorf("body length %d", n)
 	}
@@ -124,7 +124,7 @@ func TestCompanionLabelAlwaysOn(t *testing.T) {
 	act := &pbactivity.StandardizedActivity{Name: "Run", Type: pbactivity.ActivityType_ACTIVITY_TYPE_RUN}
 	u := &user.Record{UserProfile: &pbuser.UserProfile{UserId: "u"}}
 	res, _ := p.Enrich(context.Background(), discardLogger(), act, u, map[string]string{"section_header": "false"}, false)
-	if !strings.HasPrefix(res.Description, "✨ AI Summary:\n") {
+	if !strings.HasPrefix(res.Description, "AI Summary:\n") {
 		t.Errorf("label must be mandatory: %q", res.Description)
 	}
 }

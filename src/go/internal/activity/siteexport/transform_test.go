@@ -425,3 +425,30 @@ func TestApplyPlatformCalories(t *testing.T) {
 		t.Error("an activity without platform calories must be left alone")
 	}
 }
+
+func TestBuildStripsEmojiFromAIFieldsOnly(t *testing.T) {
+	r := &pbactivity.ShowcaseRoundup{PeriodKey: "2026-W01", AiSummary: "Big week 💪 done."}
+	b, err := BuildRoundup(r, time.Unix(0, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), "💪") || !strings.Contains(string(b), "Big week done.") {
+		t.Errorf("roundup ai summary not stripped: %s", b)
+	}
+	if r.AiSummary != "Big week 💪 done." {
+		t.Error("caller's roundup was mutated")
+	}
+	sc := &pbactivity.ShowcasedActivity{
+		ShowcaseId:  "s1",
+		Description: "his own 🔥 words",
+		Enrichments: &pbactivity.ActivityEnrichments{AiSummary: &pbactivity.AiSummary{Html: "✨ AI Summary:\nFast one 🏃"}},
+	}
+	b, err = BuildActivity(sc, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "s1"}, time.Unix(0, 0), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(b)
+	if strings.Contains(out, "✨") || strings.Contains(out, "🏃") || !strings.Contains(out, "his own 🔥 words") {
+		t.Errorf("activity export: %s", out)
+	}
+}
