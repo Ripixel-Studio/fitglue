@@ -237,6 +237,11 @@ func blockHeaderKey(block string) string {
 		firstLine = block[:idx]
 	}
 	firstLine = strings.TrimSpace(firstLine)
+	// The AI block lost its emoji (no emoji in AI text); a legacy "✨ AI Summary:" block on
+	// the destination must still match the new plain one so it is replaced, not duplicated.
+	if strings.HasPrefix(strings.TrimLeftFunc(firstLine, func(r rune) bool { return !unicode.IsLetter(r) }), "AI Summary:") {
+		return "AI Summary:"
+	}
 	if !isEmojiOrSpecialStart(firstLine) {
 		return ""
 	}

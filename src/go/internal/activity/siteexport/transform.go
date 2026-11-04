@@ -27,6 +27,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
+	"github.com/fitglue/server/src/go/pkg/voice"
 )
 
 // SchemaVersion is written into every file. Bump it when a field changes
@@ -172,6 +173,11 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 	// Strip the records after deriving series/route from them (§3.1). Work on
 	// a clone so the caller's message is untouched.
 	stripped := proto.Clone(showcase).(*pbactivity.ShowcasedActivity)
+	// AI-written text carries no emoji; already-published lines are cleaned here.
+	// Only the AI fields: his own description text is never touched.
+	if stripped.Enrichments != nil && stripped.Enrichments.AiSummary != nil {
+		stripped.Enrichments.AiSummary.Html = voice.StripEmoji(stripped.Enrichments.AiSummary.Html)
+	}
 	if !whole {
 		if stripped.Enrichments != nil {
 			stripped.Enrichments.Location = scrubLocation(stripped.Enrichments.Location, zones)
@@ -213,6 +219,10 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 
 // BuildRoundup renders roundup/<periodKey>.json (contract §6).
 func BuildRoundup(roundup *pbactivity.ShowcaseRoundup, now time.Time) ([]byte, error) {
+	if roundup.AiSummary != "" {
+		roundup = proto.Clone(roundup).(*pbactivity.ShowcaseRoundup)
+		roundup.AiSummary = voice.StripEmoji(roundup.AiSummary)
+	}
 	roundupJSON, err := marshalStripped(roundup, "userId")
 	if err != nil {
 		return nil, fmt.Errorf("roundup: %w", err)

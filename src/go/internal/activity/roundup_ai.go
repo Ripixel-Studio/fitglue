@@ -306,6 +306,7 @@ const roundupTaskBlock = `Write the roundup for this period: ONE paragraph of 4-
 - Use only facts in the data. Never invent numbers, sports or events.
 - No names at all: not his, not anyone's, no places. Never quote an activity title. No 'you'. No Markdown, no lists.
 - Never mention alcohol, drink, drugs, pubs or recovery.
+- No emoji.
 - End on a line worth screenshotting.`
 
 const roundupUserPrompt = `Write the roundup paragraph now.`

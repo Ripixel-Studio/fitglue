@@ -333,7 +333,8 @@ func TestBlockHeaderKey(t *testing.T) {
 		block string
 		want  string
 	}{
-		{"header line only", "✨ AI Summary:\nsome content", "✨ AI Summary:"},
+		{"header line only", "✨ AI Summary:\nsome content", "AI Summary:"},
+		{"plain AI header", "AI Summary:\nsome content", "AI Summary:"},
 		{"header inline with value", "🔥 Calories: 303 kcal ≈ 1.1 slice 🍕", "🔥 Calories:"},
 		{"emoji start no colon", "🏃 My workout", ""},
 		{"plain text with colon", "Note: felt strong", ""},

@@ -121,7 +121,7 @@ func TestAICompanion_Enrich_RepostCacheHit(t *testing.T) {
 			}
 			return map[string]interface{}{
 				"cached_external_id": "ext-7",
-				"cached_description": "✨ AI Summary:\nA great session.",
+				"cached_description": "AI Summary:\nA great session.",
 				"cached_name":        "Sweat Fest",
 			}, nil
 		},
@@ -142,7 +142,7 @@ func TestAICompanion_Enrich_RepostCacheHit(t *testing.T) {
 	if res.Metadata["status"] != "success" || res.Metadata["cache"] != "hit" {
 		t.Fatalf("expected cache hit, got %v", res.Metadata)
 	}
-	if res.Description != "✨ AI Summary:\nA great session." || res.Name != "" {
+	if res.Description != "AI Summary:\nA great session." || res.Name != "" {
 		t.Errorf("unexpected cached content: name=%q desc=%q", res.Name, res.Description)
 	}
 	if res.Enrichments == nil || res.Enrichments.AiSummary == nil {
@@ -178,7 +178,7 @@ func repostCacheTest(t *testing.T, key, desc string, ai *fakeAI) (*providers.Enr
 
 func TestAICompanion_RepostIgnoresOldGeminiKey(t *testing.T) {
 	f := &fakeAI{err: errors.New("generation attempted")}
-	res, keys := repostCacheTest(t, "ai_companion", "✨ AI Summary:\nOld gemini line.", f)
+	res, keys := repostCacheTest(t, "ai_companion", "AI Summary:\nOld gemini line.", f)
 	if res.Metadata["cache"] == "hit" || res.Description != "" {
 		t.Fatalf("old-key cache must not be reused: %v", res.Metadata)
 	}
@@ -194,7 +194,7 @@ func TestAICompanion_RepostIgnoresOldGeminiKey(t *testing.T) {
 
 func TestAICompanion_RepostCachedLineIsChecked(t *testing.T) {
 	f := &fakeAI{err: errors.New("generation attempted")}
-	res, _ := repostCacheTest(t, cacheKey, "✨ AI Summary:\nBeer legs today.", f)
+	res, _ := repostCacheTest(t, cacheKey, "AI Summary:\nBeer legs today.", f)
 	if res.Metadata["cache"] == "hit" || res.Description != "" {
 		t.Fatalf("failing cached line must not be served: %v", res.Metadata)
 	}

@@ -71,8 +71,9 @@ func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, a
 		if data, err := p.Service.DB.GetBoosterData(ctx, user.UserId, cacheKey); err == nil && data != nil {
 			cachedDesc, _ := data["cached_description"].(string)
 			if cached, ok := data["cached_external_id"].(string); ok && cached == externalId && cachedDesc != "" &&
-				voice.Check(strings.TrimPrefix(cachedDesc, aiLabel), checkContext(activityContext)) == nil {
+				voice.Check(strings.TrimPrefix(voice.StripEmoji(cachedDesc), aiLabel), checkContext(activityContext)) == nil {
 				logger.Info("AI Companion: returning cached result for repost", "external_id", externalId)
+				cachedDesc = voice.StripEmoji(cachedDesc)
 				return &providers.EnrichmentResult{
 					Description: cachedDesc,
 					Metadata:    map[string]string{"status": "success", "cache": "hit"},
@@ -160,9 +161,9 @@ func sanitiseForPrompt(s string) string {
 // never read.
 const cacheKey = "ai_companion_haiku_v3"
 
-const aiLabel = "✨ AI Summary:\n"
+const aiLabel = "AI Summary:\n"
 
-const taskBlock = `Write the companion line for this session: 1–3 sentences, at most 280 characters, in the voice above. Use only facts in the data. No names. No 'you'. Never claim he wrote it. Never mention alcohol, drink, drugs, pubs or recovery.`
+const taskBlock = `Write the companion line for this session: 1–3 sentences, at most 280 characters, in the voice above. Use only facts in the data. No names. No 'you'. Never claim he wrote it. No emoji. Never mention alcohol, drink, drugs, pubs or recovery.`
 
 const maxLineChars = 280
 

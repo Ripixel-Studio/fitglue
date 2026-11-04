@@ -199,7 +199,7 @@ func TestGenerateRetry(t *testing.T) {
 		seq = seq[1:]
 		return o, nil
 	}, 280, "")
-	if err != nil || got != "Nobody saw that coming 💪" || n != 2 {
+	if err != nil || got != "Nobody saw that coming" || n != 2 {
 		t.Fatalf("got %q n=%d err=%v", got, n, err)
 	}
 	if extras[0] != "" || extras[1] != RetryNote {
@@ -351,5 +351,32 @@ func TestNamesStillFailWithFitnessVocabulary(t *testing.T) {
 		if namesFree(s, "") {
 			t.Errorf("%q should fail", s)
 		}
+	}
+}
+
+func TestStripEmoji(t *testing.T) {
+	cases := map[string]string{
+		"brutal 🥵 Still smiling":             "brutal Still smiling",
+		"Legs gone 💀.":                       "Legs gone.",
+		"✨ AI Summary:\nFast one 🏃‍♂️ today": "AI Summary:\nFast one today",
+		"Heart ❤️ and 👍🏽 done":               "Heart and done",
+		"1️⃣ rep":                            "1 rep",
+		"5 km → 10 km, £5 + 3 = 8":           "5 km → 10 km, £5 + 3 = 8",
+		"plain text":                         "plain text",
+		"🔥🔥🔥":                                "",
+	}
+	for in, want := range cases {
+		if got := StripEmoji(in); got != want {
+			t.Errorf("StripEmoji(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestLineAndCheckStripEmoji(t *testing.T) {
+	if got := Line("Easy run 😅 legs fine", 100); got != "Easy run legs fine" {
+		t.Errorf("Line = %q", got)
+	}
+	if err := Check("Easy run 😅.", ""); err != nil {
+		t.Errorf("Check: %v", err)
 	}
 }
