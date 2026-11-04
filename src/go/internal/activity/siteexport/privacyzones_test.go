@@ -17,7 +17,7 @@ import (
 var (
 	// farZones is a zone nowhere near any fixture, for tests that are not about zones.
 	farZones = NewZones([3]float64{-40, 170, HomeZoneRadiusM})
-	// homeZones is a single 800 m home at (10.0, 10.0).
+	// homeZones is a single 500 m home at (10.0, 10.0).
 	homeZones = NewZones([3]float64{10.0, 10.0, HomeZoneRadiusM})
 )
 
@@ -78,40 +78,85 @@ func TestTrimBeforeDownsample(t *testing.T) {
 	}
 }
 
-func TestOutAndBackKeepsLongestSegmentOnly(t *testing.T) {
-	// Away from home, through the zone and out the other side, then a short tail.
-	// Segment A (south of the zone) is longer than B.
-	var recs []*pbactivity.Record
-	recs = append(recs, gpsRecords(9.98, 0.00005, 300)...)  // 9.98 .. 9.995: outside (>1.1 km)
-	recs = append(recs, gpsRecords(9.999, 0.00005, 100)...) // crosses the zone
-	recs = append(recs, gpsRecords(10.012, 0.00005, 60)...) // outside, shorter
-	_, route := DeriveTelemetry(trackData(recs), homeZones, false)
-	if len(route) < minRoutePoints {
-		t.Fatalf("expected a route, got %d points", len(route))
+func TestMidRoutePassByHomeKept(t *testing.T) {
+	// Starts ~2.2 km south of home, runs north through the zone, ends ~2.2 km north.
+	// Nothing is trimmed and the pass by home stays in one continuous polyline.
+	_, route := DeriveTelemetry(trackData(gpsRecords(9.98, 0.00005, 800)), homeZones, false)
+	if len(route) != maxRoutePoints {
+		t.Fatalf("route length %d, want the whole route downsampled", len(route))
 	}
-	for _, p := range route {
-		if p[0] > 10.0 {
-			t.Fatalf("the shorter far-side segment was joined or chosen")
-		}
+	if d := minDistToHome(route); d > HomeZoneRadiusM {
+		t.Errorf("the pass by home must be kept; closest point %.0f m", d)
 	}
-	if d := minDistToHome(route); d <= HomeZoneRadiusM {
-		t.Errorf("point inside the zone: %.0f m", d)
+	if route[0][0] != round(9.98, routePrecision) {
+		t.Error("the start must be untouched")
 	}
 }
 
-func TestShortSegmentsDropped(t *testing.T) {
-	// Outside points in runs of 4 between zone points: all segments < 5, no route.
-	var recs []*pbactivity.Record
-	for i := 0; i < 20; i++ {
-		recs = append(recs, gpsRecords(10.0, 0.00001, 2)...)  // inside
-		recs = append(recs, gpsRecords(10.05, 0.00001, 4)...) // outside, 4 points
+func TestFarRouteUntouched(t *testing.T) {
+	recs := gpsRecords(10.5, 0.00002, 300)
+	_, route := DeriveTelemetry(trackData(recs), homeZones, false)
+	if len(route) != maxRoutePoints || route[0][0] != round(10.5, routePrecision) {
+		t.Errorf("a route far from home must be untouched, got %d points", len(route))
 	}
-	// sorted by timestamp the stream interleaves unpredictably; keep order by unsetting timestamps.
-	for _, r := range recs {
-		r.Timestamp = nil
+	if routeHidden(trackData(recs), homeZones, false) {
+		t.Error("a far route is not hidden")
 	}
-	if got := homeZones.trimTrack(toPts(recs)); got != nil {
-		t.Errorf("segments under %d points must be dropped, got %d", minSegmentPoints, len(got))
+}
+
+func TestEndTrimmed(t *testing.T) {
+	// Starts ~6.6 km south, runs north and ends at home.
+	pts := toPts(gpsRecords(9.94, 0.00002, 3000))
+	got := homeZones.trimTrack(pts)
+	if len(got) == 0 || len(got) == len(pts) {
+		t.Fatalf("end must be trimmed, kept %d of %d", len(got), len(pts))
+	}
+	if d := haversineM(got[len(got)-1][0], got[len(got)-1][1], 10.0, 10.0); d <= HomeZoneRadiusM || d > HomeZoneRadiusM+5 {
+		t.Errorf("last kept point is %.1f m from home; want just outside the zone", d)
+	}
+	if got[0][0] != pts[0][0] {
+		t.Error("the far start must be kept")
+	}
+}
+
+func TestRouteHiddenFlag(t *testing.T) {
+	data := trackData(gpsRecords(10.0, 0.00001, 300))
+	sc := &pbactivity.ShowcasedActivity{ShowcaseId: "a", Title: "Morning Run", ActivityData: data}
+	b, err := BuildActivity(sc, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "a"}, fixedNow, homeZones, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), `"routePoints":[]`) || !strings.Contains(string(b), `"routeHidden":true`) {
+		t.Error("a loop inside the zone must give routePoints [] and routeHidden true")
+	}
+	far := &pbactivity.ShowcasedActivity{ShowcaseId: "a", Title: "Morning Run", ActivityData: trackData(gpsRecords(10.5, 0.00002, 300))}
+	b, err = BuildActivity(far, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "a"}, fixedNow, homeZones, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), "routeHidden") {
+		t.Error("a published route must not carry routeHidden")
+	}
+	if routeHidden(trackData(nil), homeZones, false) {
+		t.Error("an activity with no GPS is not hidden")
+	}
+}
+
+func TestParkrunStaysWhole(t *testing.T) {
+	// A parkrun that starts and ends inside the home zone is published in full.
+	sc := distSC("Home parkrun #1", 5010, gpsRecords(10.0, 0.00001, 300))
+	b, err := BuildActivity(sc, &pbactivity.ShowcaseProfileEntry{ShowcaseId: "x"}, fixedNow, homeZones, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out struct {
+		RoutePoints [][]float64 `json:"routePoints"`
+	}
+	if err := json.Unmarshal(b, &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(out.RoutePoints) != maxRoutePoints || strings.Contains(string(b), "routeHidden") {
+		t.Errorf("a parkrun is kept whole, got %d points", len(out.RoutePoints))
 	}
 }
 
@@ -175,35 +220,25 @@ func TestLocationInZoneDropped(t *testing.T) {
 func TestLoadZones(t *testing.T) {
 	dir := t.TempDir()
 	places := filepath.Join(dir, "places.json")
-	learned := filepath.Join(dir, "privacy-zones.json")
 	write := func(p, s string) {
 		if err := os.WriteFile(p, []byte(s), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if _, err := LoadZones(places, learned); err == nil {
+	if _, err := LoadZones(places); err == nil {
 		t.Error("missing places.json must be an error")
 	}
 	write(places, `{"homes":[{"lat":10.0,"lon":10.0,"name":"x"}]}`)
-	z, err := LoadZones(places, learned) // learned absent: fine
-	if err != nil || !z.Contains(10.001, 10.0) || z.Contains(10.02, 10.0) {
-		t.Fatalf("homes only: %v", err)
-	}
-	write(learned, `{"zones":[{"lat":11.0,"lng":11.0,"radiusM":800}]}`)
-	z, err = LoadZones(places, learned)
-	if err != nil || !z.Contains(11.001, 11.0) {
-		t.Fatalf("with learned: %v", err)
-	}
-	write(learned, `{not json`)
-	if _, err := LoadZones(places, learned); err == nil {
-		t.Error("corrupt learned file must fail closed")
+	z, err := LoadZones(places)
+	if err != nil || !z.Contains(10.004, 10.0) || z.Contains(10.006, 10.0) {
+		t.Fatalf("homes only, 500 m: %v", err)
 	}
 	write(places, `{"homes":[]}`)
-	if _, err := LoadZones(places, filepath.Join(dir, "none.json")); err == nil {
+	if _, err := LoadZones(places); err == nil {
 		t.Error("no homes must be an error")
 	}
 	write(places, `{not json`)
-	if _, err := LoadZones(places, learned); err == nil || strings.Contains(err.Error(), dir) {
+	if _, err := LoadZones(places); err == nil || strings.Contains(err.Error(), dir) {
 		t.Errorf("error must exist and not leak paths/content: %v", err)
 	}
 }
