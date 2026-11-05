@@ -310,7 +310,7 @@ func (s *Service) generateRoundup(ctx context.Context, userID string, periodType
 		})
 	}
 
-	roundup.AiSummary = generateRoundupAISummary(ctx, s.logger, s.AI, roundup)
+	stampRoundupStory(roundup, generateRoundupAISummary(ctx, s.logger, s.AI, roundup), time.Now())
 
 	if err := s.store.SetRoundup(ctx, roundup); err != nil {
 		return nil, fmt.Errorf("save roundup: %w", err)

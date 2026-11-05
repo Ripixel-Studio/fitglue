@@ -274,21 +274,7 @@ func deriveEffortLevel(e *pbactivity.ShowcaseProfileEntry) int32 {
 // errors or is limited, or the output fails voice.Line/voice.Check. Raw model
 // output is never returned.
 func generateRoundupAISummary(ctx context.Context, logger infra.Logger, ai claude.Completer, roundup *pbactivity.ShowcaseRoundup) string {
-	if ai == nil {
-		ai = claude.Default()
-	}
-	text, attempts, err := voice.Generate(func(extra string) (string, error) {
-		sys := voice.Guide() + "\n\n" + roundupTaskBlock
-		if extra != "" {
-			sys += "\n\n" + extra
-		}
-		return ai.Complete(ctx, claude.Request{
-			Model:   claude.ModelSonnet,
-			System:  sys,
-			Prompt:  roundupUserPrompt + "\n\nPeriod data:\n" + buildRoundupSummaryContext(roundup),
-			Timeout: roundupAISummaryTimeout,
-		})
-	}, maxRoundupSummaryChars, roundupCheckContext(roundup))
+	text, attempts, err := roundupAISummary(ctx, ai, roundup)
 	if err != nil {
 		logger.Warn(ctx, "roundup AI summary: Claude unavailable", "error", err, "limited", errors.Is(err, claude.ErrLimited))
 		return ""
@@ -299,6 +285,35 @@ func generateRoundupAISummary(ctx context.Context, logger infra.Logger, ai claud
 		logger.Info(ctx, "roundup AI summary: passed the voice check on retry")
 	}
 	return text
+}
+
+// roundupAISummary is the one Claude call behind every roundup story: the
+// generator's and fitgluectl regen-roundup-stories'. A Claude error (including
+// claude.ErrLimited) is returned; a voice-guard drop is "" with no error.
+func roundupAISummary(ctx context.Context, ai claude.Completer, roundup *pbactivity.ShowcaseRoundup) (string, int, error) {
+	if ai == nil {
+		ai = claude.Default()
+	}
+	baseSys, prompt := RoundupStoryPrompt(roundup)
+	return voice.Generate(func(extra string) (string, error) {
+		sys := baseSys
+		if extra != "" {
+			sys += "\n\n" + extra
+		}
+		return ai.Complete(ctx, claude.Request{
+			Model:   claude.ModelSonnet,
+			System:  sys,
+			Prompt:  prompt,
+			Timeout: roundupAISummaryTimeout,
+		})
+	}, maxRoundupSummaryChars, roundupCheckContext(roundup))
+}
+
+// RoundupStoryPrompt is the system prompt and user prompt sent for a roundup
+// story (first attempt), exported so fitgluectl can estimate a batch's size.
+func RoundupStoryPrompt(roundup *pbactivity.ShowcaseRoundup) (system, prompt string) {
+	return voice.Guide() + "\n\n" + roundupTaskBlock,
+		roundupUserPrompt + "\n\nPeriod data:\n" + buildRoundupSummaryContext(roundup)
 }
 
 const roundupTaskBlock = `Write the roundup for this period: ONE paragraph of 4-6 sentences, in the voice above.
@@ -374,7 +389,7 @@ func buildRoundupSummaryContext(roundup *pbactivity.ShowcaseRoundup) string {
 
 	if roundup.TotalDistanceMeters > 500 {
 		km := roundup.TotalDistanceMeters / 1000
-		lines = append(lines, fmt.Sprintf("Total distance: %.1f km", km))
+		lines = append(lines, fmt.Sprintf("Total distance across every session, all sports combined (not just running): %.1f km", km))
 	}
 
 	if roundup.TotalCaloriesKcal > 0 {

@@ -81,7 +81,7 @@ const (
 	PipelineStage_PIPELINE_STAGE_GATE        PipelineStage = 1 // condition matcher, activity filter, logic gate
 	PipelineStage_PIPELINE_STAGE_ENRICHMENT  PipelineStage = 2 // trackers + achievements (parkrun, PRs, goals, streaks, milestones)
 	PipelineStage_PIPELINE_STAGE_METRICS     PipelineStage = 3 // computed metrics (pace, HR, power, zones, effort, training load, recovery, cadence, speed, elevation, intervals, running dynamics, calories)
-	PipelineStage_PIPELINE_STAGE_CONTEXT_AI  PipelineStage = 4 // LLM + external APIs (location naming, weather, AI banner, type mapper, AI companion, AI activity type)
+	PipelineStage_PIPELINE_STAGE_CONTEXT_AI  PipelineStage = 4 // LLM + external APIs (location naming, weather, type mapper, AI companion, AI activity type)
 	PipelineStage_PIPELINE_STAGE_INPUT       PipelineStage = 5 // user input prompts (user input, manual workout entry, photo upload)
 	PipelineStage_PIPELINE_STAGE_VIZ         PipelineStage = 6 // visual outputs (muscle heatmap, muscle heatmap image, route thumbnail, workout summary)
 )

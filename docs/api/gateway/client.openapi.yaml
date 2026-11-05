@@ -4305,6 +4305,16 @@ components:
                     type: string
                 biggestVolumeShowcaseId:
                     type: string
+                aiSummaryModel:
+                    type: string
+                    description: |-
+                        Who wrote ai_summary and when: "claude-sonnet" for the Claude path in his
+                         voice (pkg/voice); empty on summaries written before this was recorded
+                         (the old Gemini third-person ones). fitgluectl regen-roundup-stories skips
+                         roundups already carrying the current value.
+                aiSummaryGeneratedAt:
+                    type: string
+                    format: date-time
         ShowcaseTheme:
             type: object
             properties:

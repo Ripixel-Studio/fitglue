@@ -128,4 +128,10 @@ message ShowcaseRoundup {
   string furthest_showcase_id = 44;
   string most_calories_showcase_id = 45;
   string biggest_volume_showcase_id = 46;
+  // Who wrote ai_summary and when: "claude-sonnet" for the Claude path in his
+  // voice (pkg/voice); empty on summaries written before this was recorded
+  // (the old Gemini third-person ones). fitgluectl regen-roundup-stories skips
+  // roundups already carrying the current value.
+  string ai_summary_model = 47;
+  google.protobuf.Timestamp ai_summary_generated_at = 48;
 }
