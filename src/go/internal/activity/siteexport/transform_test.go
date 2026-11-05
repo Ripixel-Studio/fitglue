@@ -249,7 +249,10 @@ func TestBuildRoundup(t *testing.T) {
 	requireKeys(t, "roundup", r, "roundupId", "slug", "periodType", "periodKey", "periodStart", "periodEnd", "generatedAt",
 		"totalActivities", "activityTypeBreakdowns", "hrZoneMinutes", "prsAchieved", "sources", "aiSummary",
 		"calloutActivities", "dayEntries", "photos", "routes", "places", "bestEfforts", "muscles",
-		"effortEasyCount", "longestSessionShowcaseId")
+		"effortEasyCount", "longestSessionShowcaseId", "aiSummaryModel", "aiSummaryGeneratedAt")
+	if r["aiSummaryModel"] != "claude-sonnet" || r["aiSummaryGeneratedAt"] != "2026-10-20T07:00:00Z" {
+		t.Errorf("the site tells old stories from new by these: %v %v", r["aiSummaryModel"], r["aiSummaryGeneratedAt"])
+	}
 	if _, ok := r["weather"]; ok {
 		t.Error("absent optional weather must be omitted")
 	}

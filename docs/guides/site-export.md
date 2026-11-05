@@ -94,6 +94,22 @@ estimate, so the export puts the platform figure on each activity file's
 entries (dry run by default; it also lists the roundups whose totals were built
 from the old figures).
 
+Two more correction commands write through the activity service with the same
+site-export hook the service runs (with `--apply`: re-export the changed files,
+refresh `index.json`, append to the rebuild signal file `SITE_EXPORT_SIGNAL_FILE`,
+default `~/.jarvis/home/site-changed`):
+
+- `fitgluectl fix-activity --id <showcase id> --type RUN [--distance-m M]
+  [--calories-kcal K] [--apply]` corrects a mislabelled activity in the data blob,
+  the showcase document and the profile entry, then recomputes lifetime totals and
+  the stored roundups holding it. A non-strength type drops sets that carry no
+  lifting (a Hevy "Running" set), since strength sets force the strength layout
+  (`ResolveCategory`). `--scan` lists runs stored as strength sessions.
+- `fitgluectl regen-roundup-stories [--key | --kind | --since] [--force] [--apply]`
+  rewrites roundup stories (`aiSummary`) through Claude in James's voice. Each
+  roundup file carries `aiSummaryModel` (`claude-sonnet`, or absent on old Gemini
+  text) and `aiSummaryGeneratedAt`, so the site can tell old stories from new.
+
 ## Running it
 
 ```bash

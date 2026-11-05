@@ -47,6 +47,14 @@ bin/fitgluectl connect googlehealth|strava|github|spotify  # prints the authoris
 bin/fitgluectl connect hevy --api-key-stdin             # stores the key, prints the webhook ingress key once
 bin/fitgluectl connect intervals --api-key-stdin --athlete-id i12345
 bin/fitgluectl connections [--json]                     # what is connected, token expiry
+bin/fitgluectl fix-activity --id <showcase id> --type RUN [--distance-m M] [--calories-kcal K] [--apply]
+                                                        # correct a mislabelled activity + everything derived (entry, totals,
+                                                        # roundups, site export); distance defaults to the source's recorded set
+bin/fitgluectl fix-activity --scan                      # list runs stored as strength sessions (read-only)
+bin/fitgluectl regen-roundup-stories [--key K | --kind week|month|year | --since 2026-01-01] [--force] [--apply]
+                                                        # rewrite roundup stories through Claude in his voice; dry run prints
+                                                        # counts, a cost estimate and 3 old/new samples; skips stories already
+                                                        # stamped ai_summary_model=claude-sonnet, so re-runs resume
 bin/fitgluectl health-check                             # sleep/body/nutrition routes vs Google Health: counts + dates only
 bin/fitgluectl reconcile [--since 14d] [--apply] [--json] # three-way check Hevy × FitGlue × Strava, one row per session;
                                                         # --apply replays missed ingests (same event as the webhook) and

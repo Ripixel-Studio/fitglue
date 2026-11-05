@@ -730,8 +730,14 @@ type ShowcaseRoundup struct {
 	FurthestShowcaseId        string `protobuf:"bytes,44,opt,name=furthest_showcase_id,json=furthestShowcaseId,proto3" json:"furthest_showcase_id,omitempty"`
 	MostCaloriesShowcaseId    string `protobuf:"bytes,45,opt,name=most_calories_showcase_id,json=mostCaloriesShowcaseId,proto3" json:"most_calories_showcase_id,omitempty"`
 	BiggestVolumeShowcaseId   string `protobuf:"bytes,46,opt,name=biggest_volume_showcase_id,json=biggestVolumeShowcaseId,proto3" json:"biggest_volume_showcase_id,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	// Who wrote ai_summary and when: "claude-sonnet" for the Claude path in his
+	// voice (pkg/voice); empty on summaries written before this was recorded
+	// (the old Gemini third-person ones). fitgluectl regen-roundup-stories skips
+	// roundups already carrying the current value.
+	AiSummaryModel       string                 `protobuf:"bytes,47,opt,name=ai_summary_model,json=aiSummaryModel,proto3" json:"ai_summary_model,omitempty"`
+	AiSummaryGeneratedAt *timestamppb.Timestamp `protobuf:"bytes,48,opt,name=ai_summary_generated_at,json=aiSummaryGeneratedAt,proto3" json:"ai_summary_generated_at,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ShowcaseRoundup) Reset() {
@@ -1086,6 +1092,20 @@ func (x *ShowcaseRoundup) GetBiggestVolumeShowcaseId() string {
 	return ""
 }
 
+func (x *ShowcaseRoundup) GetAiSummaryModel() string {
+	if x != nil {
+		return x.AiSummaryModel
+	}
+	return ""
+}
+
+func (x *ShowcaseRoundup) GetAiSummaryGeneratedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AiSummaryGeneratedAt
+	}
+	return nil
+}
+
 var File_models_activity_roundup_proto protoreflect.FileDescriptor
 
 const file_models_activity_roundup_proto_rawDesc = "" +
@@ -1143,7 +1163,7 @@ const file_models_activity_roundup_proto_rawDesc = "" +
 	"\n" +
 	"total_sets\x18\x06 \x01(\x05R\ttotalSets\x12\x1d\n" +
 	"\n" +
-	"total_reps\x18\a \x01(\x05R\ttotalReps\"\xff\x14\n" +
+	"total_reps\x18\a \x01(\x05R\ttotalReps\"\xfc\x15\n" +
 	"\x0fShowcaseRoundup\x12\x1d\n" +
 	"\n" +
 	"roundup_id\x18\x01 \x01(\tR\troundupId\x12\x12\n" +
@@ -1197,7 +1217,9 @@ const file_models_activity_roundup_proto_rawDesc = "" +
 	"\x1bhighest_avg_bpm_showcase_id\x18+ \x01(\tR\x17highestAvgBpmShowcaseId\x120\n" +
 	"\x14furthest_showcase_id\x18, \x01(\tR\x12furthestShowcaseId\x129\n" +
 	"\x19most_calories_showcase_id\x18- \x01(\tR\x16mostCaloriesShowcaseId\x12;\n" +
-	"\x1abiggest_volume_showcase_id\x18. \x01(\tR\x17biggestVolumeShowcaseIdB\n" +
+	"\x1abiggest_volume_showcase_id\x18. \x01(\tR\x17biggestVolumeShowcaseId\x12(\n" +
+	"\x10ai_summary_model\x18/ \x01(\tR\x0eaiSummaryModel\x12Q\n" +
+	"\x17ai_summary_generated_at\x180 \x01(\v2\x1a.google.protobuf.TimestampR\x14aiSummaryGeneratedAtB\n" +
 	"\n" +
 	"\b_weather*\x93\x01\n" +
 	"\x11RoundupPeriodType\x12#\n" +
@@ -1257,11 +1279,12 @@ var file_models_activity_roundup_proto_depIdxs = []int32{
 	6,  // 16: fitglue.models.activity.ShowcaseRoundup.weather:type_name -> fitglue.models.activity.RoundupWeather
 	14, // 17: fitglue.models.activity.ShowcaseRoundup.best_efforts:type_name -> fitglue.models.activity.BestEffort
 	7,  // 18: fitglue.models.activity.ShowcaseRoundup.muscles:type_name -> fitglue.models.activity.RoundupMuscle
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	11, // 19: fitglue.models.activity.ShowcaseRoundup.ai_summary_generated_at:type_name -> google.protobuf.Timestamp
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_models_activity_roundup_proto_init() }

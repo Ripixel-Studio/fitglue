@@ -34,8 +34,9 @@ Full-viewport opening. Already exists — Design will reimagine layout, not data
 - Written by Claude via the box CLI (`pkg/claude`) in `internal/activity/roundup_ai.go`
 - Called from `generateRoundup()` before `SetRoundup` — non-blocking (empty string on failure)
 - Frontend: pull-quote card with gradient left border, renders when `aiSummary` is non-empty
-- Prompt: third-person, no "you/your", no coach clichés, references specific numbers
-- 10-second context deadline so it cannot stall recompute
+- Prompt: first person in James's voice (`pkg/voice` guide + guard), no names, no "you", no emoji, only the period's numbers
+- `ai_summary_model` (47) / `ai_summary_generated_at` (48) record who wrote it: `claude-sonnet` for this path, empty for the old Gemini third-person ones. `fitgluectl regen-roundup-stories` rewrites the stale ones (only the story; the numbers stay)
+- 120-second Claude timeout (`roundupAISummaryTimeout`); on failure the roundup saves with no story
 
 ### 3. Comparison Band
 Previous-period delta ticker: ↑+12% sessions / ↓−8% distance / ↑+3 PRs.
