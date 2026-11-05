@@ -1,13 +1,15 @@
 # FitGlue public ingress on the box (rethink F3.3).
 #
 # Tailscale Funnel terminates TLS for https://jarvis.tail3065f7.ts.net:443 and
-# forwards plain HTTP to this listener. Only /fg/* is routed; everything else is
-# an empty 404. The home screen (8790), dashboard (8787) and voicebox (8788) are
-# never reachable through here — Funnel maps 443 to this port and nothing else.
+# forwards plain HTTP to this listener. Only /fg/* (FitGlue) and /phone/* (Jarvis's
+# phone app API) are routed; everything else is an empty 404. The home screen
+# (8790), dashboard (8787) and voicebox (8788) are never reachable through here —
+# Funnel maps 443 to this port and nothing else.
 #
 # Backends are F3.1's systemd user units on fixed loopback ports:
 #   8101 api-webhook   8102 api-client   8104 pipeline
 #   8105 activity      8106 destination
+# and one that is not FitGlue: 8795, the Jarvis phone API (/phone/*).
 #
 # Validate:  caddy validate --config deploy/box/caddy/Caddyfile
 # Run:       systemctl --user start fitglue-caddy   (deploy/box/fitglue-caddy.service)
@@ -94,6 +96,16 @@ http://:8100 {
 	handle_path /fg/oauth/* {
 		rewrite * /api/v2/oauth{uri}
 		reverse_proxy 127.0.0.1:8102
+	}
+
+	# Jarvis's phone app API (not FitGlue): jarvis/gateway/phoneapi.py, a separate
+	# listener on loopback that serves only /phone/v1/* and /phone/dl/<link>; the rest
+	# of the Jarvis gateway is never reachable through it. Nothing is stripped: it
+	# serves under /phone. It keys rate limits on the right-most non-loopback
+	# X-Forwarded-For entry, which the trusted_proxies setting above keeps honest.
+	# See jarvis/docs/phone.md.
+	handle /phone/* {
+		reverse_proxy 127.0.0.1:8795
 	}
 
 	# Anything else: empty 404. No directory listings, no default page, no headers
