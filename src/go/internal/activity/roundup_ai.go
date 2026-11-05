@@ -389,7 +389,7 @@ func buildRoundupSummaryContext(roundup *pbactivity.ShowcaseRoundup) string {
 
 	if roundup.TotalDistanceMeters > 500 {
 		km := roundup.TotalDistanceMeters / 1000
-		lines = append(lines, fmt.Sprintf("Total distance: %.1f km", km))
+		lines = append(lines, fmt.Sprintf("Total distance across every session, all sports combined (not just running): %.1f km", km))
 	}
 
 	if roundup.TotalCaloriesKcal > 0 {
