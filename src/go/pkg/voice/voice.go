@@ -159,6 +159,11 @@ var commonFirstNames = func() map[string]bool {
 
 var tokenRe = regexp.MustCompile(`[\p{L}\p{N}₂][\p{L}\p{N}₂'’-]*`)
 
+// PeriodMonthToken marks a month the text is about (a roundup's own months), so that month's
+// name may stand alone ("May was a mixed bag") although April, May and June are also first
+// names. Other ambiguous months still need a date shape ("4 May").
+func PeriodMonthToken(month string) string { return "periodmonth" + strings.ToLower(month) }
+
 func contextTokens(c string) map[string]bool {
 	m := map[string]bool{}
 	// Case-insensitive: the activity type arrives as ACTIVITY_TYPE_PILATES and
@@ -323,7 +328,7 @@ func Offender(out, context string) string {
 		}
 		base := strings.TrimSuffix(strings.TrimSuffix(tok, "'s"), "’s")
 		if ambiguousMonths[tok] {
-			if dateShaped(out[:loc[0]], out[loc[1]:]) {
+			if dateShaped(out[:loc[0]], out[loc[1]:]) || ctx[PeriodMonthToken(tok)] {
 				continue
 			}
 			return tok
