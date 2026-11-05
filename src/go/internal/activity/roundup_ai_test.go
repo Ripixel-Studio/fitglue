@@ -10,6 +10,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/fitglue/server/src/go/pkg/claude"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
+	"github.com/fitglue/server/src/go/pkg/voice"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -545,5 +546,23 @@ func TestRoundupRetriesOnceThenPasses(t *testing.T) {
 	f = &seqCompleter{outs: []string{"Priya kept up 💪"}}
 	if got := generateRoundupAISummary(context.Background(), infra.NewLogger(), f, syntheticRoundup()); got != "" || len(f.systems) != 2 {
 		t.Errorf("two failures must give empty after exactly 2 calls: %q %d", got, len(f.systems))
+	}
+}
+
+func TestRoundupCheckContextCarriesItsMonths(t *testing.T) {
+	month := &pbactivity.ShowcaseRoundup{PeriodType: pbactivity.RoundupPeriodType_ROUNDUP_PERIOD_TYPE_MONTH,
+		PeriodStart: timestamppb.New(time.Date(2025, 5, 1, 0, 0, 0, 0, time.UTC)),
+		PeriodEnd:   timestamppb.New(time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC))}
+	if err := voice.Check("May was a proper mixed bag.", roundupCheckContext(month)); err != nil {
+		t.Errorf("May roundup: %v", err)
+	}
+	if voice.Check("June was better.", roundupCheckContext(month)) == nil {
+		t.Error("a May roundup must not clear June")
+	}
+	week := &pbactivity.ShowcaseRoundup{PeriodType: pbactivity.RoundupPeriodType_ROUNDUP_PERIOD_TYPE_WEEK,
+		PeriodStart: timestamppb.New(time.Date(2025, 4, 28, 0, 0, 0, 0, time.UTC)),
+		PeriodEnd:   timestamppb.New(time.Date(2025, 5, 5, 0, 0, 0, 0, time.UTC))}
+	if err := voice.Check("April ended and May began with a run.", roundupCheckContext(week)); err != nil {
+		t.Errorf("a week across April and May: %v", err)
 	}
 }

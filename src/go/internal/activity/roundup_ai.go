@@ -335,6 +335,13 @@ const calendarWords = "Monday Tuesday Wednesday Thursday Friday Saturday Sunday 
 // an activity title, so a word from his own text cannot whitelist itself.
 func roundupCheckContext(roundup *pbactivity.ShowcaseRoundup) string {
 	parts := []string{periodTypeName(roundup.PeriodType), calendarWords}
+	// the months the period covers may be named on their own (a year: all twelve)
+	if roundup.PeriodStart != nil && roundup.PeriodEnd != nil {
+		end := roundup.PeriodEnd.AsTime().UTC().AddDate(0, 0, -1)
+		for d := roundup.PeriodStart.AsTime().UTC(); !d.After(end); d = d.AddDate(0, 0, 1) {
+			parts = append(parts, voice.PeriodMonthToken(d.Month().String()))
+		}
+	}
 	for _, bd := range roundup.ActivityTypeBreakdowns {
 		parts = append(parts, activityTypeShortLabel(bd.ActivityType))
 	}

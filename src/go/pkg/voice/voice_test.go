@@ -380,3 +380,18 @@ func TestLineAndCheckStripEmoji(t *testing.T) {
 		t.Errorf("Check: %v", err)
 	}
 }
+
+// A roundup for May may say "May" at a sentence start (2026-11-05: April, May and June
+// roundups were dropped every time); without its period token "May" is still a name.
+func TestPeriodMonthAllowsThatMonthOnly(t *testing.T) {
+	line := "May was a proper mixed bag, seven sessions in all."
+	if Check(line, "month") == nil {
+		t.Error("a bare May with no period context must still fail")
+	}
+	if err := Check(line, "month "+PeriodMonthToken("May")); err != nil {
+		t.Errorf("May in a May roundup should pass: %v", err)
+	}
+	if Check("June was next, and so was May.", "month "+PeriodMonthToken("April")) == nil {
+		t.Error("an April roundup does not clear May or June")
+	}
+}
