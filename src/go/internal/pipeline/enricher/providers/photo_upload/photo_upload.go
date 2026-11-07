@@ -50,12 +50,15 @@ func (p *Provider) SetService(s *bootstrap.Service) {
 
 func (p *Provider) Name() string { return "photo-upload" }
 
+// AsksUser: a lag-forced partial run still asks (see providers.AsksUser).
+func (p *Provider) AsksUser() bool { return true }
+
 func (p *Provider) ProviderType() pbplugin.EnricherProviderType {
 	return pbplugin.EnricherProviderType_ENRICHER_PROVIDER_PHOTO_UPLOAD
 }
 
 // Enrich pauses the pipeline to request activity photo uploads from the user.
-// If doNotRetry is set (user dismissed), the enricher skips gracefully.
+// doNotRetry reaches here only from an out-of-band single run (AsksUser keeps lag-forced runs asking): skip gracefully.
 func (p *Provider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, userRec *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
 	if doNotRetry {
 		logger.Debug("photo-upload: skipping — do-not-retry flag set")

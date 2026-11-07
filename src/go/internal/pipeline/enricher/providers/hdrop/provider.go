@@ -36,6 +36,9 @@ func (p *Provider) SetService(s *bootstrap.Service) {
 
 func (p *Provider) Name() string { return "hdrop" }
 
+// AsksUser: a lag-forced partial run still asks (see providers.AsksUser).
+func (p *Provider) AsksUser() bool { return true }
+
 func (p *Provider) ProviderType() pbplugin.EnricherProviderType {
 	return pbplugin.EnricherProviderType_ENRICHER_PROVIDER_HDROP
 }

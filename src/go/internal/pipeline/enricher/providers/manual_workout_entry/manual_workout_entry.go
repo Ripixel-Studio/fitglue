@@ -37,6 +37,9 @@ func (p *Provider) SetService(s *bootstrap.Service) {
 
 func (p *Provider) Name() string { return "manual-workout-entry" }
 
+// AsksUser: a lag-forced partial run still asks (see providers.AsksUser).
+func (p *Provider) AsksUser() bool { return true }
+
 func (p *Provider) ProviderType() pbplugin.EnricherProviderType {
 	return pbplugin.EnricherProviderType_ENRICHER_PROVIDER_MANUAL_WORKOUT_ENTRY
 }
@@ -54,12 +57,12 @@ func (p *Provider) Enrich(ctx context.Context, logger *slog.Logger, activity *pb
 		}, nil
 	}
 
-	// User dismissed the prompt — skip gracefully.
+	// Out-of-band single run (doNotRetry; lag-forced runs still ask, see AsksUser) — skip gracefully.
 	if doNotRetry {
 		logger.Debug("manual-workout-entry: skipping — do-not-retry flag set")
 		return &providers.EnrichmentResult{
 			Skipped:    true,
-			SkipReason: "user dismissed manual workout entry",
+			SkipReason: "out-of-band run, cannot ask",
 		}, nil
 	}
 
