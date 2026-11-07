@@ -140,3 +140,24 @@ type NonIdempotentProvider interface {
 	// replay this enricher rather than re-executing it on resume.
 	IsIdempotent() bool
 }
+
+// AsksUser marks an enricher whose only reason to hold a run back is a question for the
+// owner (a photo, an hDrop export, the sets of a manual workout). These never lag-retry, so
+// a run forced partial because a data source lagged past its deadline must still ask them:
+// the deadline is about missing data, not about the owner's answer. (2026-11-05: Google
+// Health was signed out, heart rate lagged 30 min, and the forced run skipped the photo and
+// hDrop prompts, publishing a class to Strava and the site with neither.) Out-of-band single
+// runs call Enrich directly and still pass doNotRetry=true, so they skip as before.
+type AsksUser interface {
+	Provider
+	AsksUser() bool
+}
+
+// DoNotRetryFor is the doNotRetry a provider sees: lag-forced partial runs leave an
+// AsksUser provider free to raise its pending input.
+func DoNotRetryFor(p Provider, doNotRetry bool) bool {
+	if a, ok := p.(AsksUser); ok && a.AsksUser() {
+		return false
+	}
+	return doNotRetry
+}
