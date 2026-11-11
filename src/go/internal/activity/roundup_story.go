@@ -11,12 +11,12 @@ import (
 )
 
 // RoundupStoryModel is recorded in ShowcaseRoundup.ai_summary_model when the
-// story ("THE STORY" on the site) was written by the Claude path in James's
-// voice (roundupAISummary: voice guide, voice.Check, no emoji). Summaries from
-// before it was recorded, the old Gemini third-person ones, carry "".
+// story ("THE STORY" on the site) was written by the current Claude path
+// (roundupAISummary: the observer guide, voice.Check, no emoji). "claude-sonnet"
+// marks the first-person stories of 2026-11-05 (rewritten), "" the old Gemini ones.
 // Change it when the path changes enough that every story should be rewritten:
 // fitgluectl regen-roundup-stories then treats the old ones as stale.
-const RoundupStoryModel = "claude-sonnet"
+const RoundupStoryModel = "claude-sonnet-observer"
 
 // RoundupStoryIsCurrent reports whether r's story was written by the current path.
 func RoundupStoryIsCurrent(r *pbactivity.ShowcaseRoundup) bool {

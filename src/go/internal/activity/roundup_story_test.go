@@ -10,6 +10,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/fitglue/server/src/go/pkg/claude"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
+	"github.com/fitglue/server/src/go/pkg/voice"
 )
 
 func TestRoundupStoryIsCurrent(t *testing.T) {
@@ -122,5 +123,21 @@ func TestRoundupStoryPromptMatchesGenerator(t *testing.T) {
 	}
 	if !strings.Contains(prompt, "Sessions: 4") {
 		t.Errorf("prompt lacks the period data: %s", prompt)
+	}
+}
+
+// James, 2026-11-11: stories are told by a knowledgeable observer, not in his first person.
+func TestRoundupStoryPromptIsTheObserver(t *testing.T) {
+	sys, _ := RoundupStoryPrompt(&pbactivity.ShowcaseRoundup{PeriodKey: "week-44-2026"})
+	if !strings.HasPrefix(sys, voice.Observer()) {
+		t.Fatal("roundup story system prompt must start with the observer guide")
+	}
+	if strings.Contains(sys, voice.Guide()) {
+		t.Fatal("roundup story must not use his first-person voice guide")
+	}
+	for _, want := range []string{"Third person", "Never I, me, my or we", "insight"} {
+		if !strings.Contains(sys, want) {
+			t.Errorf("roundup task block lacks %q", want)
+		}
 	}
 }

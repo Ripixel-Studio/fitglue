@@ -18,6 +18,16 @@ import (
 //go:embed fallback.md
 var fallback string
 
+// observer.md is the voice of the AI stories (activity summary, roundup write-up): a
+// knowledgeable, friendly observer in the third person, not James in the first person
+// (James, 2026-11-11). Guide() remains his own voice, for lines that sound like him.
+//
+//go:embed observer.md
+var observer string
+
+// Observer returns the observer guide for AI stories.
+func Observer() string { return strings.TrimSpace(observer) }
+
 // words.txt: lowercase English words of 2-10 letters, from SCOWL (Spell Checker
 // Oriented Word Lists, Kevin Atkinson; permissive MIT-style licence), the
 // british-english + american-english lists shipped as Debian wbritish/wamerican

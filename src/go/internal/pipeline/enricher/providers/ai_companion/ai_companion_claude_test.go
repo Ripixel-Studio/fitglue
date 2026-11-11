@@ -41,7 +41,7 @@ func run(t *testing.T, name string, f *fakeAI) (*fakeAI, map[string]string, stri
 	return f, res.Metadata, res.Name, res.Description
 }
 
-func TestCompanionUsesHaikuAndGuide(t *testing.T) {
+func TestCompanionUsesHaikuAndObserver(t *testing.T) {
 	g := filepath.Join(t.TempDir(), "g.md")
 	if err := os.WriteFile(g, []byte("GUIDE-MARK\nbe fun"), 0o600); err != nil {
 		t.Fatal(err)
@@ -53,8 +53,8 @@ func TestCompanionUsesHaikuAndGuide(t *testing.T) {
 	if f.req.Model != "haiku" {
 		t.Errorf("model %q", f.req.Model)
 	}
-	if !strings.HasPrefix(f.req.System, "GUIDE-MARK") {
-		t.Errorf("system should start with the guide: %q", f.req.System)
+	if !strings.HasPrefix(f.req.System, voice.Observer()) || strings.Contains(f.req.System, "GUIDE-MARK") {
+		t.Errorf("system should be the observer guide, not his voice guide: %q", f.req.System)
 	}
 	if !strings.Contains(f.req.System, "at most 280 characters") {
 		t.Error("task block missing")

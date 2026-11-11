@@ -16,7 +16,7 @@ import (
 )
 
 // `fitgluectl regen-roundup-stories` rewrites the "THE STORY" paragraph of stored
-// roundups through the current Claude path in James's voice (activity.WriteRoundupStory:
+// roundups through the current Claude path as the observer (activity.WriteRoundupStory:
 // voice guide, voice guard, no emoji), replacing the old Gemini third-person text.
 // Only the story changes; the period's numbers stay as stored. Each saved story records
 // its model and time (ai_summary_model / ai_summary_generated_at), so a re-run skips

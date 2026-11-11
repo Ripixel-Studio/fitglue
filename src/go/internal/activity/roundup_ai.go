@@ -269,8 +269,8 @@ func deriveEffortLevel(e *pbactivity.ShowcaseProfileEntry) int32 {
 	}
 }
 
-// generateRoundupAISummary asks Claude Sonnet for the roundup write-up in
-// James's voice. It returns "" (the roundup keeps its non-AI text) when Claude
+// generateRoundupAISummary asks Claude Sonnet for the roundup write-up, told by
+// a knowledgeable observer (voice.Observer). It returns "" (the roundup keeps its non-AI text) when Claude
 // errors or is limited, or the output fails voice.Line/voice.Check. Raw model
 // output is never returned.
 func generateRoundupAISummary(ctx context.Context, logger infra.Logger, ai claude.Completer, roundup *pbactivity.ShowcaseRoundup) string {
@@ -312,17 +312,17 @@ func roundupAISummary(ctx context.Context, ai claude.Completer, roundup *pbactiv
 // RoundupStoryPrompt is the system prompt and user prompt sent for a roundup
 // story (first attempt), exported so fitgluectl can estimate a batch's size.
 func RoundupStoryPrompt(roundup *pbactivity.ShowcaseRoundup) (system, prompt string) {
-	return voice.Guide() + "\n\n" + roundupTaskBlock,
+	return voice.Observer() + "\n\n" + roundupTaskBlock,
 		roundupUserPrompt + "\n\nPeriod data:\n" + buildRoundupSummaryContext(roundup)
 }
 
-const roundupTaskBlock = `Write the roundup for this period: ONE paragraph of 4-6 sentences, in the voice above.
-- Find a through-line built from the numbers (a sport that dominated, a streak that held, strength that quietly climbed).
-- Use only facts in the data. Never invent numbers, sports or events.
-- No names at all: not his, not anyone's, no places. Never quote an activity title. No 'you'. No Markdown, no lists.
-- Never mention alcohol, drink, drugs, pubs or recovery.
+const roundupTaskBlock = `Write the story of this period: ONE paragraph of 4-6 sentences, as the observer above.
+- Lead with an insight the numbers support: what the shape of the period says about his training (a sport that dominated and why that matters, a streak that held, strength quietly climbing, a block building toward something, a lighter week that looks like recovery). If nothing stands out, a friendly plain summary is fine.
+- Use only facts in the data. Never invent numbers, sports, races or events.
+- Third person: he, never his name. Never I, me, my or we. No 'you'. No names at all, no places. Never quote an activity title. No Markdown, no lists.
+- Never mention alcohol, drink, drugs, pubs or recovery from addiction.
 - No emoji.
-- End on a line worth screenshotting.`
+- End on a line that sums the period up.`
 
 const roundupUserPrompt = `Write the roundup paragraph now.`
 

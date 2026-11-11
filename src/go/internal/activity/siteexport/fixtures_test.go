@@ -218,7 +218,7 @@ func weekRoundup() *pbactivity.ShowcaseRoundup {
 		PrsAchieved:          []*pbactivity.ShowcaseTopPR{{RecordType: "5k", Value: 1192, Unit: "seconds"}},
 		Sources:              []pbactivity.ActivitySource{pbactivity.ActivitySource_SOURCE_STRAVA, pbactivity.ActivitySource_SOURCE_HEVY},
 		AiSummary:            "A solid week.",
-		AiSummaryModel:       "claude-sonnet",
+		AiSummaryModel:       "claude-sonnet-observer",
 		AiSummaryGeneratedAt: timestamppb.New(time.Date(2026, 10, 20, 7, 0, 0, 0, time.UTC)),
 		DayEntries: []*pbactivity.RoundupDayEntry{
 			{Date: "2026-10-13", EffortLevel: 1, ActivityCount: 1},
