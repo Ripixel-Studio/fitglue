@@ -55,6 +55,10 @@ bin/fitgluectl regen-roundup-stories [--key K | --kind week|month|year | --since
                                                         # rewrite roundup stories through Claude in his voice; dry run prints
                                                         # counts, a cost estimate and 3 old/new samples; skips stories already
                                                         # stamped ai_summary_model=claude-sonnet, so re-runs resume
+bin/fitgluectl regen-activity-summaries [--id ID | --since 2026-01-01] [--limit N] [--force] [--apply]
+                                                        # rewrite every site activity's AI summary through the enricher's own
+                                                        # path (ai_companion.Summarize); site copy only, never Strava; skips
+                                                        # summaries stamped aiSummary.model=claude-sonnet-observer
 bin/fitgluectl health-check                             # sleep/body/nutrition routes vs Google Health: counts + dates only
 bin/fitgluectl reconcile [--since 14d] [--apply] [--json] # three-way check Hevy × FitGlue × Strava, one row per session;
                                                         # --apply replays missed ingests (same event as the webhook) and

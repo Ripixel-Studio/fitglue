@@ -289,3 +289,36 @@ func RemoveSection(description, headerPrefix string) string {
 	}
 	return before + "\n\n" + after
 }
+
+// SplitAISummary takes a stored, fully enriched description apart around its AI
+// block: own is every block that is not a FitGlue section (the source's text and
+// his words, which the AI companion saw as the original description), ai is the
+// AI block's text without its label (with any further paragraphs up to the next
+// section), other is every other FitGlue section in order (what the companion
+// saw as the other enrichers' descriptions). The "Posted via FitGlue" footer is
+// in none of them.
+func SplitAISummary(desc string) (own, ai, other string) {
+	var owns, ais, others []string
+	inAI := false
+	for _, b := range splitBlocks(desc) {
+		if strings.HasPrefix(strings.ToLower(b), "posted via fitglue") {
+			continue
+		}
+		key := blockHeaderKey(b)
+		switch {
+		case key == "AI Summary:":
+			inAI = true
+			if t := strings.TrimSpace(b[strings.Index(b, "AI Summary:")+len("AI Summary:"):]); t != "" {
+				ais = append(ais, t)
+			}
+		case key != "":
+			inAI = false
+			others = append(others, b)
+		case inAI:
+			ais = append(ais, b) // a further paragraph of the AI block
+		default:
+			owns = append(owns, b)
+		}
+	}
+	return strings.Join(owns, "\n\n"), strings.Join(ais, "\n\n"), strings.Join(others, "\n\n")
+}

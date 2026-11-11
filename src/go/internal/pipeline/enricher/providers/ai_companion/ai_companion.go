@@ -10,6 +10,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
 
@@ -54,14 +56,9 @@ func (p *AICompanionProvider) ShouldDefer() bool {
 }
 
 func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, activity *pbactivity.StandardizedActivity, user *user.Record, inputs map[string]string, doNotRetry bool) (*providers.EnrichmentResult, error) {
-	// Build context from activity
-	activityContext := buildActivityContext(activity)
-
-	// Include enriched description from other enrichers (injected by orchestrator Phase 2).
-	// Scrubbed like the name; left out entirely if it touches sensitive vocabulary.
-	if enrichedDesc := inputs["enriched_description"]; enrichedDesc != "" && !voice.Sensitive(enrichedDesc) {
-		activityContext += "\n\nOther Enricher Descriptions:\n" + voice.Scrub(enrichedDesc)
-	}
+	// Context from the activity plus the other enrichers' descriptions
+	// (injected by orchestrator Phase 2).
+	activityContext := summaryContext(activity, inputs["enriched_description"])
 
 	// Repost cache: return stored result instead of calling Claude again.
 	// The key is versioned so Gemini-era lines are never reused, and a cached
@@ -78,7 +75,7 @@ func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, a
 					Description: cachedDesc,
 					Metadata:    map[string]string{"status": "success", "cache": "hit"},
 					Enrichments: &pbactivity.ActivityEnrichments{
-						AiSummary: &pbactivity.AiSummary{Html: cachedDesc},
+						AiSummary: &pbactivity.AiSummary{Html: cachedDesc, Model: SummaryModel, GeneratedAt: timestamppb.Now()},
 					},
 				}, nil
 			}
@@ -127,7 +124,9 @@ func (p *AICompanionProvider) Enrich(ctx context.Context, logger *slog.Logger, a
 		Metadata:    map[string]string{"status": "success"},
 		Enrichments: &pbactivity.ActivityEnrichments{
 			AiSummary: &pbactivity.AiSummary{
-				Html: result.Description,
+				Html:        result.Description,
+				Model:       SummaryModel,
+				GeneratedAt: timestamppb.Now(),
 			},
 		},
 	}, nil
@@ -162,6 +161,42 @@ func sanitiseForPrompt(s string) string {
 const cacheKey = "ai_companion_sonnet_v5"
 
 const aiLabel = "AI Summary:\n"
+
+// SummaryModel is stamped in AiSummary.model on every summary this path writes
+// (the observer guide, Sonnet, voice.Check with the echo guard). The site shows a
+// summary only when its model names claude. fitgluectl regen-activity-summaries
+// rewrites every stored summary whose model differs, so change it when the path
+// changes enough that the old ones should be rewritten.
+const SummaryModel = "claude-sonnet-observer"
+
+// summaryContext is the activity context the model sees: the activity, then the
+// other enrichers' descriptions, scrubbed like the name and left out entirely
+// if they touch sensitive vocabulary.
+func summaryContext(activity *pbactivity.StandardizedActivity, otherDescriptions string) string {
+	c := buildActivityContext(activity)
+	if otherDescriptions != "" && !voice.Sensitive(otherDescriptions) {
+		c += "\n\nOther Enricher Descriptions:\n" + voice.Scrub(otherDescriptions)
+	}
+	return c
+}
+
+// SummaryPrompt is the system and user prompt Summarize sends for activity.
+func SummaryPrompt(activity *pbactivity.StandardizedActivity, otherDescriptions string) (system, prompt string) {
+	return buildPrompt(summaryContext(activity, otherDescriptions))
+}
+
+// Summarize writes the AI summary for activity exactly as the enricher does
+// (same context, prompt, model and voice guard) and returns it with its
+// "AI Summary:\n" label. "" with a nil error means the guard dropped it; a
+// Claude error (claude.ErrLimited when the shared window is spent) is returned.
+// ai nil means claude.Default(). Used by fitgluectl regen-activity-summaries.
+func Summarize(ctx context.Context, ai claude.Completer, activity *pbactivity.StandardizedActivity, otherDescriptions string) (string, error) {
+	line, err := (&AICompanionProvider{AI: ai}).generate(ctx, summaryContext(activity, otherDescriptions))
+	if err != nil || line == "" {
+		return "", err
+	}
+	return aiLabel + line, nil
+}
 
 const taskBlock = `Write the summary for this session: 1–3 sentences, at most 280 characters, as the observer above. Give an insight the data supports (what the session says about his training, where the effort sat, how it compares with the rest of the data given); if there is none, a friendly plain summary. Use only facts in the data. Third person: he, never his name. Never I, me, my or we. No names. No 'you'. No emoji. Never mention alcohol, drink, drugs, pubs or recovery.`
 

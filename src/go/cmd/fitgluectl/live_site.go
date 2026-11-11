@@ -11,7 +11,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fitglue/server/src/go/internal/activity"
 	"github.com/fitglue/server/src/go/internal/activity/siteexport"
+	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/ai_companion"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 )
 
@@ -114,4 +116,44 @@ func regenStoriesCommand(ctx context.Context, args []string, stdout, stderr io.W
 	}
 	defer site.close()
 	return runRegenStories(ctx, f, storyAdapter{site.source}, stdout, time.Now)
+}
+
+// summaryAdapter joins the profile entries to the service's activity-summary
+// halves and the live enricher's writer.
+type summaryAdapter struct{ siteexport.ServiceSource }
+
+func (a summaryAdapter) SummaryEntries(ctx context.Context, slug string) ([]*pbactivity.ShowcaseProfileEntry, error) {
+	prof, err := a.Profile(ctx, slug)
+	if err != nil {
+		return nil, fmt.Errorf("profile %q: %w", slug, err)
+	}
+	return a.Entries(ctx, prof.UserId)
+}
+
+func (a summaryAdapter) LoadActivitySummary(ctx context.Context, id string) (*activity.ActivitySummary, error) {
+	return a.Service.LoadActivitySummary(ctx, id)
+}
+
+func (a summaryAdapter) WriteActivitySummary(ctx context.Context, s *activity.ActivitySummary) (string, error) {
+	return ai_companion.Summarize(ctx, nil, s.Activity, s.OtherDescriptions)
+}
+
+func (a summaryAdapter) SaveActivitySummary(ctx context.Context, s *activity.ActivitySummary, text string, now time.Time) error {
+	return a.Service.SaveActivitySummary(ctx, s, text, ai_companion.SummaryModel, now)
+}
+
+func regenSummariesCommand(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	f, err := parseRegenSummariesFlags(args, stderr)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+	site, err := openLiveSite(ctx, &f.export, stderr)
+	if err != nil {
+		return err
+	}
+	defer site.close()
+	return runRegenSummaries(ctx, f, summaryAdapter{site.source}, stdout, time.Now)
 }
