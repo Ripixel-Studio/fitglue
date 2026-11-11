@@ -540,7 +540,7 @@ func TestRoundupRetriesOnceThenPasses(t *testing.T) {
 	if got == "" || len(f.systems) != 2 {
 		t.Fatalf("got %q after %d calls", got, len(f.systems))
 	}
-	if !strings.Contains(f.systems[1], "Do not name or refer to anyone") || strings.Contains(f.systems[0], "Do not name or refer to anyone") {
+	if !strings.Contains(f.systems[1], voice.RetryNote) || strings.Contains(f.systems[0], voice.RetryNote) {
 		t.Errorf("retry instruction only belongs on the second call")
 	}
 	f = &seqCompleter{outs: []string{"Priya kept up 💪"}}

@@ -484,8 +484,16 @@ func Check(out, context string) error {
 	if !namesFree(out, context) {
 		return errors.New("voice: output names someone")
 	}
+	if echoR.MatchString(out) {
+		return errors.New("voice: output repeats the instructions instead of following them")
+	}
 	return nil
 }
+
+// echoR catches a model describing its brief instead of writing the text
+// ("Plain word opener, third person, no name: the summary.", 2026-11-11).
+// Phrases only an instruction would use; never ordinary fitness prose.
+var echoR = regexp.MustCompile(`(?i)\b(?:third[- ]person|first[- ]person|plain[- ]word|no names?\b|the observer|voice guide|voice guard|activity context|period data|(?:the|this) (?:summary|story|roundup|companion line)\s*[:.]|as instructed|here is the|here's the)`)
 
 // Line tidies AI text to one line: whitespace collapsed, Markdown stripped,
 // cut at the last sentence end within max runes, valid UTF-8.
@@ -510,7 +518,7 @@ func Line(s string, max int) string {
 }
 
 // RetryNote is appended to the system prompt on the one retry after a failed Check.
-const RetryNote = "Your previous attempt was rejected. Do not name or refer to anyone. Open with a plain word."
+const RetryNote = "Your previous attempt was rejected because it seemed to name someone. Write it again: name and refer to no one, and begin with an ordinary word rather than a name or a title. Reply with the text itself only, never a description of these instructions."
 
 // Generate runs gen (extra is "" first, RetryNote on the retry), tidies the
 // output with Line and checks it with Check. One retry on a failed check; if the

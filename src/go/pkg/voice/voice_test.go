@@ -395,3 +395,25 @@ func TestPeriodMonthAllowsThatMonthOnly(t *testing.T) {
 		t.Error("an April roundup does not clear May or June")
 	}
 }
+
+// 2026-11-11: Haiku answered the retry with its brief ("Plain word opener, third person,
+// no name: the summary."); Check refuses an echo, keeps ordinary fitness prose.
+func TestCheckRefusesEchoedInstructions(t *testing.T) {
+	for _, bad := range []string{
+		"Plain word opener, third person, no name: the summary. Hard going, but the session shows the point of it.",
+		"Here is the summary: a solid tempo run.",
+		"The summary: six rounds, steady pacing.",
+	} {
+		if Check(bad, "") == nil {
+			t.Errorf("echo passed: %q", bad)
+		}
+	}
+	for _, ok := range []string{
+		"Fifty-eight minutes with most of it in zone four says this was a threshold session, and the wall balls at the end came on tired legs.",
+		"A steady hour that kept the heart rate honest without ever tipping into a race effort.",
+	} {
+		if err := Check(ok, "wall balls threshold zone"); err != nil {
+			t.Errorf("good line refused: %q: %v", ok, err)
+		}
+	}
+}
