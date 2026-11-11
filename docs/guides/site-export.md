@@ -109,6 +109,16 @@ default `~/.jarvis/home/site-changed`):
   rewrites roundup stories (`aiSummary`) through Claude in James's voice. Each
   roundup file carries `aiSummaryModel` (`claude-sonnet`, or absent on old Gemini
   text) and `aiSummaryGeneratedAt`, so the site can tell old stories from new.
+- `fitgluectl regen-activity-summaries [--id | --since | --limit] [--force] [--apply]`
+  rewrites each activity's `enrichments.aiSummary` through the live enricher's
+  path (`ai_companion.Summarize`: observer guide, Sonnet, voice guard), from the
+  stored activity data (description cut to the text before the AI block, the
+  other FitGlue sections as the other enrichers' descriptions). Only the site
+  copy changes: `aiSummary` (with `model: claude-sonnet-observer` and
+  `generatedAt`, which the enricher now stamps on new ones too) and
+  `ENRICHER_PROVIDER_AI_COMPANION` in `appliedEnrichments`, which the site needs
+  to show it. Title, description and activity data are untouched; nothing goes
+  to Strava. Current ones are skipped unless `--force`, so a re-run resumes.
 
 ## Running it
 
