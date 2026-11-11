@@ -41,7 +41,7 @@ func run(t *testing.T, name string, f *fakeAI) (*fakeAI, map[string]string, stri
 	return f, res.Metadata, res.Name, res.Description
 }
 
-func TestCompanionUsesHaikuAndObserver(t *testing.T) {
+func TestCompanionUsesSonnetAndObserver(t *testing.T) {
 	g := filepath.Join(t.TempDir(), "g.md")
 	if err := os.WriteFile(g, []byte("GUIDE-MARK\nbe fun"), 0o600); err != nil {
 		t.Fatal(err)
@@ -50,7 +50,7 @@ func TestCompanionUsesHaikuAndObserver(t *testing.T) {
 	voice.ResetGuideCache()
 	t.Cleanup(voice.ResetGuideCache)
 	f, meta, name, desc := run(t, "Morning Run", &fakeAI{out: "Legs shaking, still smiling 🥵"})
-	if f.req.Model != "haiku" {
+	if f.req.Model != "sonnet" {
 		t.Errorf("model %q", f.req.Model)
 	}
 	if !strings.HasPrefix(f.req.System, voice.Observer()) || strings.Contains(f.req.System, "GUIDE-MARK") {

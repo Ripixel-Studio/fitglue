@@ -20,7 +20,7 @@ import (
 	"github.com/fitglue/server/src/go/pkg/voice"
 )
 
-// AICompanionProvider generates AI-powered activity descriptions in the athlete's voice using Claude Haiku.
+// AICompanionProvider generates the AI activity summary, told by a knowledgeable observer, using Claude Sonnet.
 // The companion line sits alongside his own text; it never rewrites it.
 type AICompanionProvider struct {
 	Service *bootstrap.Service
@@ -159,7 +159,7 @@ func sanitiseForPrompt(s string) string {
 // cacheKey versions the repost cache by model/voice. Bump it when either
 // changes; the pre-Haiku key "ai_companion" holds unguarded Gemini text and is
 // never read.
-const cacheKey = "ai_companion_haiku_v4"
+const cacheKey = "ai_companion_sonnet_v5"
 
 const aiLabel = "AI Summary:\n"
 
@@ -167,7 +167,11 @@ const taskBlock = `Write the summary for this session: 1–3 sentences, at most 
 
 const maxLineChars = 280
 
-// generate asks Haiku for the companion line. It returns "" when the output
+// summaryUserPrompt closes the data with the instruction, so the model writes the
+// summary rather than describing its brief.
+const summaryUserPrompt = "Write the summary of this session now. Reply with the summary text only."
+
+// generate asks Sonnet for the activity summary (Haiku echoed its brief, 2026-11-11). It returns "" when the output
 // fails voice.Line/voice.Check (never publish it); errors are Claude's
 // (including claude.ErrLimited).
 func (p *AICompanionProvider) generate(ctx context.Context, activityContext string) (string, error) {
@@ -182,10 +186,10 @@ func (p *AICompanionProvider) generate(ctx context.Context, activityContext stri
 			sys += "\n\n" + extra
 		}
 		return ai.Complete(ctx, claude.Request{
-			Model:   claude.ModelHaiku,
+			Model:   claude.ModelSonnet,
 			System:  sys,
 			Prompt:  prompt,
-			Timeout: 60 * time.Second,
+			Timeout: 90 * time.Second,
 		})
 	}, maxLineChars, checkContext(activityContext))
 	if err != nil {
@@ -215,7 +219,7 @@ func checkContext(activityContext string) string {
 // and the data-only user prompt, so instructions and activity data stay apart.
 func buildPrompt(activityContext string) (system, prompt string) {
 	system = voice.Observer() + "\n\n" + taskBlock
-	prompt = "Activity Context:\n" + sanitiseForPrompt(activityContext)
+	prompt = "Activity Context:\n" + sanitiseForPrompt(activityContext) + "\n\n" + summaryUserPrompt
 	return system, prompt
 }
 
