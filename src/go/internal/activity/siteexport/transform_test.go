@@ -250,7 +250,7 @@ func TestBuildRoundup(t *testing.T) {
 		"totalActivities", "activityTypeBreakdowns", "hrZoneMinutes", "prsAchieved", "sources", "aiSummary",
 		"calloutActivities", "dayEntries", "photos", "routes", "places", "bestEfforts", "muscles",
 		"effortEasyCount", "longestSessionShowcaseId", "aiSummaryModel", "aiSummaryGeneratedAt")
-	if r["aiSummaryModel"] != "claude-sonnet" || r["aiSummaryGeneratedAt"] != "2026-10-20T07:00:00Z" {
+	if r["aiSummaryModel"] != "claude-sonnet-observer" || r["aiSummaryGeneratedAt"] != "2026-10-20T07:00:00Z" {
 		t.Errorf("the site tells old stories from new by these: %v %v", r["aiSummaryModel"], r["aiSummaryGeneratedAt"])
 	}
 	if _, ok := r["weather"]; ok {

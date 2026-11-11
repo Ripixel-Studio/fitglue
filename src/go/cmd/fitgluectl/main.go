@@ -6,7 +6,7 @@
 //	fitgluectl fix-calories --slug james [--apply]          store Strava's calories on the entries
 //	fitgluectl fix-activity --id ID --type RUN [--distance-m M] [--calories-kcal K] [--apply]  correct a mislabelled activity
 //	fitgluectl fix-activity --scan                          list runs stored as strength sessions
-//	fitgluectl regen-roundup-stories [--key K|--kind week|--since D] [--force] [--apply]  rewrite roundup stories in his voice
+//	fitgluectl regen-roundup-stories [--key K|--kind week|--since D] [--force] [--apply]  rewrite roundup stories as the observer
 //	fitgluectl connect googlehealth|strava|github|spotify  prints the authorise URL (fitbit: legacy, dead 2 Nov 2026)
 //	fitgluectl connect hevy --api-key-stdin                 stores the key + mints the webhook ingress key
 //	fitgluectl connect intervals --api-key-stdin --athlete-id i12345
@@ -49,7 +49,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  export-site   export the showcase as static JSON for the personal site")
 	fmt.Fprintln(os.Stderr, "  fix-calories  correct stored entry calories to the source platform's figure (dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  fix-activity  correct a showcased activity's type/distance/calories and everything derived (dry run unless --apply); --scan lists suspects")
-	fmt.Fprintln(os.Stderr, "  regen-roundup-stories  rewrite roundup stories through the Claude path in his voice (dry run unless --apply)")
+	fmt.Fprintln(os.Stderr, "  regen-roundup-stories  rewrite roundup stories through the Claude path as the observer (dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
 	fmt.Fprintln(os.Stderr, "  connections   list the owner's connected providers")
 	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup / parkrun-check trigger message (what the box timers run)")

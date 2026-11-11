@@ -159,11 +159,11 @@ func sanitiseForPrompt(s string) string {
 // cacheKey versions the repost cache by model/voice. Bump it when either
 // changes; the pre-Haiku key "ai_companion" holds unguarded Gemini text and is
 // never read.
-const cacheKey = "ai_companion_haiku_v3"
+const cacheKey = "ai_companion_haiku_v4"
 
 const aiLabel = "AI Summary:\n"
 
-const taskBlock = `Write the companion line for this session: 1–3 sentences, at most 280 characters, in the voice above. Use only facts in the data. No names. No 'you'. Never claim he wrote it. No emoji. Never mention alcohol, drink, drugs, pubs or recovery.`
+const taskBlock = `Write the summary for this session: 1–3 sentences, at most 280 characters, as the observer above. Give an insight the data supports (what the session says about his training, where the effort sat, how it compares with the rest of the data given); if there is none, a friendly plain summary. Use only facts in the data. Third person: he, never his name. Never I, me, my or we. No names. No 'you'. No emoji. Never mention alcohol, drink, drugs, pubs or recovery.`
 
 const maxLineChars = 280
 
@@ -211,10 +211,10 @@ func checkContext(activityContext string) string {
 	return strings.Join(keep, "\n")
 }
 
-// buildPrompt returns the fixed system prompt (the voice guide plus the task)
+// buildPrompt returns the fixed system prompt (the observer guide plus the task)
 // and the data-only user prompt, so instructions and activity data stay apart.
 func buildPrompt(activityContext string) (system, prompt string) {
-	system = voice.Guide() + "\n\n" + taskBlock
+	system = voice.Observer() + "\n\n" + taskBlock
 	prompt = "Activity Context:\n" + sanitiseForPrompt(activityContext)
 	return system, prompt
 }
