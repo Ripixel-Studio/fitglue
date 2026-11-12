@@ -411,9 +411,35 @@ func TestCheckRefusesEchoedInstructions(t *testing.T) {
 	for _, ok := range []string{
 		"Fifty-eight minutes with most of it in zone four says this was a threshold session, and the wall balls at the end came on tired legs.",
 		"A steady hour that kept the heart rate honest without ever tipping into a race effort.",
+		"A 50-minute session, and the heart rate tells the story: an average of 88 bpm.",
 	} {
 		if err := Check(ok, "wall balls threshold zone"); err != nil {
 			t.Errorf("good line refused: %q: %v", ok, err)
+		}
+	}
+}
+
+// Words the guard refused in the November 2026 regen, none of them names.
+func TestOffenderPassesFitnessCompoundsAndUnits(t *testing.T) {
+	for _, ok := range []string{
+		"A Hyrox-style hour that leaned toward skill over strain.",
+		"A Saturday-morning parkrun that came in at just over 23 minutes.",
+		"Sub-24 for a 5k is a proper marker.",
+		"Skin temperature climbed from 28.1°C to 42.5 °C in the heat.",
+		"Week three of a Couch to 5k plan, and the intervals did their job.",
+		"Fifty minutes of Tower Pilates, then a Reformer session the next day.",
+	} {
+		if tok := Offender(ok, ""); tok != "" {
+			t.Errorf("refused %q on %q", ok, tok)
+		}
+	}
+	for _, bad := range []string{
+		"A run alongside Sarah-Jane at an easy pace.",
+		"A Rome-bound week of training.",
+		"The C team turned up.",
+	} {
+		if Offender(bad, "") == "" {
+			t.Errorf("passed %q", bad)
 		}
 	}
 }

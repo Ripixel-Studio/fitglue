@@ -5,6 +5,7 @@ package voice
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -332,6 +333,12 @@ func Offender(out, context string) string {
 	ctx := contextTokens(context)
 	for _, loc := range tokenRe.FindAllStringIndex(out, -1) {
 		tok := out[loc[0]:loc[1]]
+		// A hyphenated compound is judged by its head: "Hyrox-style" and
+		// "Saturday-morning" are fine, "Sarah-Jane" still fails on "Sarah".
+		if i := strings.IndexByte(tok, '-'); i > 0 {
+			tok = tok[:i]
+			loc[1] = loc[0] + i
+		}
 		r, _ := utf8.DecodeRuneInString(tok)
 		if !unicode.IsUpper(r) {
 			continue
@@ -343,9 +350,9 @@ func Offender(out, context string) string {
 			}
 			return tok
 		}
-		if tok == "W" || tok == "K" || tok == "M" {
-			// A unit right after a number: "373 W", "5 K".
-			if p := strings.TrimRight(out[:loc[0]], " \t"); p != "" {
+		if tok == "W" || tok == "K" || tok == "M" || tok == "C" || tok == "F" {
+			// A unit right after a number: "373 W", "5 K", "42.5°C".
+			if p := strings.TrimRight(strings.TrimSuffix(strings.TrimRight(out[:loc[0]], " \t"), "°"), " \t"); p != "" {
 				if r, _ := utf8.DecodeLastRuneInString(p); unicode.IsDigit(r) {
 					continue
 				}
@@ -398,7 +405,7 @@ var fitWords = func() map[string]bool {
 	delts legs leg arms arm back chest shoulders shoulder hips hip lungs lung heart feet foot knees knee
 	ankles ankle avg average pace power cadence watts watt kcal km kg kgs mile miles min mins hour hours
 	ooh ooft oooh ohh ahh aww oof ouch yikes blimey crikey bloody flipping cheeky knackered
-	brutal horrific proper`) {
+	brutal horrific proper couch c25k sub tower reformer barre mat`) {
 		m[w] = true
 	}
 	return m
@@ -481,8 +488,8 @@ func Check(out, context string) error {
 	if drinkDrugR.MatchString(out) {
 		return errors.New("voice: output mentions drink, drugs or recovery")
 	}
-	if !namesFree(out, context) {
-		return errors.New("voice: output names someone")
+	if tok := Offender(out, context); tok != "" {
+		return fmt.Errorf("voice: output names someone (%q)", tok)
 	}
 	if echoR.MatchString(out) {
 		return errors.New("voice: output repeats the instructions instead of following them")
@@ -493,7 +500,7 @@ func Check(out, context string) error {
 // echoR catches a model describing its brief instead of writing the text
 // ("Plain word opener, third person, no name: the summary.", 2026-11-11).
 // Phrases only an instruction would use; never ordinary fitness prose.
-var echoR = regexp.MustCompile(`(?i)\b(?:third[- ]person|first[- ]person|plain[- ]word|no names?\b|the observer|voice guide|voice guard|activity context|period data|(?:the|this) (?:summary|story|roundup|companion line)\s*[:.]|as instructed|here is the|here's the)`)
+var echoR = regexp.MustCompile(`(?i)\b(?:third[- ]person|first[- ]person|plain[- ]word|no names?\b|the observer|voice guide|voice guard|activity context|period data|(?:^|[:.!?]\s*)(?:the|this) (?:summary|story|roundup|companion line)\s*[:.]|as instructed|here is the|here's the)`)
 
 // Line tidies AI text to one line: whitespace collapsed, Markdown stripped,
 // cut at the last sentence end within max runes, valid UTF-8.
@@ -517,6 +524,10 @@ func Line(s string, max int) string {
 	return strings.TrimSpace(cut)
 }
 
+// OnReject, when set, sees each attempt Generate throws away and why, for
+// diagnosis (fitgluectl's regen commands print it). Never the published text.
+var OnReject func(text string, err error)
+
 // RetryNote is appended to the system prompt on the one retry after a failed Check.
 const RetryNote = "Your previous attempt was rejected because it seemed to name someone. Write it again: name and refer to no one, and begin with an ordinary word rather than a name or a title. Reply with the text itself only, never a description of these instructions."
 
@@ -536,8 +547,15 @@ func Generate(gen func(extra string) (string, error), max int, checkContext stri
 			return "", attempts, gerr
 		}
 		l := Line(out, max)
-		if l != "" && Check(l, checkContext) == nil {
+		if l == "" {
+			continue
+		}
+		cerr := Check(l, checkContext)
+		if cerr == nil {
 			return l, attempts, nil
+		}
+		if OnReject != nil {
+			OnReject(l, cerr)
 		}
 	}
 	return "", 2, nil
