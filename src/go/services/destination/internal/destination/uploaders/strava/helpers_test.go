@@ -60,3 +60,15 @@ func TestStravaUploader_Update_PicksUpDestinationFromRun(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "activity_not_found")
 }
+
+func TestCreatedTitle_UpdateCarriesFitGluesNewTitle(t *testing.T) {
+	name, ok := createdTitle(false, "Hyrox Class & Run", "Bootcamp")
+	assert.True(t, ok)
+	assert.Equal(t, "Hyrox Class & Run", name)
+	_, ok = createdTitle(false, "Bootcamp", "Bootcamp")
+	assert.False(t, ok, "unchanged title is not rewritten")
+	_, ok = createdTitle(false, "", "Bootcamp")
+	assert.False(t, ok, "no proposed title leaves Strava's")
+	_, ok = createdTitle(true, "Hyrox Class & Run", "HYROX - Birmingham - 01:15:29")
+	assert.False(t, ok, "same-source titles are sameSourceTitle's to decide")
+}

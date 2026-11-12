@@ -208,12 +208,26 @@ func mergeBlocks(existingDescription, payloadDescription string) string {
 	}
 
 	var preserved []string
+	// The AI block can run to several paragraphs, and only the first carries its label: the
+	// rest are unlabelled blocks that are still FitGlue's. Kept as if typed on the destination
+	// they were put ahead of the payload, so an old AI summary sat above his own words.
+	inSection := ""
 	for _, b := range splitBlocks(existingDescription) {
+		h := blockHeaderKey(b)
+		if h != "" {
+			inSection = h
+		}
 		if inPayload[b] {
 			continue // payload re-supplies this exact block in the right place
 		}
-		if h := blockHeaderKey(b); h != "" && payloadHeaders[h] {
+		if h != "" && payloadHeaders[h] {
 			continue // payload re-supplies this section (content regenerated) in the right place
+		}
+		if h == "" && inSection == "AI Summary:" && payloadHeaders[inSection] {
+			continue // a further paragraph of the AI block the payload regenerates
+		}
+		if h == "" {
+			inSection = ""
 		}
 		preserved = append(preserved, b)
 	}

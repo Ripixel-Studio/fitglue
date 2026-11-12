@@ -509,19 +509,14 @@ func (s *Service) RepostActivity(ctx context.Context, req *pbsvc.RepostActivityR
 		payload["repostDestination"] = req.Destination
 	}
 
-	// full-pipeline must mint a FRESH pipeline run. The stored original payload carries the
-	// original pipeline_execution_id; if we replay it unchanged the enricher and destination
-	// executor key off that same run id, whose prior SUCCESS destination outcomes trip the
-	// redelivery idempotency guard — so every full-pipeline re-run is a silent no-op that
-	// uploads nothing and leaves the run wedged. Clearing it makes the splitter generate a new
-	// run id (a genuinely fresh run with no prior outcomes), which is exactly what the
-	// destination executor's guard assumes for full-pipeline. Targeted reposts
-	// (missed-destination / retry-destination) intentionally KEEP the id so they reuse the
-	// original run (that's how their guard-bypass and Update-with-existing-external-id work).
-	if req.Mode == "full-pipeline" {
-		delete(payload, "pipelineExecutionId")
-		delete(payload, "pipeline_execution_id")
-	}
+	// Every repost updates the activity in place: it re-runs on the activity's latest pipeline
+	// run (the one found above), so each destination is updated where it already is, not
+	// created a second time. The run id comes from the store, never from the stored payload:
+	// a resumed run can leave the payload carrying an id with no run behind it, and then no
+	// destination could be found to update (Hevy 2026-11-12: Strava "activity_not_found").
+	// One run per activity, re-run as often as needed; no UI wants each repost as its own run.
+	delete(payload, "pipeline_execution_id")
+	payload["pipelineExecutionId"] = run.Id
 
 	updatedPayloadBytes, err := json.Marshal(payload)
 	if err != nil {

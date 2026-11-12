@@ -301,14 +301,11 @@ destinations:
 		// Idempotency guard: if this destination already succeeded in a prior delivery of
 		// the same pipeline run, skip rather than double-posting.
 		//
-		// A targeted repost (retry-destination / missed-destination Magic Action) is an
-		// explicit user request to (re)upload to this specific destination, so it must
-		// bypass this guard. Targeted reposts reuse the original pipeline run, whose prior
-		// SUCCESS outcome would otherwise make the repost a silent no-op (the user sees no
-		// new upload and the run stays wedged). full-pipeline reposts mint a fresh run, so
-		// they keep the guard for genuine Pub/Sub redelivery protection.
+		// A repost (any mode) is an explicit request to re-send this activity, so it bypasses
+		// this guard. Reposts re-run the activity's own pipeline run in place, whose prior
+		// SUCCESS outcome would otherwise make the repost a silent no-op.
 		repostMode := metadata["repost_mode"]
-		isTargetedRepost := metadata["is_repost"] == "true" && repostMode != "" && repostMode != "full-pipeline"
+		isTargetedRepost := metadata["is_repost"] == "true" && repostMode != ""
 		// A resume re-enriches the activity, so a destination that already succeeded on an
 		// earlier pass may now have fresh data to apply (e.g. a non-blocking photo upload that
 		// resolved after a separate blocking input already synced the pipeline). Update it
@@ -324,7 +321,7 @@ destinations:
 			}
 		} else if isTargetedRepost {
 			e.logger.Info(ctx, "Targeted repost: bypassing already-uploaded idempotency guard", "destination", destEnum.String(), "repost_mode", repostMode)
-			// retry-destination re-sends to a destination this activity already reached, so it
+			// A repost re-sends to a destination this activity already reached, so it
 			// must Update the existing entry, not Create a second one. A Create here would be
 			// blocked by the cross-execution create claim within its 5-minute TTL (silent no-op)
 			// and would produce a duplicate activity once the claim lapses — neither is what the

@@ -1,6 +1,7 @@
 package description
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -390,5 +391,21 @@ func TestRemoveSection(t *testing.T) {
 				t.Errorf("RemoveSection() = %q, want %q", result, tt.expected)
 			}
 		})
+	}
+}
+
+// His words always lead: an AI summary that ran to two paragraphs on the last pass must not
+// leave its second paragraph above his text when the summary regenerates (2026-11-12).
+func TestMergeDescription_MultiParagraphAISummaryStaysBelowHisWords(t *testing.T) {
+	existing := "AI Summary:\nOld first paragraph.\n\nOld second paragraph.\n\n🔥 Streak Tracker:\n• 3-day streak"
+	payload := "Cheeky lil run after\n\nAI Summary:\nNew first paragraph.\n\nNew second paragraph.\n\n🔥 Streak Tracker:\n• 3-day streak"
+	got := MergeDescription(existing, payload, nil)
+	if got != payload {
+		t.Fatalf("want the payload as is (his words first, fresh AI), got:\n%s", got)
+	}
+	// text he typed on the destination is still kept
+	got = MergeDescription("Typed on Strava\n\n"+existing, payload, nil)
+	if !strings.HasPrefix(got, "Typed on Strava\n\nCheeky lil run after") || strings.Contains(got, "Old second") {
+		t.Fatalf("destination text kept, old AI dropped; got:\n%s", got)
 	}
 }
