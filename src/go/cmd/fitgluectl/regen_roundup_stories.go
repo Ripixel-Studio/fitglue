@@ -13,6 +13,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/activity"
 	"github.com/fitglue/server/src/go/pkg/claude"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
+	"github.com/fitglue/server/src/go/pkg/voice"
 )
 
 // `fitgluectl regen-roundup-stories` rewrites the "THE STORY" paragraph of stored
@@ -225,6 +226,8 @@ func runRegenStories(ctx context.Context, f *regenStoriesFlags, st storyStore, o
 		return nil
 	}
 
+	voice.OnReject = func(text string, err error) { fmt.Fprintf(out, "  rejected (%v): %s\n", err, text) }
+	defer func() { voice.OnReject = nil }()
 	written, dropped, failed := 0, 0, 0
 	for i, r := range todo {
 		if i > 0 && f.interval > 0 {

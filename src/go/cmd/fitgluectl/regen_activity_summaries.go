@@ -16,6 +16,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/ai_companion"
 	"github.com/fitglue/server/src/go/pkg/claude"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
+	"github.com/fitglue/server/src/go/pkg/voice"
 )
 
 // `fitgluectl regen-activity-summaries` rewrites the AI summary of every
@@ -230,6 +231,8 @@ func runRegenSummaries(ctx context.Context, f *regenSummariesFlags, st summarySt
 		return nil
 	}
 
+	voice.OnReject = func(text string, err error) { fmt.Fprintf(out, "  rejected (%v): %s\n", err, text) }
+	defer func() { voice.OnReject = nil }()
 	written, dropped, failed := 0, 0, 0
 	for i, a := range todo {
 		if i > 0 && f.interval > 0 {
