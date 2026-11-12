@@ -517,6 +517,14 @@ func (s *Service) RepostActivity(ctx context.Context, req *pbsvc.RepostActivityR
 	// One run per activity, re-run as often as needed; no UI wants each repost as its own run.
 	delete(payload, "pipeline_execution_id")
 	payload["pipelineExecutionId"] = run.Id
+	// A full re-run enriches afresh. The stored payload can be one saved by a resume (an answer
+	// that came in later), and replaying it as a resume would copy every non-idempotent
+	// enricher's old output (the AI summary among them) instead of running it again.
+	if req.Mode == "full-pipeline" {
+		for _, k := range []string{"isResume", "is_resume", "resumePendingInputId", "resume_pending_input_id"} {
+			delete(payload, k)
+		}
+	}
 
 	updatedPayloadBytes, err := json.Marshal(payload)
 	if err != nil {
