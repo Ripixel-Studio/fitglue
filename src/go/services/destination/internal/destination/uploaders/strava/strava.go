@@ -257,6 +257,8 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 		if name := u.sameSourceTitle(ctx, payload, stravaIDStr, existingActivity.Name, fitglueWrote); name != existingActivity.Name {
 			updateBody["name"] = name
 		}
+	} else if name, ok := createdTitle(isSameSource, activityName, existingActivity.Name); ok {
+		updateBody["name"] = name
 	}
 	if mergedDescription != existingActivity.Description {
 		updateBody["description"] = mergedDescription
@@ -292,6 +294,17 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 		u.recordWrittenTitle(ctx, payload, stravaIDStr, name)
 	}
 	return nil
+}
+
+// createdTitle is the title an update writes to a Strava activity FitGlue created itself
+// (from Hevy, a file...): that title is FitGlue's, so a re-run carries the new one (a
+// calendar event added after the fact). A same-source activity goes through
+// sameSourceTitle instead, which keeps a title someone else wrote.
+func createdTitle(isSameSource bool, proposed, existing string) (string, bool) {
+	if isSameSource || proposed == "" || proposed == existing {
+		return "", false
+	}
+	return proposed, true
 }
 
 // sameSourceTitle decides the title for a same-source update. It keeps a title

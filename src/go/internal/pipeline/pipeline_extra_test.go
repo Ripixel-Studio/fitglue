@@ -458,8 +458,9 @@ func TestPipeline_HappyPaths(t *testing.T) {
 		if p["activityId"] != "a1" {
 			t.Errorf("expected activityId=a1")
 		}
-		if _, present := p["pipelineExecutionId"]; present {
-			t.Errorf("expected pipelineExecutionId to be cleared for full-pipeline, got %v", p["pipelineExecutionId"])
+		// in place: the activity's own run, not the (possibly stale) id in the stored payload
+		if p["pipelineExecutionId"] != "r1" {
+			t.Errorf("expected full-pipeline to re-run run r1 in place, got %v", p["pipelineExecutionId"])
 		}
 	})
 
@@ -468,7 +469,7 @@ func TestPipeline_HappyPaths(t *testing.T) {
 		uri := "gs://bucket/original/a2.json"
 		store.Runs["u1_r2"] = &pipeline.PipelineRun{Id: "r2", ActivityId: "a2", OriginalPayloadUri: uri}
 		pub := &MockPublisher{}
-		// Targeted reposts must REUSE the original run, so pipeline_execution_id is preserved.
+		// Reposts reuse the activity's run as the store has it, even when the stored payload names another.
 		blob := &MockBlobStore{Blobs: map[string][]byte{uri: []byte(`{"source":"hevy","pipelineExecutionId":"original-run-2"}`)}}
 		svc := NewService(store, pub, blob, mockLogger{}, nil)
 
@@ -484,8 +485,8 @@ func TestPipeline_HappyPaths(t *testing.T) {
 		if p["repostDestination"] != "DESTINATION_HEVY" {
 			t.Errorf("expected repostDestination=DESTINATION_HEVY, got %v", p["repostDestination"])
 		}
-		if p["pipelineExecutionId"] != "original-run-2" {
-			t.Errorf("expected pipelineExecutionId preserved for targeted repost, got %v", p["pipelineExecutionId"])
+		if p["pipelineExecutionId"] != "r2" {
+			t.Errorf("expected the stored run r2, not the payload's stale id, got %v", p["pipelineExecutionId"])
 		}
 	})
 }

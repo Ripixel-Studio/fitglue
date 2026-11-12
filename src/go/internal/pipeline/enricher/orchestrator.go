@@ -195,8 +195,12 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 
 	// Pre-generate ActivityId so enrichers can use it for pending input linking
 	// In resume mode, use the provided ActivityId; otherwise generate a new one
+	// A repost of an activity whose run already exists re-runs that run in place: same
+	// activity id, same run document (its destinations keep their external ids, so each is
+	// updated rather than created again).
+	inPlace := payload.IsRepost && existingRun != nil && payload.ActivityId != nil && *payload.ActivityId != ""
 	var activityId string
-	if isResumeMode {
+	if isResumeMode || inPlace {
 		if payload.ActivityId == nil || *payload.ActivityId == "" {
 			return nil, fmt.Errorf("resume mode requires activity_id to be set")
 		}
@@ -204,7 +208,7 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 	} else {
 		activityId = uuid.NewString()
 	}
-	logger.Debug("Activity ID for pipeline", "activity_id", activityId, "is_resume", isResumeMode)
+	logger.Debug("Activity ID for pipeline", "activity_id", activityId, "is_resume", isResumeMode, "in_place", inPlace)
 
 	activeDestinations := pipeline.Destinations
 	if payload.IsRepost && payload.RepostMode != "full-pipeline" && payload.RepostDestination != "" {
@@ -218,7 +222,7 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 
 	// Create initial pipeline run document for lifecycle tracking (RUNNING status)
 	// This ensures we track the pipeline execution even if it fails partway through
-	o.createInitialPipelineRun(ctx, logger, payload.UserId, pipelineExecutionID, pipeline.ID, activityId, payload, activeDestinations, isResumeMode)
+	o.createInitialPipelineRun(ctx, logger, payload.UserId, pipelineExecutionID, pipeline.ID, activityId, payload, activeDestinations, isResumeMode || inPlace)
 
 	// Same-source refresh: a Strava activity created by a third-party app (ROXFIT) can
 	// gain its description after FitGlue's ingest read it. Re-read it now — before the
@@ -856,7 +860,7 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 	reconcileTimeMarkerLabels(currentActivity)
 
 	// Build final description from slots
-	finalDescription := buildDescriptionFromSlots(descriptionSlots)
+	finalDescription := buildDescriptionFromSlots(hisWordsFirst(descriptionSlots, configs))
 	// Backfill mode (cmd/showcase-reboost): the source description is the
 	// description the user already has on Strava/Hevy — for re-ingested history it
 	// typically already contains the previously rendered booster text — so keep it
@@ -1105,7 +1109,7 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 				filteredSlots[i+1] = "" // Zero the excluded enricher's slot
 			}
 		}
-		filteredDesc := buildDescriptionFromSlots(filteredSlots)
+		filteredDesc := buildDescriptionFromSlots(hisWordsFirst(filteredSlots, configs))
 
 		// Filter appliedEnrichments
 		var filteredApplied []string
@@ -1238,6 +1242,29 @@ func applyEnrichmentStreams(currentActivity *pbactivity.StandardizedActivity, re
 			}
 		}
 	}
+}
+
+// hisWordsFirst puts what he wrote ahead of everything FitGlue adds: the source's own text
+// (slot 0), then what he gave in answer to an ask (the user-input enricher), wherever that
+// enricher sits in the pipeline; every other slot keeps its pipeline order after them.
+func hisWordsFirst(slots []string, configs []configuredEnricher) []string {
+	out := make([]string, 0, len(slots))
+	if len(slots) > 0 {
+		out = append(out, slots[0])
+	}
+	his := map[int]bool{}
+	for i, cfg := range configs {
+		if cfg.ProviderType == pbplugin.EnricherProviderType_ENRICHER_PROVIDER_USER_INPUT && i+1 < len(slots) {
+			his[i+1] = true
+			out = append(out, slots[i+1])
+		}
+	}
+	for i := 1; i < len(slots); i++ {
+		if !his[i] {
+			out = append(out, slots[i])
+		}
+	}
+	return out
 }
 
 // buildDescriptionFromSlots joins non-empty description slots with double newlines.
