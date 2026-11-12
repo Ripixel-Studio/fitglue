@@ -755,6 +755,10 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 			enricherConfig["activity_id"] = activityId
 			enricherConfig["enriched_description"] = phase1Description         // Phase 2 context injection
 			enricherConfig["is_repost"] = strconv.FormatBool(payload.IsRepost) // For repost guards
+			// The source's own title and his words (the source text and his answer to the
+			// ask), apart from FitGlue's sections, for classifiers (ai-activity-type).
+			enricherConfig["source_title"] = originalName
+			enricherConfig["his_words"] = hisWords(descriptionSlots, configs)
 
 			// Execute
 			providerLogger := logger.With("provider", provider.Name(), "phase", "deferred")
@@ -1265,6 +1269,21 @@ func hisWordsFirst(slots []string, configs []configuredEnricher) []string {
 		}
 	}
 	return out
+}
+
+// hisWords is what he wrote: the source's own text (slot 0) and his answer to the
+// user-input enricher's ask, joined like a description.
+func hisWords(slots []string, configs []configuredEnricher) string {
+	var his []string
+	if len(slots) > 0 {
+		his = append(his, slots[0])
+	}
+	for i, cfg := range configs {
+		if cfg.ProviderType == pbplugin.EnricherProviderType_ENRICHER_PROVIDER_USER_INPUT && i+1 < len(slots) {
+			his = append(his, slots[i+1])
+		}
+	}
+	return buildDescriptionFromSlots(his)
 }
 
 // buildDescriptionFromSlots joins non-empty description slots with double newlines.

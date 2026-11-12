@@ -3,6 +3,7 @@ package activity
 import (
 	"context"
 	"fmt"
+	"github.com/fitglue/server/src/go/pkg/activitytag"
 	"math"
 	"regexp"
 	"sort"
@@ -388,6 +389,17 @@ func (s *Service) AddShowcaseEntry(ctx context.Context, req *pbsvc.AddShowcaseEn
 			newEntry.PrimaryMuscles = mh.Primary
 		}
 	}
+
+	// The site's tag and race flag: the classification the ai-activity-type
+	// enricher stored, else the deterministic rule, so no entry is untagged.
+	tagged := &pbactivity.ShowcasedActivity{
+		Title: showcase.Title, ActivityType: showcase.ActivityType, ActivityData: showcase.ActivityData,
+		Enrichments: showcase.Enrichments,
+	}
+	if hydratedEnrichments != nil {
+		tagged.Enrichments = hydratedEnrichments
+	}
+	newEntry.Tag, newEntry.IsRace = activitytag.ForShowcase(tagged)
 
 	// Write entry to sub-collection (idempotent via MergeAll)
 	if err := s.store.SetShowcaseProfileEntry(ctx, req.UserId, newEntry); err != nil {

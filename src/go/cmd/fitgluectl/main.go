@@ -8,6 +8,7 @@
 //	fitgluectl fix-activity --scan                          list runs stored as strength sessions
 //	fitgluectl regen-roundup-stories [--key K|--kind week|--since D] [--force] [--apply]  rewrite roundup stories as the observer
 //	fitgluectl regen-activity-summaries [--id ID|--since D] [--limit N] [--force] [--apply]  rewrite the site's activity AI summaries as the observer
+//	fitgluectl classify [--id ID|--since D] [--force] [--apply] [--out verdicts.tsv]  the site's tag + race flag per activity (Haiku)
 //	fitgluectl connect googlehealth|strava|github|spotify  prints the authorise URL (fitbit: legacy, dead 2 Nov 2026)
 //	fitgluectl connect hevy --api-key-stdin                 stores the key + mints the webhook ingress key
 //	fitgluectl connect intervals --api-key-stdin --athlete-id i12345
@@ -52,6 +53,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  fix-activity  correct a showcased activity's type/distance/calories and everything derived (dry run unless --apply); --scan lists suspects")
 	fmt.Fprintln(os.Stderr, "  regen-roundup-stories  rewrite roundup stories through the Claude path as the observer (dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  regen-activity-summaries  rewrite the site's activity AI summaries through the enricher's path (site only; dry run unless --apply)")
+	fmt.Fprintln(os.Stderr, "  classify      give every site activity its tag, race flag and reason through Haiku (site only; dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
 	fmt.Fprintln(os.Stderr, "  connections   list the owner's connected providers")
 	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup / parkrun-check trigger message (what the box timers run)")
@@ -80,6 +82,8 @@ func main() {
 		err = regenStoriesCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
 	case "regen-activity-summaries":
 		err = regenSummariesCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
+	case "classify":
+		err = classifyCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
 	case "connect":
 		err = connectCommand(ctx, os.Args[2:], os.Stdin, os.Stdout, os.Stderr, openOwnerStore)
 	case "connections":

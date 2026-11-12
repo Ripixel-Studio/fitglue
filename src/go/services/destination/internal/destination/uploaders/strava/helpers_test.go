@@ -72,3 +72,15 @@ func TestCreatedTitle_UpdateCarriesFitGluesNewTitle(t *testing.T) {
 	_, ok = createdTitle(true, "Hyrox Class & Run", "HYROX - Birmingham - 01:15:29")
 	assert.False(t, ok, "same-source titles are sameSourceTitle's to decide")
 }
+
+func TestCreatedSportType(t *testing.T) {
+	sport, ok := createdSportType(false, "Crossfit", "WeightTraining")
+	assert.True(t, ok)
+	assert.Equal(t, "Crossfit", sport)
+	_, ok = createdSportType(false, "Crossfit", "Crossfit")
+	assert.False(t, ok, "unchanged type is not rewritten")
+	_, ok = createdSportType(true, "Crossfit", "Run")
+	assert.False(t, ok, "an activity recorded on Strava keeps its type")
+	_, ok = createdSportType(false, "", "Run")
+	assert.False(t, ok)
+}

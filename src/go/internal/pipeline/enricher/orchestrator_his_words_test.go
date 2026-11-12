@@ -23,3 +23,16 @@ func TestHisWordsFirst(t *testing.T) {
 		t.Fatalf("no source text: got %q", got)
 	}
 }
+
+func TestHisWords(t *testing.T) {
+	configs := []configuredEnricher{
+		{ProviderType: pbplugin.EnricherProviderType_ENRICHER_PROVIDER_PARKRUN},
+		{ProviderType: pbplugin.EnricherProviderType_ENRICHER_PROVIDER_USER_INPUT},
+	}
+	if got := hisWords([]string{"source text", "parkrun section", "his answer"}, configs); got != "source text\n\nhis answer" {
+		t.Errorf("hisWords = %q", got)
+	}
+	if got := hisWords([]string{"", "parkrun section", ""}, configs); got != "" {
+		t.Errorf("no words = %q", got)
+	}
+}

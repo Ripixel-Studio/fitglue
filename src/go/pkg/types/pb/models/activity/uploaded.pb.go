@@ -370,6 +370,8 @@ type ShowcaseProfileEntry struct {
 	WeatherDescription *string       `protobuf:"bytes,25,opt,name=weather_description,json=weatherDescription,proto3,oneof" json:"weather_description,omitempty"` // "Clear", "Rain", etc.
 	BestEfforts        []*BestEffort `protobuf:"bytes,26,rep,name=best_efforts,json=bestEfforts,proto3" json:"best_efforts,omitempty"`                            // reuse enrichments.BestEffort
 	PrimaryMuscles     []string      `protobuf:"bytes,27,rep,name=primary_muscles,json=primaryMuscles,proto3" json:"primary_muscles,omitempty"`                   // primary muscles worked (strength)
+	Tag                string        `protobuf:"bytes,28,opt,name=tag,proto3" json:"tag,omitempty"`                                                               // the site's activity tag (ActivityClassification.tag)
+	IsRace             bool          `protobuf:"varint,29,opt,name=is_race,json=isRace,proto3" json:"is_race,omitempty"`                                          // ActivityClassification.is_race
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -591,6 +593,20 @@ func (x *ShowcaseProfileEntry) GetPrimaryMuscles() []string {
 		return x.PrimaryMuscles
 	}
 	return nil
+}
+
+func (x *ShowcaseProfileEntry) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *ShowcaseProfileEntry) GetIsRace() bool {
+	if x != nil {
+		return x.IsRace
+	}
+	return false
 }
 
 // EntrySparkline is a downsampled timeseries for card-level sparklines.
@@ -1362,8 +1378,7 @@ const file_models_activity_uploaded_proto_rawDesc = "" +
 	"\n" +
 	"photo_urls\x18\x15 \x03(\tR\tphotoUrls\x12N\n" +
 	"\venrichments\x18\x16 \x01(\v2,.fitglue.models.activity.ActivityEnrichmentsR\venrichmentsB\x18\n" +
-	"\x16_pipeline_execution_idJ\x04\b\x03\x10\x04J\x04\b\f\x10\rR\auser_id\"\xe5\n" +
-	"\n" +
+	"\x16_pipeline_execution_idJ\x04\b\x03\x10\x04J\x04\b\f\x10\rR\auser_id\"\x90\v\n" +
 	"\x14ShowcaseProfileEntry\x12\x1f\n" +
 	"\vshowcase_id\x18\x01 \x01(\tR\n" +
 	"showcaseId\x12\x14\n" +
@@ -1398,7 +1413,9 @@ const file_models_activity_uploaded_proto_rawDesc = "" +
 	"\x06temp_c\x18\x18 \x01(\x01H\aR\x05tempC\x88\x01\x01\x124\n" +
 	"\x13weather_description\x18\x19 \x01(\tH\bR\x12weatherDescription\x88\x01\x01\x12F\n" +
 	"\fbest_efforts\x18\x1a \x03(\v2#.fitglue.models.activity.BestEffortR\vbestEfforts\x12'\n" +
-	"\x0fprimary_muscles\x18\x1b \x03(\tR\x0eprimaryMusclesB\f\n" +
+	"\x0fprimary_muscles\x18\x1b \x03(\tR\x0eprimaryMuscles\x12\x10\n" +
+	"\x03tag\x18\x1c \x01(\tR\x03tag\x12\x17\n" +
+	"\ais_race\x18\x1d \x01(\bR\x06isRaceB\f\n" +
 	"\n" +
 	"_sparklineB\x11\n" +
 	"\x0f_avg_heart_rateB\x10\n" +

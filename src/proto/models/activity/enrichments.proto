@@ -3,6 +3,7 @@ syntax = "proto3";
 package fitglue.models.activity;
 
 import "google/protobuf/timestamp.proto";
+import "models/activity/source.proto";
 
 option go_package = "github.com/fitglue/server/src/go/pkg/types/pb/models/activity";
 
@@ -38,6 +39,21 @@ message ActivityEnrichments {
   optional TemperatureSummary temperature = 25;
   optional BestEffortsSummary best_efforts = 26;
   optional HDropSummary hdrop = 27;
+  optional ActivityClassification classification = 28;
+}
+
+// ActivityClassification is the ai-activity-type enricher's verdict (or its
+// deterministic fallback): the personal site's own tag, whether the activity was
+// "the actual thing" (an entered race or event, a real parkrun effort), and the
+// Strava type it was given. race_why is for debugging and never exported.
+message ActivityClassification {
+  string tag = 1;                                // run|ride|spin|hyrox|class|strength|pilates|yoga|walk|other
+  bool is_race = 2;
+  string race_why = 3;                           // one line, debugging only
+  ActivityType strava_type = 4;                  // the type sent to Strava
+  string model = 5;                              // "claude-haiku" or "rule"
+  string inputs_hash = 6;                        // hash of the prompt inputs; a repost with the same hash reuses this
+  google.protobuf.Timestamp classified_at = 7;
 }
 
 message HeartRateSummary {

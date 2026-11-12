@@ -13,7 +13,9 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/activity"
 	"github.com/fitglue/server/src/go/internal/activity/siteexport"
+	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/ai_activity_type"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/ai_companion"
+	"github.com/fitglue/server/src/go/pkg/claude"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 )
 
@@ -156,4 +158,32 @@ func regenSummariesCommand(ctx context.Context, args []string, stdout, stderr io
 	}
 	defer site.close()
 	return runRegenSummaries(ctx, f, summaryAdapter{site.source}, stdout, time.Now)
+}
+
+// classifyAdapter joins the profile entries to the service's classification
+// halves and the live enricher's classifier.
+type classifyAdapter struct{ summaryAdapter }
+
+func (a classifyAdapter) Classify(ctx context.Context, in ai_activity_type.Inputs) (*pbactivity.ActivityClassification, error) {
+	return ai_activity_type.Classify(ctx, claude.Default(), in)
+}
+
+func (a classifyAdapter) SaveClassification(ctx context.Context, s *activity.ActivitySummary, c *pbactivity.ActivityClassification, e *pbactivity.ShowcaseProfileEntry) error {
+	return a.Service.SaveClassification(ctx, s, c, e)
+}
+
+func classifyCommand(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	f, err := parseClassifyFlags(args, stderr)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+	site, err := openLiveSite(ctx, &f.export, stderr)
+	if err != nil {
+		return err
+	}
+	defer site.close()
+	return runClassify(ctx, f, classifyAdapter{summaryAdapter{site.source}}, stdout, time.Now)
 }

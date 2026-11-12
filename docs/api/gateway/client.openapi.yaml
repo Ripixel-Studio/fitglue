@@ -1783,6 +1783,82 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
+        ActivityClassification:
+            type: object
+            properties:
+                tag:
+                    type: string
+                isRace:
+                    type: boolean
+                raceWhy:
+                    type: string
+                stravaType:
+                    enum:
+                        - ACTIVITY_TYPE_UNSPECIFIED
+                        - ACTIVITY_TYPE_ALPINE_SKI
+                        - ACTIVITY_TYPE_BACKCOUNTRY_SKI
+                        - ACTIVITY_TYPE_BADMINTON
+                        - ACTIVITY_TYPE_CANOEING
+                        - ACTIVITY_TYPE_CROSSFIT
+                        - ACTIVITY_TYPE_EBIKE_RIDE
+                        - ACTIVITY_TYPE_ELLIPTICAL
+                        - ACTIVITY_TYPE_EMOUNTAIN_BIKE_RIDE
+                        - ACTIVITY_TYPE_GOLF
+                        - ACTIVITY_TYPE_GRAVEL_RIDE
+                        - ACTIVITY_TYPE_HANDCYCLE
+                        - ACTIVITY_TYPE_HIGH_INTENSITY_INTERVAL_TRAINING
+                        - ACTIVITY_TYPE_HIKE
+                        - ACTIVITY_TYPE_ICE_SKATE
+                        - ACTIVITY_TYPE_INLINE_SKATE
+                        - ACTIVITY_TYPE_KAYAKING
+                        - ACTIVITY_TYPE_KITESURF
+                        - ACTIVITY_TYPE_MOUNTAIN_BIKE_RIDE
+                        - ACTIVITY_TYPE_NORDIC_SKI
+                        - ACTIVITY_TYPE_PICKLEBALL
+                        - ACTIVITY_TYPE_PILATES
+                        - ACTIVITY_TYPE_RACQUETBALL
+                        - ACTIVITY_TYPE_RIDE
+                        - ACTIVITY_TYPE_ROCK_CLIMBING
+                        - ACTIVITY_TYPE_ROLLER_SKI
+                        - ACTIVITY_TYPE_ROWING
+                        - ACTIVITY_TYPE_RUN
+                        - ACTIVITY_TYPE_SAIL
+                        - ACTIVITY_TYPE_SKATEBOARD
+                        - ACTIVITY_TYPE_SNOWBOARD
+                        - ACTIVITY_TYPE_SNOWSHOE
+                        - ACTIVITY_TYPE_SOCCER
+                        - ACTIVITY_TYPE_SQUASH
+                        - ACTIVITY_TYPE_STAIR_STEPPER
+                        - ACTIVITY_TYPE_STAND_UP_PADDLING
+                        - ACTIVITY_TYPE_SURFING
+                        - ACTIVITY_TYPE_SWIM
+                        - ACTIVITY_TYPE_TABLE_TENNIS
+                        - ACTIVITY_TYPE_TENNIS
+                        - ACTIVITY_TYPE_TRAIL_RUN
+                        - ACTIVITY_TYPE_VELOMOBILE
+                        - ACTIVITY_TYPE_VIRTUAL_RIDE
+                        - ACTIVITY_TYPE_VIRTUAL_ROW
+                        - ACTIVITY_TYPE_VIRTUAL_RUN
+                        - ACTIVITY_TYPE_WALK
+                        - ACTIVITY_TYPE_WEIGHT_TRAINING
+                        - ACTIVITY_TYPE_WHEELCHAIR
+                        - ACTIVITY_TYPE_WINDSURF
+                        - ACTIVITY_TYPE_WORKOUT
+                        - ACTIVITY_TYPE_YOGA
+                    type: string
+                    format: enum
+                model:
+                    type: string
+                inputsHash:
+                    type: string
+                classifiedAt:
+                    type: string
+                    format: date-time
+            description: |-
+                ActivityClassification is the ai-activity-type enricher's verdict (or its
+                 deterministic fallback): the personal site's own tag, whether the activity was
+                 "the actual thing" (an entered race or event, a real parkrun effort), and the
+                 Strava type it was given. race_why is for debugging and never exported.
         ActivityEnrichments:
             type: object
             properties:
@@ -1838,6 +1914,8 @@ components:
                     $ref: '#/components/schemas/BestEffortsSummary'
                 hdrop:
                     $ref: '#/components/schemas/HDropSummary'
+                classification:
+                    $ref: '#/components/schemas/ActivityClassification'
             description: |-
                 ActivityEnrichments holds typed outputs from the enricher pipeline.
                  Each sub-message is optional — only present if the corresponding enricher
@@ -4136,6 +4214,10 @@ components:
                     type: array
                     items:
                         type: string
+                tag:
+                    type: string
+                isRace:
+                    type: boolean
         ShowcaseRoundup:
             type: object
             properties:
