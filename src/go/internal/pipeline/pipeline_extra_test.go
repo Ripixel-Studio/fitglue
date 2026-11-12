@@ -432,7 +432,7 @@ func TestPipeline_HappyPaths(t *testing.T) {
 		// The stored original payload carries the original pipeline_execution_id; full-pipeline
 		// must strip it so the splitter mints a FRESH run (otherwise the reused run's prior
 		// SUCCESS outcomes trip the destination redelivery guard and nothing uploads).
-		payloadBytes := []byte(`{"source":"strava","title":"Morning Run","pipelineExecutionId":"original-run-1"}`)
+		payloadBytes := []byte(`{"source":"strava","title":"Morning Run","pipelineExecutionId":"original-run-1","isResume":true,"resumePendingInputId":"x:photo-upload"}`)
 		uri := "gs://bucket/original/a1.json"
 		store.Runs["u1_r1"] = &pipeline.PipelineRun{Id: "r1", ActivityId: "a1", OriginalPayloadUri: uri}
 		pub := &MockPublisher{}
@@ -459,6 +459,12 @@ func TestPipeline_HappyPaths(t *testing.T) {
 			t.Errorf("expected activityId=a1")
 		}
 		// in place: the activity's own run, not the (possibly stale) id in the stored payload
+		if _, ok := p["isResume"]; ok {
+			t.Errorf("a full re-run must enrich afresh, not replay as a resume")
+		}
+		if _, ok := p["resumePendingInputId"]; ok {
+			t.Errorf("resume input id must be dropped on a full re-run")
+		}
 		if p["pipelineExecutionId"] != "r1" {
 			t.Errorf("expected full-pipeline to re-run run r1 in place, got %v", p["pipelineExecutionId"])
 		}
