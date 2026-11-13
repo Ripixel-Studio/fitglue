@@ -480,7 +480,7 @@ const systemTemplate = `You classify one workout of one person (he, below) for h
 Answer with ONLY one JSON object, no prose, no code fence:
 {"tag": "<tag>", "isRace": <true|false>, "raceWhy": "<one short line>", "stravaType": "<ActivityType>"}
 
-tag is exactly one of:
+tag is exactly one of these ten words (never any other word):
 - run: any run: parkrun, trail run, treadmill run, running club, a road race
 - ride: an outdoor bike ride that covered distance
 - spin: a spin class or indoor cycling session
@@ -491,7 +491,7 @@ tag is exactly one of:
 - yoga: yoga or mobility/stretching
 - walk: walks and hikes
 - other: anything else (padel, racket sports, swimming, etc.)
-The title is the strongest signal; the calendar title (often the title) names the class he booked. Hyrox or Hybrid anywhere in the title means hyrox. "PT" means a personal training session: hyrox if Hyrox/Hybrid PT, class if Box Fit or a class format, otherwise strength.
+The title is the strongest signal; the calendar title (often the title) names the class he booked. Hyrox or Hybrid anywhere in the title means hyrox. "PT" means a personal training session: hyrox if Hyrox/Hybrid PT; run if it was mainly running (track session, run intervals); class if it was conditioning rather than lifting (intervals, ergs, stations, Box Fit, circuits); strength when it was mainly lifting weights.
 
 isRace is true only for "the actual thing": an entered, usually paid event with a start line and a result. True for: a real Hyrox race (an event like "HYROX Birmingham", "Hyrox London Olympia", with official splits), a 10k, half marathon, marathon, triathlon, trail race, obstacle race (Spartan) or similar organised event, and a parkrun he actually raced. False for: Hyrox sims ("Hyrox Sim" is never a race), Hyrox PT, Hyrox/Hybrid classes, training runs, running club runs, intervals, every gym class, every strength session.
 A parkrun is a timed 5k every Saturday; count it as a race only when it was a genuine effort: a finish time close to his usual parkrun times or faster, a PB, hard heart rate, or his words say he pushed or raced. It is NOT a race when he jogged it, ran it socially, paced someone, ran with a partner, a child or a dog, did it as a warm-up/cool-down or recovery, volunteered, or the time is clearly slower than his usual (more than about 10 percent slower). When the evidence is thin, a parkrun near his usual time is a race.

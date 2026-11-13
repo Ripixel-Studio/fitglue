@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -86,7 +87,7 @@ func parseClassifyFlags(args []string, stderr io.Writer) (*classifyFlags, error)
 	fs.StringVar(&f.export.slug, "slug", "james", "showcase profile slug")
 	fs.StringVar(&f.export.project, "project", defaultProject, "GCP project holding Firestore")
 	fs.StringVar(&f.export.bucket, "bucket", "", "showcase-assets bucket (default <project>-showcase-assets)")
-	fs.StringVar(&f.id, "id", "", "only this activity (showcase id, the site slug)")
+	fs.StringVar(&f.id, "id", "", "only these activities (showcase ids, the site slugs, comma-separated)")
 	fs.StringVar(&since, "since", "", "only activities starting on or after this date (YYYY-MM-DD or RFC 3339)")
 	fs.BoolVar(&f.force, "force", false, "re-classify activities already classified by Haiku")
 	fs.BoolVar(&f.apply, "apply", false, "save the verdicts (default: dry run)")
@@ -212,7 +213,7 @@ func (vc *verdictCache) save() error {
 }
 
 func (f *classifyFlags) selects(e *pbactivity.ShowcaseProfileEntry) bool {
-	if f.id != "" && e.ShowcaseId != f.id {
+	if f.id != "" && !slices.Contains(strings.Split(f.id, ","), e.ShowcaseId) {
 		return false
 	}
 	if f.since != nil && (e.StartTime == nil || e.StartTime.AsTime().Before(*f.since)) {
