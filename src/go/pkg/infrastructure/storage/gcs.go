@@ -36,9 +36,19 @@ func (a *StorageAdapter) Write(ctx context.Context, bucketName, objectName strin
 	return wc.Close()
 }
 
+// Get reads the object's current generation. Reading by generation matters for
+// publicly readable objects (the showcase-assets bucket): a plain read may be
+// answered from GCS's edge cache (max-age 3600 by default) and return the version
+// from before a write made seconds ago; fitgluectl classify saw its own fresh
+// classifications come back missing on about half of the reads.
 func (a *StorageAdapter) Get(ctx context.Context, bucketName, objectName string) ([]byte, error) {
 	bucketName, objectName = parseURI(bucketName, objectName)
-	rc, err := a.Client.Bucket(bucketName).Object(objectName).NewReader(ctx)
+	obj := a.Client.Bucket(bucketName).Object(objectName)
+	attrs, err := obj.Attrs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rc, err := obj.Generation(attrs.Generation).NewReader(ctx)
 	if err != nil {
 		return nil, err
 	}
