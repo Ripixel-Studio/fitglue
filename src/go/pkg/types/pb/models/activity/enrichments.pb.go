@@ -334,14 +334,20 @@ func (x *ActivityEnrichments) GetClassification() *ActivityClassification {
 // "the actual thing" (an entered race or event, a real parkrun effort), and the
 // Strava type it was given. race_why is for debugging and never exported.
 type ActivityClassification struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"` // run|ride|spin|hyrox|class|strength|pilates|yoga|walk|other
-	IsRace        bool                   `protobuf:"varint,2,opt,name=is_race,json=isRace,proto3" json:"is_race,omitempty"`
-	RaceWhy       string                 `protobuf:"bytes,3,opt,name=race_why,json=raceWhy,proto3" json:"race_why,omitempty"`                                                     // one line, debugging only
-	StravaType    ActivityType           `protobuf:"varint,4,opt,name=strava_type,json=stravaType,proto3,enum=fitglue.models.activity.ActivityType" json:"strava_type,omitempty"` // the type sent to Strava
-	Model         string                 `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`                                                                        // "claude-haiku" or "rule"
-	InputsHash    string                 `protobuf:"bytes,6,opt,name=inputs_hash,json=inputsHash,proto3" json:"inputs_hash,omitempty"`                                            // hash of the prompt inputs; a repost with the same hash reuses this
-	ClassifiedAt  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=classified_at,json=classifiedAt,proto3" json:"classified_at,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Tag          string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"` // run|ride|spin|hybrid|class|strength|pilates|yoga|walk|other
+	IsRace       bool                   `protobuf:"varint,2,opt,name=is_race,json=isRace,proto3" json:"is_race,omitempty"`
+	RaceWhy      string                 `protobuf:"bytes,3,opt,name=race_why,json=raceWhy,proto3" json:"race_why,omitempty"`                                                     // one line, debugging only
+	StravaType   ActivityType           `protobuf:"varint,4,opt,name=strava_type,json=stravaType,proto3,enum=fitglue.models.activity.ActivityType" json:"strava_type,omitempty"` // the type sent to Strava
+	Model        string                 `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`                                                                        // "claude-haiku" or "rule"
+	InputsHash   string                 `protobuf:"bytes,6,opt,name=inputs_hash,json=inputsHash,proto3" json:"inputs_hash,omitempty"`                                            // hash of the prompt inputs; a repost with the same hash reuses this
+	ClassifiedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=classified_at,json=classifiedAt,proto3" json:"classified_at,omitempty"`
+	// For a race only: what PB board row it belongs to. race_type is one of
+	// hyrox|deka|athx|spartan|parkrun|road|trail|triathlon|other; race_variant is
+	// the comparable variation inside it (Hyrox division, Spartan format, road
+	// distance, trail event name, parkrun course).
+	RaceType      string `protobuf:"bytes,8,opt,name=race_type,json=raceType,proto3" json:"race_type,omitempty"`
+	RaceVariant   string `protobuf:"bytes,9,opt,name=race_variant,json=raceVariant,proto3" json:"race_variant,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -423,6 +429,20 @@ func (x *ActivityClassification) GetClassifiedAt() *timestamppb.Timestamp {
 		return x.ClassifiedAt
 	}
 	return nil
+}
+
+func (x *ActivityClassification) GetRaceType() string {
+	if x != nil {
+		return x.RaceType
+	}
+	return ""
+}
+
+func (x *ActivityClassification) GetRaceVariant() string {
+	if x != nil {
+		return x.RaceVariant
+	}
+	return ""
 }
 
 type HeartRateSummary struct {
@@ -2839,7 +2859,7 @@ const file_models_activity_enrichments_proto_rawDesc = "" +
 	"\r_best_effortsB\b\n" +
 	"\x06_hdropB\x11\n" +
 	"\x0f_classificationJ\x04\b\t\x10\n" +
-	"R\tai_banner\"\x9e\x02\n" +
+	"R\tai_banner\"\xde\x02\n" +
 	"\x16ActivityClassification\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12\x17\n" +
 	"\ais_race\x18\x02 \x01(\bR\x06isRace\x12\x19\n" +
@@ -2849,7 +2869,9 @@ const file_models_activity_enrichments_proto_rawDesc = "" +
 	"\x05model\x18\x05 \x01(\tR\x05model\x12\x1f\n" +
 	"\vinputs_hash\x18\x06 \x01(\tR\n" +
 	"inputsHash\x12?\n" +
-	"\rclassified_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\fclassifiedAt\"\x9f\x01\n" +
+	"\rclassified_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\fclassifiedAt\x12\x1b\n" +
+	"\trace_type\x18\b \x01(\tR\braceType\x12!\n" +
+	"\frace_variant\x18\t \x01(\tR\vraceVariant\"\x9f\x01\n" +
 	"\x10HeartRateSummary\x12\x17\n" +
 	"\amin_bpm\x18\x01 \x01(\x05R\x06minBpm\x12\x17\n" +
 	"\aavg_bpm\x18\x02 \x01(\x05R\x06avgBpm\x12\x17\n" +

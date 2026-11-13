@@ -232,3 +232,18 @@ func TestClassifyHyroxTitleIsAlwaysHyrox(t *testing.T) {
 		t.Errorf("non-Hyrox title changed: %v", c.Tag)
 	}
 }
+
+func TestParseVerdictRaceKind(t *testing.T) {
+	c, err := ParseVerdict(`{"tag":"hybrid","isRace":true,"raceWhy":"x","stravaType":"ACTIVITY_TYPE_CROSSFIT","raceType":"Spartan","raceVariant":"  Sprint "}`)
+	if err != nil || c.RaceType != "spartan" || c.RaceVariant != "Sprint" {
+		t.Fatalf("%v %+v", err, c)
+	}
+	c, _ = ParseVerdict(`{"tag":"run","isRace":true,"raceWhy":"x","stravaType":"ACTIVITY_TYPE_RUN","raceType":"fun run","raceVariant":"Colour Run"}`)
+	if c.RaceType != "other" || c.RaceVariant != "Colour Run" {
+		t.Errorf("unknown type is other: %+v", c)
+	}
+	c, _ = ParseVerdict(`{"tag":"run","isRace":false,"raceWhy":"x","stravaType":"ACTIVITY_TYPE_RUN","raceType":"road","raceVariant":"10k"}`)
+	if c.RaceType != "" || c.RaceVariant != "" {
+		t.Errorf("not a race keeps no kind: %+v", c)
+	}
+}

@@ -47,13 +47,19 @@ message ActivityEnrichments {
 // "the actual thing" (an entered race or event, a real parkrun effort), and the
 // Strava type it was given. race_why is for debugging and never exported.
 message ActivityClassification {
-  string tag = 1;                                // run|ride|spin|hyrox|class|strength|pilates|yoga|walk|other
+  string tag = 1;                                // run|ride|spin|hybrid|class|strength|pilates|yoga|walk|other
   bool is_race = 2;
   string race_why = 3;                           // one line, debugging only
   ActivityType strava_type = 4;                  // the type sent to Strava
   string model = 5;                              // "claude-haiku" or "rule"
   string inputs_hash = 6;                        // hash of the prompt inputs; a repost with the same hash reuses this
   google.protobuf.Timestamp classified_at = 7;
+  // For a race only: what PB board row it belongs to. race_type is one of
+  // hyrox|deka|athx|spartan|parkrun|road|trail|triathlon|other; race_variant is
+  // the comparable variation inside it (Hyrox division, Spartan format, road
+  // distance, trail event name, parkrun course).
+  string race_type = 8;
+  string race_variant = 9;
 }
 
 message HeartRateSummary {

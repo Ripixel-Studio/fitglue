@@ -36,7 +36,7 @@ var hybridTitle = regexp.MustCompile(`(?i)\b(hyrox|hybrid|deka|athx|spartan)\b`)
 const Model = "claude-haiku"
 
 // promptVersion is part of the inputs hash: changing the prompt re-asks on the next repost.
-const promptVersion = "v2"
+const promptVersion = "v3"
 
 // AIActivityTypeProvider asks Haiku, for every activity, three things: the
 // personal site's tag, whether it was a race (the actual thing, not training),
@@ -175,6 +175,7 @@ func (p *AIActivityTypeProvider) Enrich(
 		_ = db.SetBoosterData(ctx, uid, doc, map[string]interface{}{
 			"inputs_hash": c.InputsHash, "tag": c.Tag, "is_race": c.IsRace,
 			"race_why": c.RaceWhy, "strava_type": c.StravaType.String(),
+			"race_type": c.RaceType, "race_variant": c.RaceVariant,
 		})
 	}
 	if db != nil && uid != "" && isParkrun {
@@ -232,6 +233,8 @@ func result(activity *pbactivity.StandardizedActivity, c *pbactivity.ActivityCla
 			"tag":           c.Tag,
 			"is_race":       fmt.Sprint(c.IsRace),
 			"race_why":      c.RaceWhy,
+			"race_type":     c.RaceType,
+			"race_variant":  c.RaceVariant,
 			"original_type": original.String(),
 			"new_type":      c.StravaType.String(),
 			"model":         c.Model,
@@ -249,9 +252,11 @@ func cachedClassification(data map[string]interface{}, hash string) *pbactivity.
 	race, _ := data["is_race"].(bool)
 	why, _ := data["race_why"].(string)
 	st, _ := data["strava_type"].(string)
+	rt, _ := data["race_type"].(string)
+	rv, _ := data["race_variant"].(string)
 	t := domainactivity.ParseActivityTypeFromString(st)
 	return &pbactivity.ActivityClassification{
-		Tag: tag, IsRace: race, RaceWhy: why, StravaType: t, Model: Model,
+		Tag: tag, IsRace: race, RaceWhy: why, StravaType: t, Model: Model, RaceType: rt, RaceVariant: rv,
 		InputsHash: hash, ClassifiedAt: timestamppb.Now(),
 	}
 }
@@ -294,10 +299,32 @@ func RuleClassification(in Inputs) *pbactivity.ActivityClassification {
 }
 
 type verdict struct {
-	Tag        string `json:"tag"`
-	IsRace     *bool  `json:"isRace"`
-	RaceWhy    string `json:"raceWhy"`
-	StravaType string `json:"stravaType"`
+	Tag         string `json:"tag"`
+	IsRace      *bool  `json:"isRace"`
+	RaceWhy     string `json:"raceWhy"`
+	StravaType  string `json:"stravaType"`
+	RaceType    string `json:"raceType"`
+	RaceVariant string `json:"raceVariant"`
+}
+
+// RaceTypes are the PB board's race types.
+var RaceTypes = []string{"hyrox", "deka", "athx", "spartan", "parkrun", "road", "trail", "triathlon", "other"}
+
+// raceKind returns the race type and variant to keep: both only for a race, the
+// type one of RaceTypes (else "other"), the variant trimmed to one short line.
+func raceKind(isRace bool, typ, variant string) (string, string) {
+	if !isRace {
+		return "", ""
+	}
+	typ = strings.ToLower(strings.TrimSpace(typ))
+	ok := false
+	for _, t := range RaceTypes {
+		ok = ok || t == typ
+	}
+	if !ok {
+		typ = "other"
+	}
+	return typ, truncate(strings.Join(strings.Fields(variant), " "), 60)
 }
 
 // ParseVerdict reads the model's JSON answer. The tag must be one of
@@ -328,9 +355,10 @@ func ParseVerdict(raw string) (*pbactivity.ActivityClassification, error) {
 	if !ok || t == 0 {
 		return nil, fmt.Errorf("stravaType %q is not an ActivityType", v.StravaType)
 	}
+	rt, rv := raceKind(*v.IsRace, v.RaceType, v.RaceVariant)
 	return &pbactivity.ActivityClassification{
 		Tag: tag, IsRace: *v.IsRace, RaceWhy: truncate(strings.TrimSpace(v.RaceWhy), 200),
-		StravaType: pbactivity.ActivityType(t), Model: Model,
+		StravaType: pbactivity.ActivityType(t), Model: Model, RaceType: rt, RaceVariant: rv,
 	}, nil
 }
 
@@ -507,7 +535,7 @@ func stravaTypes() []string {
 const systemTemplate = `You classify one workout of one person (he, below) for his personal fitness website and for Strava. He lives in Newark, UK. His week is mostly gym classes (Hyrox/Hybrid, Bootcamp, Circuits, Lift Class, Box Fit, Body Conditioning, Kettlebell, Spin), Pilates, PT sessions, short home sessions, runs (Newark parkrun on Saturdays, a Sunday running club) and the occasional race.
 
 Answer with ONLY one JSON object, no prose, no code fence:
-{"tag": "<tag>", "isRace": <true|false>, "raceWhy": "<one short line>", "stravaType": "<ActivityType>"}
+{"tag": "<tag>", "isRace": <true|false>, "raceWhy": "<one short line>", "stravaType": "<ActivityType>", "raceType": "<race type or empty>", "raceVariant": "<variant or empty>"}
 
 tag is exactly one of these ten words (never any other word):
 - run: any run: parkrun, trail run, treadmill run, running club, a road race
@@ -526,6 +554,15 @@ isRace is true only for "the actual thing": an entered, usually paid event with 
 "Paid-for events on this date" lists the events on his own sheet of events he paid for on the activity's date. It is the strongest evidence for isRace: when the activity is that event (its title, distance, place or time fit), it is a race, even when the title is a generic "Morning Run" or the effort was easy or self-paced (a lapped event where he chose his distance is still the event). Still use judgement, because he pays for things that are not races: a sim is never a race, a fun run with children (an inflatable or fancy-dress run) is not, and an event where his words say he paced other people, ran with someone else, or jogged it for fun is not. An activity on that date that is clearly not the event (a warm-up, a gym session, a walk) is not a race. With no paid-for event listed, decide from the rest as before.
 A parkrun is a timed 5k every Saturday; count it as a race only when it was a genuine effort: a finish time close to his usual parkrun times or faster, a PB, hard heart rate, or his words say he pushed or raced. It is NOT a race when he jogged it, ran it socially, paced someone, ran with a partner, a child or a dog, did it as a warm-up/cool-down or recovery, volunteered, or the time is clearly slower than his usual (more than about 10 percent slower). When the evidence is thin, a parkrun near his usual time is a race.
 raceWhy: one short factual line, naming no people, saying why isRace is what it is (e.g. "Hyrox race in Birmingham with official splits", "Marathon on his paid-for events sheet", "parkrun at 23:10, near his usual 23:30", "Hyrox sim, training").
+
+raceType and raceVariant (only when isRace is true; empty strings otherwise) place the race on his PB board, where races with the same type and variant are compared:
+- hyrox, deka, athx: variant is the division, standardised across venues: "Open Men's Single", "Open Men's Doubles", "Pro Men's Single", "Mixed Doubles", "Relay" (Hyrox); the format for DEKA ("DEKA Fit", "DEKA Mile", "DEKA Strong") and ATHX. Never the venue.
+- spartan: variant is the format: "Sprint", "Super", "Beast", "Ultra" or "Stadion". Never the venue.
+- parkrun: variant is the course, e.g. "Newark".
+- road: a road race; variant is the standard distance when it is one ("5k", "10k", "10 miles", "Half marathon", "Marathon"), else the event's name without year or season (e.g. "Burghley 7").
+- trail: an off-road race; variant is the event's name without year, season or day (e.g. "Derbyshire Dales Half Marathon", "Rasselbock Run"), because trail courses are not comparable across events.
+- triathlon: variant is the distance ("Sprint", "Olympic", "Middle", "Full").
+- other: anything else; variant is the event's name.
 
 stravaType is the best Strava type from this list (Strava's list is old, so it may differ from the tag): a run is ACTIVITY_TYPE_RUN (ACTIVITY_TYPE_TRAIL_RUN off-road, ACTIVITY_TYPE_VIRTUAL_RUN treadmill), a spin class ACTIVITY_TYPE_VIRTUAL_RIDE when there was no distance outdoors (ACTIVITY_TYPE_RIDE when outdoors), Hyrox and gym classes ACTIVITY_TYPE_CROSSFIT or ACTIVITY_TYPE_HIGH_INTENSITY_INTERVAL_TRAINING, lifting ACTIVITY_TYPE_WEIGHT_TRAINING, short home bodyweight sessions ACTIVITY_TYPE_WORKOUT, Pilates ACTIVITY_TYPE_PILATES, yoga ACTIVITY_TYPE_YOGA, walks ACTIVITY_TYPE_WALK. Keep the source type when it is already the right specific one.
 %s
