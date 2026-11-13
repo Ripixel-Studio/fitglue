@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/fitglue/server/src/go/pkg/paidevents"
 	"io"
 	"path/filepath"
 	"strings"
@@ -24,6 +25,7 @@ type fakeClassifyStore struct {
 	asks    int
 	saves   map[string]*pbactivity.ActivityClassification
 	answer  func(in ai_activity_type.Inputs) (*pbactivity.ActivityClassification, error)
+	paid    []paidevents.Event
 }
 
 func (f *fakeClassifyStore) SummaryEntries(context.Context, string) ([]*pbactivity.ShowcaseProfileEntry, error) {
@@ -41,6 +43,10 @@ func (f *fakeClassifyStore) LoadActivitySummary(_ context.Context, id string) (*
 func (f *fakeClassifyStore) Classify(_ context.Context, in ai_activity_type.Inputs) (*pbactivity.ActivityClassification, error) {
 	f.asks++
 	return f.answer(in)
+}
+
+func (f *fakeClassifyStore) PaidEvents(context.Context) ([]paidevents.Event, error) {
+	return f.paid, nil
 }
 
 func (f *fakeClassifyStore) SaveClassification(_ context.Context, a *activity.ActivitySummary, c *pbactivity.ActivityClassification, e *pbactivity.ShowcaseProfileEntry) error {
@@ -65,7 +71,7 @@ func newFakeClassifyStore() *fakeClassifyStore {
 		c := &pbactivity.ActivityClassification{Tag: "run", IsRace: true, RaceWhy: "parkrun effort", StravaType: pbactivity.ActivityType_ACTIVITY_TYPE_RUN,
 			Model: ai_activity_type.Model, InputsHash: ai_activity_type.InputsHash(in)}
 		if strings.Contains(in.Title, "Hyrox") {
-			c.Tag, c.IsRace, c.RaceWhy = "hyrox", false, "sim, training"
+			c.Tag, c.IsRace, c.RaceWhy = "hybrid", false, "sim, training"
 		}
 		return c, nil
 	}
@@ -90,7 +96,7 @@ func TestClassifyDryRunSavesNothing(t *testing.T) {
 	if st.asks != 3 || len(st.saves) != 0 {
 		t.Errorf("asks %d saves %d", st.asks, len(st.saves))
 	}
-	for _, want := range []string{"hyrox     1", "run       2", "isRace=true (2)", "parkrun effort", "dry run"} {
+	for _, want := range []string{"hybrid    1", "run       2", "isRace=true (2)", "parkrun effort", "dry run"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("report misses %q:\n%s", want, out.String())
 		}
@@ -104,7 +110,7 @@ func TestClassifyIdempotent(t *testing.T) {
 	if err := runClassify(context.Background(), f, st, io.Discard, time.Now); err != nil {
 		t.Fatal(err)
 	}
-	if len(st.saves) != 3 || st.entries[2].Tag != "hyrox" || !st.entries[0].IsRace {
+	if len(st.saves) != 3 || st.entries[2].Tag != "hybrid" || !st.entries[0].IsRace {
 		t.Fatalf("saves %d entries %v", len(st.saves), st.entries)
 	}
 	st.saves = map[string]*pbactivity.ActivityClassification{}
@@ -181,5 +187,25 @@ func TestClassifyParkrunHistory(t *testing.T) {
 	}
 	if len(seen) != 2 || withHistory != 1 {
 		t.Errorf("parkrun histories %v", seen)
+	}
+}
+
+func TestClassifyShowsThePaidEventsOnTheDay(t *testing.T) {
+	st := newFakeClassifyStore()
+	st.paid = []paidevents.Event{{Date: "2026-10-11", Name: "Hyrox Sim"}}
+	seen := map[string][]string{}
+	answer := st.answer
+	st.answer = func(in ai_activity_type.Inputs) (*pbactivity.ActivityClassification, error) {
+		seen[in.Title] = in.PaidEvents
+		return answer(in)
+	}
+	if err := runClassify(context.Background(), classifyFlagsFor(t), st, io.Discard, time.Now); err != nil {
+		t.Fatal(err)
+	}
+	if got := seen["Hyrox Sim"]; len(got) != 1 || got[0] != "Hyrox Sim" {
+		t.Errorf("the sim's day: %v", got)
+	}
+	if got := seen["Riverside parkrun"]; len(got) != 0 {
+		t.Errorf("a day with no paid event: %v", got)
 	}
 }

@@ -23,19 +23,20 @@ import (
 	"github.com/fitglue/server/src/go/pkg/claude"
 	domainactivity "github.com/fitglue/server/src/go/pkg/domain/activity"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
+	"github.com/fitglue/server/src/go/pkg/paidevents"
 	"github.com/fitglue/server/src/go/pkg/voice"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 )
 
-var hyroxTitle = regexp.MustCompile(`(?i)\b(hyrox|hybrid)\b`)
+var hybridTitle = regexp.MustCompile(`(?i)\b(hyrox|hybrid|deka|athx|spartan)\b`)
 
 // Model is ActivityClassification.model for a verdict Haiku made.
 const Model = "claude-haiku"
 
 // promptVersion is part of the inputs hash: changing the prompt re-asks on the next repost.
-const promptVersion = "v1"
+const promptVersion = "v2"
 
 // AIActivityTypeProvider asks Haiku, for every activity, three things: the
 // personal site's tag, whether it was a race (the actual thing, not training),
@@ -95,6 +96,8 @@ type Inputs struct {
 	Parkrun *pbactivity.ParkrunSummary
 	// UsualParkrunSeconds are his recent parkrun finish times, for judging effort.
 	UsualParkrunSeconds []int
+	// PaidEvents are the events on his paid-for events sheet on the activity's date.
+	PaidEvents []string
 }
 
 // cacheDoc is the booster_data document holding the verdict for one source activity.
@@ -141,6 +144,10 @@ func (p *AIActivityTypeProvider) Enrich(
 		if data, err := db.GetBoosterData(ctx, uid, parkrunDoc); err == nil {
 			in.UsualParkrunSeconds = intsOf(data["times"])
 		}
+	}
+
+	if events := p.paidEvents(ctx, logger); len(events) > 0 && activity.GetStartTime() != nil {
+		in.PaidEvents = paidevents.On(events, activity.GetStartTime().AsTime().In(london()))
 	}
 
 	hash := InputsHash(in)
@@ -191,6 +198,19 @@ type boosterDB interface {
 	SetBoosterData(ctx context.Context, userId, boosterId string, data map[string]interface{}) error
 }
 
+// paidEvents reads his paid-for events from the artifacts bucket; none when it cannot.
+func (p *AIActivityTypeProvider) paidEvents(ctx context.Context, logger *slog.Logger) []paidevents.Event {
+	if p.Service == nil || p.Service.Store == nil || p.Service.Config == nil || p.Service.Config.GCSArtifactBucket == "" {
+		return nil
+	}
+	events, err := paidevents.Load(ctx, p.Service.Store, p.Service.Config.GCSArtifactBucket)
+	if err != nil {
+		logger.Warn("ai-activity-type: paid events unreadable, judging without them", "error", err)
+		return nil
+	}
+	return events
+}
+
 func (p *AIActivityTypeProvider) db() boosterDB {
 	if p.Service == nil || p.Service.DB == nil {
 		return nil
@@ -222,6 +242,7 @@ func result(activity *pbactivity.StandardizedActivity, c *pbactivity.ActivityCla
 func cachedClassification(data map[string]interface{}, hash string) *pbactivity.ActivityClassification {
 	h, _ := data["inputs_hash"].(string)
 	tag, _ := data["tag"].(string)
+	tag = activitytag.Normalize(tag)
 	if h != hash || !activitytag.Valid(tag) {
 		return nil
 	}
@@ -246,10 +267,10 @@ func Classify(ctx context.Context, ai claude.Completer, in Inputs) (*pbactivity.
 	if err == nil {
 		var c *pbactivity.ActivityClassification
 		if c, err = ParseVerdict(raw); err == nil {
-			// Hyrox or Hybrid in the title is always hyrox (classes, PT, sims, races);
-			// the model now and then files a Hyrox PT under strength.
-			if hyroxTitle.MatchString(in.Title) && c.Tag != activitytag.Hyrox {
-				c.Tag = activitytag.Hyrox
+			// Hyrox, Hybrid, DEKA, ATHX or Spartan in the title is always hybrid
+			// (classes, PT, sims, races); the model now and then files a Hyrox PT under strength.
+			if hybridTitle.MatchString(in.Title) && c.Tag != activitytag.Hybrid {
+				c.Tag = activitytag.Hybrid
 			}
 			c.InputsHash, c.ClassifiedAt = hash, timestamppb.Now()
 			return c, nil
@@ -292,7 +313,7 @@ func ParseVerdict(raw string) (*pbactivity.ActivityClassification, error) {
 	if err := json.Unmarshal([]byte(s[i:j+1]), &v); err != nil {
 		return nil, fmt.Errorf("bad JSON %q: %w", truncate(raw, 200), err)
 	}
-	tag := strings.ToLower(strings.TrimSpace(v.Tag))
+	tag := activitytag.Normalize(strings.ToLower(strings.TrimSpace(v.Tag)))
 	if !activitytag.Valid(tag) {
 		return nil, fmt.Errorf("tag %q is not one of %s", v.Tag, strings.Join(activitytag.Tags, "|"))
 	}
@@ -465,7 +486,7 @@ func InputsHash(in Inputs) string {
 		promptVersion, in.Title, in.SourceTitle, strings.TrimSpace(in.Description),
 		in.Activity.GetType().String(), strings.Join(st.sets, ","),
 		fmt.Sprint(math.Round(st.durationS / 60)), fmt.Sprint(math.Round(st.distanceM / 100)),
-		in.Parkrun.GetFinishTime(),
+		in.Parkrun.GetFinishTime(), strings.Join(in.PaidEvents, ","),
 	}
 	sum := sha256.Sum256([]byte(strings.Join(parts, "\x1f")))
 	return hex.EncodeToString(sum[:8])
@@ -492,18 +513,19 @@ tag is exactly one of these ten words (never any other word):
 - run: any run: parkrun, trail run, treadmill run, running club, a road race
 - ride: an outdoor bike ride that covered distance
 - spin: a spin class or indoor cycling session
-- hyrox: anything Hyrox or Hybrid: Hyrox/Hybrid classes, Hyrox PT, Hyrox sims, Hyrox races
+- hybrid: hybrid fitness racing and its training: Hyrox, DEKA, ATHX and Spartan (obstacle races with carries and stations), and Hyrox/Hybrid classes, Hyrox PT, Hyrox sims
 - class: other led gym classes: Bootcamp, Circuits, Lift Class, Kettlebell, Box Fit, Body Conditioning, HIIT, CrossFit-style classes
 - strength: lifting with a PT, his own weights sessions, short home sessions (Bedtime Core, 100 Press Ups, core, press ups)
 - pilates: Pilates
 - yoga: yoga or mobility/stretching
 - walk: walks and hikes
 - other: anything else (padel, racket sports, swimming, etc.)
-The title is the strongest signal; the calendar title (often the title) names the class he booked. Hyrox or Hybrid anywhere in the title means hyrox. "PT" means a personal training session: hyrox if Hyrox/Hybrid PT; run if it was mainly running (track session, run intervals); class if it was conditioning rather than lifting (intervals, ergs, stations, Box Fit, circuits); strength when it was mainly lifting weights.
+The title is the strongest signal; the calendar title (often the title) names the class he booked. Hyrox, Hybrid, DEKA, ATHX or Spartan anywhere in the title means hybrid. "PT" means a personal training session: hybrid if Hyrox/Hybrid PT; run if it was mainly running (track session, run intervals); class if it was conditioning rather than lifting (intervals, ergs, stations, Box Fit, circuits); strength when it was mainly lifting weights.
 
-isRace is true only for "the actual thing": an entered, usually paid event with a start line and a result. True for: a real Hyrox race (an event like "HYROX Birmingham", "Hyrox London Olympia", with official splits), a 10k, half marathon, marathon, triathlon, trail race, obstacle race (Spartan) or similar organised event, and a parkrun he actually raced. False for: Hyrox sims ("Hyrox Sim" is never a race), Hyrox PT, Hyrox/Hybrid classes, training runs, running club runs, intervals, every gym class, every strength session.
+isRace is true only for "the actual thing": an entered, usually paid event with a start line and a result. True for: a real Hyrox, DEKA or ATHX race (an event like "HYROX Birmingham", "Hyrox London Olympia", with official splits), a Spartan race (Sprint, Super, Beast), a 5k, 10k, half marathon, marathon, triathlon, trail race or similar organised event, and a parkrun he actually raced. False for: Hyrox sims ("Hyrox Sim" is never a race), Hyrox PT, Hyrox/Hybrid classes, training runs, running club runs, intervals, every gym class, every strength session.
+"Paid-for events on this date" lists the events on his own sheet of events he paid for on the activity's date. It is the strongest evidence for isRace: when the activity is that event (its title, distance, place or time fit), it is a race, even when the title is a generic "Morning Run" or the effort was easy or self-paced (a lapped event where he chose his distance is still the event). Still use judgement, because he pays for things that are not races: a sim is never a race, a fun run with children (an inflatable or fancy-dress run) is not, and an event where his words say he paced other people, ran with someone else, or jogged it for fun is not. An activity on that date that is clearly not the event (a warm-up, a gym session, a walk) is not a race. With no paid-for event listed, decide from the rest as before.
 A parkrun is a timed 5k every Saturday; count it as a race only when it was a genuine effort: a finish time close to his usual parkrun times or faster, a PB, hard heart rate, or his words say he pushed or raced. It is NOT a race when he jogged it, ran it socially, paced someone, ran with a partner, a child or a dog, did it as a warm-up/cool-down or recovery, volunteered, or the time is clearly slower than his usual (more than about 10 percent slower). When the evidence is thin, a parkrun near his usual time is a race.
-raceWhy: one short factual line, naming no people, saying why isRace is what it is (e.g. "Hyrox race in Birmingham with official splits", "parkrun at 23:10, near his usual 23:30", "Hyrox sim, training").
+raceWhy: one short factual line, naming no people, saying why isRace is what it is (e.g. "Hyrox race in Birmingham with official splits", "Marathon on his paid-for events sheet", "parkrun at 23:10, near his usual 23:30", "Hyrox sim, training").
 
 stravaType is the best Strava type from this list (Strava's list is old, so it may differ from the tag): a run is ACTIVITY_TYPE_RUN (ACTIVITY_TYPE_TRAIL_RUN off-road, ACTIVITY_TYPE_VIRTUAL_RUN treadmill), a spin class ACTIVITY_TYPE_VIRTUAL_RIDE when there was no distance outdoors (ACTIVITY_TYPE_RIDE when outdoors), Hyrox and gym classes ACTIVITY_TYPE_CROSSFIT or ACTIVITY_TYPE_HIGH_INTENSITY_INTERVAL_TRAINING, lifting ACTIVITY_TYPE_WEIGHT_TRAINING, short home bodyweight sessions ACTIVITY_TYPE_WORKOUT, Pilates ACTIVITY_TYPE_PILATES, yoga ACTIVITY_TYPE_YOGA, walks ACTIVITY_TYPE_WALK. Keep the source type when it is already the right specific one.
 %s
@@ -575,6 +597,9 @@ func BuildPrompt(in Inputs) (system, prompt string) {
 			}
 			line("His recent parkrun times", strings.Join(ts, ", ")+fmt.Sprintf(" (median %s)", clock(median(in.UsualParkrunSeconds))))
 		}
+	}
+	if len(in.PaidEvents) > 0 {
+		line("Paid-for events on this date (his events sheet)", safe(strings.Join(in.PaidEvents, "; "), 300))
 	}
 	line("His description", safe(in.Description, 1200))
 	line("FitGlue's generated sections", safe(in.Context, 1500))

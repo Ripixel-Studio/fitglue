@@ -40,11 +40,11 @@ func TestRuleTags(t *testing.T) {
 		{"outdoor ride", Input{Type: ride, Title: "Morning Ride", Distance: 30000, Routed: true}, Ride, false},
 		{"indoor ride is spin", Input{Type: vride, Title: "Evening session"}, Spin, false},
 		{"spin title", Input{Type: crossfit, Title: "Spin"}, Spin, false},
-		{"hyrox class", Input{Type: crossfit, Title: "Hyrox Class"}, Hyrox, false},
-		{"hybrid class", Input{Type: crossfit, Title: "Hybrid class"}, Hyrox, false},
-		{"hyrox pt", Input{Type: weights, Title: "Half Hyrox PT", HasSets: true, Sets: lifts(10)}, Hyrox, false},
-		{"hyrox sim is no race", Input{Type: crossfit, Title: "Hyrox Sim", RaceSplit: true}, Hyrox, false},
-		{"hyrox race", Input{Type: crossfit, Title: "HYROX Riverside", RaceSplit: true}, Hyrox, true},
+		{"hyrox class", Input{Type: crossfit, Title: "Hyrox Class"}, Hybrid, false},
+		{"hybrid class", Input{Type: crossfit, Title: "Hybrid class"}, Hybrid, false},
+		{"hyrox pt", Input{Type: weights, Title: "Half Hyrox PT", HasSets: true, Sets: lifts(10)}, Hybrid, false},
+		{"hyrox sim is no race", Input{Type: crossfit, Title: "Hyrox Sim", RaceSplit: true}, Hybrid, false},
+		{"hyrox race", Input{Type: crossfit, Title: "HYROX Riverside", RaceSplit: true}, Hybrid, true},
 		{"bootcamp", Input{Type: crossfit, Title: "Bootcamp"}, Class, false},
 		{"hiit type", Input{Type: hiit, Title: "Thursday"}, Class, false},
 		{"box fit pt", Input{Type: weights, Title: "Box Fit PT", HasSets: true, Sets: lifts(4)}, Class, false},
@@ -92,8 +92,8 @@ func TestForShowcasePrefersStoredClassification(t *testing.T) {
 	if tag, race := ForShowcase(sc); tag != Class || race {
 		t.Errorf("rule fallback = %s/%v", tag, race)
 	}
-	sc.Enrichments = &pbactivity.ActivityEnrichments{Classification: &pbactivity.ActivityClassification{Tag: Hyrox, IsRace: true}}
-	if tag, race := ForShowcase(sc); tag != Hyrox || !race {
+	sc.Enrichments = &pbactivity.ActivityEnrichments{Classification: &pbactivity.ActivityClassification{Tag: "hyrox", IsRace: true}}
+	if tag, race := ForShowcase(sc); tag != Hybrid || !race {
 		t.Errorf("stored = %s/%v", tag, race)
 	}
 	sc.Enrichments.Classification.Tag = "nonsense"
@@ -126,5 +126,16 @@ func TestFromActivity(t *testing.T) {
 	in := FromActivity("Title", a)
 	if in.Type != weights || in.Distance != 1200 || !in.Routed || len(in.Sets) != 1 || !in.RaceSplit || !in.HasSets {
 		t.Errorf("FromActivity = %+v", in)
+	}
+}
+
+func TestHybridCoversTheHybridRaces(t *testing.T) {
+	for _, title := range []string{"Spartan Sprint", "DEKA Fit", "ATHX Manchester", "Hyrox Sim"} {
+		if tag, _, _ := Rule(Input{Title: title}); tag != Hybrid {
+			t.Errorf("%s: %s", title, tag)
+		}
+	}
+	if Normalize("hyrox") != Hybrid || !Valid("hyrox") || Normalize("run") != Run {
+		t.Error("the legacy hyrox tag reads as hybrid")
 	}
 }

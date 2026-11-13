@@ -57,9 +57,9 @@ func TestMetadata(t *testing.T) {
 }
 
 func TestParseVerdict(t *testing.T) {
-	good := `{"tag":"hyrox","isRace":false,"raceWhy":"Hyrox sim, training","stravaType":"ACTIVITY_TYPE_CROSSFIT"}`
+	good := `{"tag":"hybrid","isRace":false,"raceWhy":"Hyrox sim, training","stravaType":"ACTIVITY_TYPE_CROSSFIT"}`
 	c, err := ParseVerdict("```json\n" + good + "\n```")
-	if err != nil || c.Tag != "hyrox" || c.IsRace || c.StravaType != pbactivity.ActivityType_ACTIVITY_TYPE_CROSSFIT || c.Model != Model {
+	if err != nil || c.Tag != "hybrid" || c.IsRace || c.StravaType != pbactivity.ActivityType_ACTIVITY_TYPE_CROSSFIT || c.Model != Model {
 		t.Fatalf("good verdict: %v %v", c, err)
 	}
 	if c, err := ParseVerdict(`{"tag":"Run","isRace":true,"raceWhy":"x","stravaType":"RUN"}`); err != nil || c.Tag != "run" || c.StravaType != pbactivity.ActivityType_ACTIVITY_TYPE_RUN {
@@ -79,7 +79,7 @@ func TestParseVerdict(t *testing.T) {
 }
 
 func TestEnrichAppliesVerdict(t *testing.T) {
-	f := &fakeAI{out: `{"tag":"hyrox","isRace":false,"raceWhy":"class","stravaType":"ACTIVITY_TYPE_CROSSFIT"}`}
+	f := &fakeAI{out: `{"tag":"hybrid","isRace":false,"raceWhy":"class","stravaType":"ACTIVITY_TYPE_CROSSFIT"}`}
 	p := NewAIActivityTypeProvider()
 	p.AI = f
 	act := hyroxClass()
@@ -94,7 +94,7 @@ func TestEnrichAppliesVerdict(t *testing.T) {
 		t.Errorf("strava type not applied: %v / %v", act.Type, res.ActivityType)
 	}
 	c := res.Enrichments.GetClassification()
-	if c.GetTag() != "hyrox" || c.GetIsRace() || c.GetModel() != Model || c.GetInputsHash() == "" {
+	if c.GetTag() != "hybrid" || c.GetIsRace() || c.GetModel() != Model || c.GetInputsHash() == "" {
 		t.Errorf("classification %v", c)
 	}
 	if act.Name != "Hyrox Class" || res.Name != "" || res.Description != "" {
@@ -120,7 +120,7 @@ func TestEnrichFallsBackToRule(t *testing.T) {
 				t.Fatal(err)
 			}
 			c := res.Enrichments.GetClassification()
-			if c.GetTag() != "hyrox" || c.GetModel() != "rule" || res.Metadata["status"] != "fallback" {
+			if c.GetTag() != "hybrid" || c.GetModel() != "rule" || res.Metadata["status"] != "fallback" {
 				t.Errorf("fallback = %v meta %v", c, res.Metadata)
 			}
 			if act.Type != pbactivity.ActivityType_ACTIVITY_TYPE_WEIGHT_TRAINING {
@@ -147,7 +147,7 @@ func TestEnrichReusesCachedVerdict(t *testing.T) {
 			return nil
 		},
 	}
-	f := &fakeAI{out: `{"tag":"hyrox","isRace":false,"raceWhy":"class","stravaType":"ACTIVITY_TYPE_CROSSFIT"}`}
+	f := &fakeAI{out: `{"tag":"hybrid","isRace":false,"raceWhy":"class","stravaType":"ACTIVITY_TYPE_CROSSFIT"}`}
 	p := NewAIActivityTypeProvider()
 	p.AI = f
 	p.SetService(&bootstrap.Service{DB: db})
@@ -158,7 +158,7 @@ func TestEnrichReusesCachedVerdict(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, _ := p.Enrich(context.Background(), aiLogger(), hyroxClass(), u, map[string]string{"is_repost": "true"}, false)
-	if f.calls != 1 || res.Metadata["status"] != "cache" || res.Enrichments.GetClassification().GetTag() != "hyrox" {
+	if f.calls != 1 || res.Metadata["status"] != "cache" || res.Enrichments.GetClassification().GetTag() != "hybrid" {
 		t.Errorf("repost asked again (%d calls) or lost the verdict: %v", f.calls, res.Metadata)
 	}
 	renamed := hyroxClass()
@@ -201,7 +201,7 @@ func TestPromptParkrunContext(t *testing.T) {
 	if !strings.Contains(system, "ACTIVITY_TYPE_CROSSFIT") || strings.Contains(system, "ACTIVITY_TYPE_UNSPECIFIED") {
 		t.Error("system prompt must list the types without UNSPECIFIED")
 	}
-	for _, tag := range []string{"run", "ride", "spin", "hyrox", "class", "strength", "pilates", "yoga", "walk", "other"} {
+	for _, tag := range []string{"run", "ride", "spin", "hybrid", "class", "strength", "pilates", "yoga", "walk", "other"} {
 		if !strings.Contains(system, "- "+tag+":") {
 			t.Errorf("system prompt misses tag %s", tag)
 		}
@@ -224,7 +224,7 @@ func TestInputsHashIgnoresFitGlueSections(t *testing.T) {
 func TestClassifyHyroxTitleIsAlwaysHyrox(t *testing.T) {
 	f := &fakeAI{out: `{"tag":"strength","isRace":false,"raceWhy":"PT","stravaType":"ACTIVITY_TYPE_WEIGHT_TRAINING"}`}
 	c, err := Classify(context.Background(), f, Inputs{Title: "Push Focused Hyrox PT", Activity: hyroxClass()})
-	if err != nil || c.Tag != "hyrox" || c.StravaType != pbactivity.ActivityType_ACTIVITY_TYPE_WEIGHT_TRAINING {
+	if err != nil || c.Tag != "hybrid" || c.StravaType != pbactivity.ActivityType_ACTIVITY_TYPE_WEIGHT_TRAINING {
 		t.Errorf("Classify = %v, %v", c, err)
 	}
 	c, _ = Classify(context.Background(), f, Inputs{Title: "Upper Body PT", Activity: hyroxClass()})
