@@ -3,7 +3,7 @@
 // tag; when that answer is missing or invalid, Rule decides instead, so no
 // activity is ever untagged. The rule is a port of the website's activityKind
 // (ripixel-website tasks/fitness-activity-kinds.mjs) plus title rules for the
-// tags the site's kinds do not separate (hyrox, spin, pilates, yoga).
+// tags the site's kinds do not separate (hybrid, spin, pilates, yoga).
 package activitytag
 
 import (
@@ -18,7 +18,7 @@ const (
 	Run      = "run"
 	Ride     = "ride"
 	Spin     = "spin"
-	Hyrox    = "hyrox"
+	Hybrid   = "hybrid" // Hyrox, DEKA, ATHX, Spartan: races, sims, classes, PT
 	Class    = "class"
 	Strength = "strength"
 	Pilates  = "pilates"
@@ -28,13 +28,25 @@ const (
 )
 
 // Tags lists every valid tag, in the order the prompt presents them.
-var Tags = []string{Run, Ride, Spin, Hyrox, Class, Strength, Pilates, Yoga, Walk, Other}
+var Tags = []string{Run, Ride, Spin, Hybrid, Class, Strength, Pilates, Yoga, Walk, Other}
 
 // RuleModel is ActivityClassification.model for a verdict the rule made.
 const RuleModel = "rule"
 
-// Valid reports whether tag is one of Tags.
+// legacy maps a tag older verdicts stored to the tag it is now.
+var legacy = map[string]string{"hyrox": Hybrid}
+
+// Normalize returns the current name of a tag: "hyrox" (before 2026-11-13) is "hybrid".
+func Normalize(tag string) string {
+	if t, ok := legacy[tag]; ok {
+		return t
+	}
+	return tag
+}
+
+// Valid reports whether tag is one of Tags (a legacy name counts, see Normalize).
 func Valid(tag string) bool {
+	tag = Normalize(tag)
 	for _, t := range Tags {
 		if t == tag {
 			return true
@@ -84,7 +96,7 @@ var (
 		pbactivity.ActivityType_ACTIVITY_TYPE_ELLIPTICAL: true, pbactivity.ActivityType_ACTIVITY_TYPE_STAIR_STEPPER: true,
 	}
 
-	hyroxTitle   = regexp.MustCompile(`(?i)\b(hyrox|hybrid)\b`)
+	hybridTitle  = regexp.MustCompile(`(?i)\b(hyrox|hybrid|deka|athx|spartan)\b`)
 	spinTitle    = regexp.MustCompile(`(?i)\b(spin|spinning)\b`)
 	pilatesTitle = regexp.MustCompile(`(?i)\bpilates\b`)
 	yogaTitle    = regexp.MustCompile(`(?i)\b(yoga|mobility)\b`)
@@ -115,8 +127,8 @@ func Rule(in Input) (tag string, isRace bool, why string) {
 func ruleTag(in Input) string {
 	t, title := in.Type, in.Title
 	switch {
-	case hyroxTitle.MatchString(title) || in.RaceSplit:
-		return Hyrox
+	case hybridTitle.MatchString(title) || in.RaceSplit:
+		return Hybrid
 	case spinTitle.MatchString(title):
 		return Spin
 	case pilatesTitle.MatchString(title) || t == pbactivity.ActivityType_ACTIVITY_TYPE_PILATES:
@@ -220,7 +232,7 @@ func ruleRace(in Input, tag string) (bool, string) {
 	if notRaceTitle.MatchString(title) {
 		return false, "rule: training or class wording in the title"
 	}
-	if in.RaceSplit && tag == Hyrox {
+	if in.RaceSplit && tag == Hybrid {
 		return true, "rule: Hyrox race splits"
 	}
 	if raceTitle.MatchString(title) {
@@ -276,7 +288,7 @@ func FromEntry(e *pbactivity.ShowcaseProfileEntry) Input {
 // classification when there is a valid one, else the rule's verdict.
 func ForShowcase(sc *pbactivity.ShowcasedActivity) (string, bool) {
 	if c := sc.GetEnrichments().GetClassification(); c != nil && Valid(c.Tag) {
-		return c.Tag, c.IsRace
+		return Normalize(c.Tag), c.IsRace
 	}
 	tag, race, _ := Rule(FromShowcase(sc))
 	return tag, race
@@ -286,7 +298,7 @@ func ForShowcase(sc *pbactivity.ShowcasedActivity) (string, bool) {
 // else the rule's verdict on what the entry keeps.
 func ForEntry(e *pbactivity.ShowcaseProfileEntry) (string, bool) {
 	if Valid(e.GetTag()) {
-		return e.GetTag(), e.GetIsRace()
+		return Normalize(e.GetTag()), e.GetIsRace()
 	}
 	tag, race, _ := Rule(FromEntry(e))
 	return tag, race

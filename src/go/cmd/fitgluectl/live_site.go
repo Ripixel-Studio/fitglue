@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/fitglue/server/src/go/pkg/paidevents"
 	"io"
 	"log"
 	"os"
@@ -166,6 +167,10 @@ type classifyAdapter struct{ summaryAdapter }
 
 func (a classifyAdapter) Classify(ctx context.Context, in ai_activity_type.Inputs) (*pbactivity.ActivityClassification, error) {
 	return ai_activity_type.Classify(ctx, claude.Default(), in)
+}
+
+func (a classifyAdapter) PaidEvents(ctx context.Context) ([]paidevents.Event, error) {
+	return a.Service.PaidEvents(ctx)
 }
 
 func (a classifyAdapter) SaveClassification(ctx context.Context, s *activity.ActivitySummary, c *pbactivity.ActivityClassification, e *pbactivity.ShowcaseProfileEntry) error {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/fitglue/server/src/go/pkg/paidevents"
 	"slices"
 	"strings"
 	"time"
@@ -209,4 +210,10 @@ func (s *Service) SaveClassification(ctx context.Context, a *ActivitySummary, c 
 	a.Classification = c
 	s.siteActivityChanged(ctx, a.ShowcaseID)
 	return nil
+}
+
+// PaidEvents reads his paid-for events sheet as the box copied it to the
+// artifacts bucket (paidevents.Object).
+func (s *Service) PaidEvents(ctx context.Context) ([]paidevents.Event, error) {
+	return paidevents.Load(ctx, s.blobStore, s.bucketName)
 }

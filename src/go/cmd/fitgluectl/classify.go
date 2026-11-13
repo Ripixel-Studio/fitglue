@@ -21,6 +21,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/ai_activity_type"
 	"github.com/fitglue/server/src/go/pkg/activitytag"
 	"github.com/fitglue/server/src/go/pkg/claude"
+	"github.com/fitglue/server/src/go/pkg/paidevents"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
@@ -69,6 +70,8 @@ type classifyStore interface {
 	LoadActivitySummary(ctx context.Context, showcaseID string) (*activity.ActivitySummary, error)
 	Classify(ctx context.Context, in ai_activity_type.Inputs) (*pbactivity.ActivityClassification, error)
 	SaveClassification(ctx context.Context, a *activity.ActivitySummary, c *pbactivity.ActivityClassification, e *pbactivity.ShowcaseProfileEntry) error
+	// PaidEvents is his paid-for events sheet as the box copied it (none when unreadable).
+	PaidEvents(ctx context.Context) ([]paidevents.Event, error)
 }
 
 func defaultClassifyCache() string {
@@ -237,6 +240,15 @@ func runClassify(ctx context.Context, f *classifyFlags, st classifyStore, out io
 	all := loadSummaries(ctx, st, ids, out)
 	sort.SliceStable(all, func(i, j int) bool { return all[i].StartTime.Before(all[j].StartTime) })
 
+	events, err := st.PaidEvents(ctx)
+	if err != nil {
+		fmt.Fprintf(out, "warning: paid-for events unreadable, judging without them: %v\n", err)
+	}
+	london, _ := time.LoadLocation("Europe/London")
+	if london == nil {
+		london = time.UTC
+	}
+
 	var jobs []*classifyJob
 	var parkruns []int
 	done := 0
@@ -244,6 +256,7 @@ func runClassify(ctx context.Context, f *classifyFlags, st classifyStore, out io
 		e := byID[a.ShowcaseID]
 		var usual []int
 		in := classifyInputs(a, nil)
+		in.PaidEvents = paidevents.On(events, a.StartTime.In(london))
 		parkrun := ai_activity_type.IsParkrun(in.Activity, in.Parkrun)
 		if parkrun {
 			usual = append([]int(nil), parkruns...)
