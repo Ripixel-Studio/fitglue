@@ -220,3 +220,15 @@ func TestInputsHashIgnoresFitGlueSections(t *testing.T) {
 		t.Error("his words must change the hash")
 	}
 }
+
+func TestClassifyHyroxTitleIsAlwaysHyrox(t *testing.T) {
+	f := &fakeAI{out: `{"tag":"strength","isRace":false,"raceWhy":"PT","stravaType":"ACTIVITY_TYPE_WEIGHT_TRAINING"}`}
+	c, err := Classify(context.Background(), f, Inputs{Title: "Push Focused Hyrox PT", Activity: hyroxClass()})
+	if err != nil || c.Tag != "hyrox" || c.StravaType != pbactivity.ActivityType_ACTIVITY_TYPE_WEIGHT_TRAINING {
+		t.Errorf("Classify = %v, %v", c, err)
+	}
+	c, _ = Classify(context.Background(), f, Inputs{Title: "Upper Body PT", Activity: hyroxClass()})
+	if c.Tag != "strength" {
+		t.Errorf("non-Hyrox title changed: %v", c.Tag)
+	}
+}

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -27,6 +28,8 @@ import (
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 )
+
+var hyroxTitle = regexp.MustCompile(`(?i)\b(hyrox|hybrid)\b`)
 
 // Model is ActivityClassification.model for a verdict Haiku made.
 const Model = "claude-haiku"
@@ -243,6 +246,11 @@ func Classify(ctx context.Context, ai claude.Completer, in Inputs) (*pbactivity.
 	if err == nil {
 		var c *pbactivity.ActivityClassification
 		if c, err = ParseVerdict(raw); err == nil {
+			// Hyrox or Hybrid in the title is always hyrox (classes, PT, sims, races);
+			// the model now and then files a Hyrox PT under strength.
+			if hyroxTitle.MatchString(in.Title) && c.Tag != activitytag.Hyrox {
+				c.Tag = activitytag.Hyrox
+			}
 			c.InputsHash, c.ClassifiedAt = hash, timestamppb.Now()
 			return c, nil
 		}
