@@ -18,6 +18,7 @@ package siteexport
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/fitglue/server/src/go/pkg/activitytag"
 	"math"
 	"sort"
 	"time"
@@ -109,6 +110,8 @@ type activityFile struct {
 	Slug          string          `json:"slug"`
 	ExportedAt    string          `json:"exportedAt"`
 	Category      Category        `json:"category"`
+	Tag           string          `json:"tag"`    // the site's activity tag (pkg/activitytag)
+	IsRace        bool            `json:"isRace"` // the actual thing: an entered race or a raced parkrun
 	Activity      json.RawMessage `json:"activity"`
 	Entry         json.RawMessage `json:"entry"`
 	Series        *Series         `json:"series"`
@@ -145,6 +148,7 @@ func BuildIndex(profile *pbactivity.ShowcaseProfile, entries []*pbactivity.Showc
 		Roundups:      make([]RoundupSummary, 0, len(roundups)),
 	}
 	for _, e := range entries {
+		e = tagged(e, "", false)
 		b, err := marshalWith(e, map[string]any{"slug": e.ShowcaseId})
 		if err != nil {
 			return nil, fmt.Errorf("entry %s: %w", e.ShowcaseId, err)
@@ -169,6 +173,7 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 	series, route := DeriveTelemetry(showcase.ActivityData, zones, whole)
 	race := DeriveRace(showcase)
 	kmSplits := DeriveKmSplits(showcase.ActivityData, category)
+	tag, isRace := activitytag.ForShowcase(showcase)
 
 	// Strip the records after deriving series/route from them (§3.1). Work on
 	// a clone so the caller's message is untouched.
@@ -177,6 +182,11 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 	// Only the AI fields: his own description text is never touched.
 	if stripped.Enrichments != nil && stripped.Enrichments.AiSummary != nil {
 		stripped.Enrichments.AiSummary.Html = voice.StripEmoji(stripped.Enrichments.AiSummary.Html)
+	}
+	// The classification is exported as the top-level tag/isRace only: its
+	// raceWhy is a debugging note, never published.
+	if stripped.Enrichments != nil {
+		stripped.Enrichments.Classification = nil
 	}
 	if !whole {
 		if stripped.Enrichments != nil {
@@ -197,7 +207,7 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 	if err != nil {
 		return nil, fmt.Errorf("activity: %w", err)
 	}
-	entryJSON, err := marshalOpts.Marshal(entry)
+	entryJSON, err := marshalOpts.Marshal(tagged(entry, tag, isRace))
 	if err != nil {
 		return nil, fmt.Errorf("entry: %w", err)
 	}
@@ -206,6 +216,8 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 		Slug:          showcase.ShowcaseId,
 		ExportedAt:    formatTime(now),
 		Category:      category,
+		Tag:           tag,
+		IsRace:        isRace,
 		Activity:      activityJSON,
 		Entry:         entryJSON,
 		Series:        series,
@@ -611,4 +623,23 @@ func timestampString(ts *timestamppb.Timestamp) string {
 		return ""
 	}
 	return s
+}
+
+// tagged returns e carrying a tag and race flag, on a clone when that changes
+// anything. With a non-empty tag the given values win (the activity file, whose
+// showcase classification is the authority); with "" the entry's own valid tag
+// stays and an untagged entry gets the rule's verdict on what it keeps.
+func tagged(e *pbactivity.ShowcaseProfileEntry, tag string, isRace bool) *pbactivity.ShowcaseProfileEntry {
+	if e == nil {
+		return nil
+	}
+	if tag == "" {
+		tag, isRace = activitytag.ForEntry(e)
+	}
+	if e.GetTag() == tag && e.GetIsRace() == isRace {
+		return e
+	}
+	c := proto.Clone(e).(*pbactivity.ShowcaseProfileEntry)
+	c.Tag, c.IsRace = tag, isRace
+	return c
 }

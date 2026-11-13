@@ -105,6 +105,7 @@ type ActivityEnrichments struct {
 	Temperature       *TemperatureSummary       `protobuf:"bytes,25,opt,name=temperature,proto3,oneof" json:"temperature,omitempty"`
 	BestEfforts       *BestEffortsSummary       `protobuf:"bytes,26,opt,name=best_efforts,json=bestEfforts,proto3,oneof" json:"best_efforts,omitempty"`
 	Hdrop             *HDropSummary             `protobuf:"bytes,27,opt,name=hdrop,proto3,oneof" json:"hdrop,omitempty"`
+	Classification    *ActivityClassification   `protobuf:"bytes,28,opt,name=classification,proto3,oneof" json:"classification,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -321,6 +322,109 @@ func (x *ActivityEnrichments) GetHdrop() *HDropSummary {
 	return nil
 }
 
+func (x *ActivityEnrichments) GetClassification() *ActivityClassification {
+	if x != nil {
+		return x.Classification
+	}
+	return nil
+}
+
+// ActivityClassification is the ai-activity-type enricher's verdict (or its
+// deterministic fallback): the personal site's own tag, whether the activity was
+// "the actual thing" (an entered race or event, a real parkrun effort), and the
+// Strava type it was given. race_why is for debugging and never exported.
+type ActivityClassification struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tag           string                 `protobuf:"bytes,1,opt,name=tag,proto3" json:"tag,omitempty"` // run|ride|spin|hyrox|class|strength|pilates|yoga|walk|other
+	IsRace        bool                   `protobuf:"varint,2,opt,name=is_race,json=isRace,proto3" json:"is_race,omitempty"`
+	RaceWhy       string                 `protobuf:"bytes,3,opt,name=race_why,json=raceWhy,proto3" json:"race_why,omitempty"`                                                     // one line, debugging only
+	StravaType    ActivityType           `protobuf:"varint,4,opt,name=strava_type,json=stravaType,proto3,enum=fitglue.models.activity.ActivityType" json:"strava_type,omitempty"` // the type sent to Strava
+	Model         string                 `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`                                                                        // "claude-haiku" or "rule"
+	InputsHash    string                 `protobuf:"bytes,6,opt,name=inputs_hash,json=inputsHash,proto3" json:"inputs_hash,omitempty"`                                            // hash of the prompt inputs; a repost with the same hash reuses this
+	ClassifiedAt  *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=classified_at,json=classifiedAt,proto3" json:"classified_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ActivityClassification) Reset() {
+	*x = ActivityClassification{}
+	mi := &file_models_activity_enrichments_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ActivityClassification) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ActivityClassification) ProtoMessage() {}
+
+func (x *ActivityClassification) ProtoReflect() protoreflect.Message {
+	mi := &file_models_activity_enrichments_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ActivityClassification.ProtoReflect.Descriptor instead.
+func (*ActivityClassification) Descriptor() ([]byte, []int) {
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ActivityClassification) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *ActivityClassification) GetIsRace() bool {
+	if x != nil {
+		return x.IsRace
+	}
+	return false
+}
+
+func (x *ActivityClassification) GetRaceWhy() string {
+	if x != nil {
+		return x.RaceWhy
+	}
+	return ""
+}
+
+func (x *ActivityClassification) GetStravaType() ActivityType {
+	if x != nil {
+		return x.StravaType
+	}
+	return ActivityType_ACTIVITY_TYPE_UNSPECIFIED
+}
+
+func (x *ActivityClassification) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *ActivityClassification) GetInputsHash() string {
+	if x != nil {
+		return x.InputsHash
+	}
+	return ""
+}
+
+func (x *ActivityClassification) GetClassifiedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ClassifiedAt
+	}
+	return nil
+}
+
 type HeartRateSummary struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MinBpm        int32                  `protobuf:"varint,1,opt,name=min_bpm,json=minBpm,proto3" json:"min_bpm,omitempty"`
@@ -334,7 +438,7 @@ type HeartRateSummary struct {
 
 func (x *HeartRateSummary) Reset() {
 	*x = HeartRateSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[1]
+	mi := &file_models_activity_enrichments_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -346,7 +450,7 @@ func (x *HeartRateSummary) String() string {
 func (*HeartRateSummary) ProtoMessage() {}
 
 func (x *HeartRateSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[1]
+	mi := &file_models_activity_enrichments_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -359,7 +463,7 @@ func (x *HeartRateSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartRateSummary.ProtoReflect.Descriptor instead.
 func (*HeartRateSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{1}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *HeartRateSummary) GetMinBpm() int32 {
@@ -407,7 +511,7 @@ type HeartRateZonesSummary struct {
 
 func (x *HeartRateZonesSummary) Reset() {
 	*x = HeartRateZonesSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[2]
+	mi := &file_models_activity_enrichments_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -419,7 +523,7 @@ func (x *HeartRateZonesSummary) String() string {
 func (*HeartRateZonesSummary) ProtoMessage() {}
 
 func (x *HeartRateZonesSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[2]
+	mi := &file_models_activity_enrichments_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -432,7 +536,7 @@ func (x *HeartRateZonesSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartRateZonesSummary.ProtoReflect.Descriptor instead.
 func (*HeartRateZonesSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{2}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *HeartRateZonesSummary) GetZones() []*HeartRateZoneBucket {
@@ -461,7 +565,7 @@ type HeartRateZoneBucket struct {
 
 func (x *HeartRateZoneBucket) Reset() {
 	*x = HeartRateZoneBucket{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[3]
+	mi := &file_models_activity_enrichments_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -473,7 +577,7 @@ func (x *HeartRateZoneBucket) String() string {
 func (*HeartRateZoneBucket) ProtoMessage() {}
 
 func (x *HeartRateZoneBucket) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[3]
+	mi := &file_models_activity_enrichments_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -486,7 +590,7 @@ func (x *HeartRateZoneBucket) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartRateZoneBucket.ProtoReflect.Descriptor instead.
 func (*HeartRateZoneBucket) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{3}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *HeartRateZoneBucket) GetZoneIndex() int32 {
@@ -528,7 +632,7 @@ type EffortScoreSummary struct {
 
 func (x *EffortScoreSummary) Reset() {
 	*x = EffortScoreSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[4]
+	mi := &file_models_activity_enrichments_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +644,7 @@ func (x *EffortScoreSummary) String() string {
 func (*EffortScoreSummary) ProtoMessage() {}
 
 func (x *EffortScoreSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[4]
+	mi := &file_models_activity_enrichments_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +657,7 @@ func (x *EffortScoreSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EffortScoreSummary.ProtoReflect.Descriptor instead.
 func (*EffortScoreSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{4}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *EffortScoreSummary) GetScore() int32 {
@@ -587,7 +691,7 @@ type EffortFactor struct {
 
 func (x *EffortFactor) Reset() {
 	*x = EffortFactor{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[5]
+	mi := &file_models_activity_enrichments_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -599,7 +703,7 @@ func (x *EffortFactor) String() string {
 func (*EffortFactor) ProtoMessage() {}
 
 func (x *EffortFactor) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[5]
+	mi := &file_models_activity_enrichments_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -612,7 +716,7 @@ func (x *EffortFactor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EffortFactor.ProtoReflect.Descriptor instead.
 func (*EffortFactor) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{5}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EffortFactor) GetLabel() string {
@@ -639,7 +743,7 @@ type CaloriesSummary struct {
 
 func (x *CaloriesSummary) Reset() {
 	*x = CaloriesSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[6]
+	mi := &file_models_activity_enrichments_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -651,7 +755,7 @@ func (x *CaloriesSummary) String() string {
 func (*CaloriesSummary) ProtoMessage() {}
 
 func (x *CaloriesSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[6]
+	mi := &file_models_activity_enrichments_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -664,7 +768,7 @@ func (x *CaloriesSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CaloriesSummary.ProtoReflect.Descriptor instead.
 func (*CaloriesSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{6}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CaloriesSummary) GetKcal() int32 {
@@ -692,7 +796,7 @@ type TrainingLoadSummary struct {
 
 func (x *TrainingLoadSummary) Reset() {
 	*x = TrainingLoadSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[7]
+	mi := &file_models_activity_enrichments_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -704,7 +808,7 @@ func (x *TrainingLoadSummary) String() string {
 func (*TrainingLoadSummary) ProtoMessage() {}
 
 func (x *TrainingLoadSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[7]
+	mi := &file_models_activity_enrichments_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -717,7 +821,7 @@ func (x *TrainingLoadSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrainingLoadSummary.ProtoReflect.Descriptor instead.
 func (*TrainingLoadSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{7}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *TrainingLoadSummary) GetTrimp() int32 {
@@ -756,7 +860,7 @@ type RecoverySummary struct {
 
 func (x *RecoverySummary) Reset() {
 	*x = RecoverySummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[8]
+	mi := &file_models_activity_enrichments_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -768,7 +872,7 @@ func (x *RecoverySummary) String() string {
 func (*RecoverySummary) ProtoMessage() {}
 
 func (x *RecoverySummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[8]
+	mi := &file_models_activity_enrichments_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -781,7 +885,7 @@ func (x *RecoverySummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecoverySummary.ProtoReflect.Descriptor instead.
 func (*RecoverySummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{8}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RecoverySummary) GetSessionLoad() int32 {
@@ -844,7 +948,7 @@ type StreakSummary struct {
 
 func (x *StreakSummary) Reset() {
 	*x = StreakSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[9]
+	mi := &file_models_activity_enrichments_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -856,7 +960,7 @@ func (x *StreakSummary) String() string {
 func (*StreakSummary) ProtoMessage() {}
 
 func (x *StreakSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[9]
+	mi := &file_models_activity_enrichments_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -869,7 +973,7 @@ func (x *StreakSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreakSummary.ProtoReflect.Descriptor instead.
 func (*StreakSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{9}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StreakSummary) GetCurrentDays() int32 {
@@ -903,7 +1007,7 @@ type StreakDay struct {
 
 func (x *StreakDay) Reset() {
 	*x = StreakDay{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[10]
+	mi := &file_models_activity_enrichments_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -915,7 +1019,7 @@ func (x *StreakDay) String() string {
 func (*StreakDay) ProtoMessage() {}
 
 func (x *StreakDay) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[10]
+	mi := &file_models_activity_enrichments_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -928,7 +1032,7 @@ func (x *StreakDay) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreakDay.ProtoReflect.Descriptor instead.
 func (*StreakDay) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{10}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *StreakDay) GetDate() string {
@@ -956,7 +1060,7 @@ type AiSummary struct {
 
 func (x *AiSummary) Reset() {
 	*x = AiSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[11]
+	mi := &file_models_activity_enrichments_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -968,7 +1072,7 @@ func (x *AiSummary) String() string {
 func (*AiSummary) ProtoMessage() {}
 
 func (x *AiSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[11]
+	mi := &file_models_activity_enrichments_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -981,7 +1085,7 @@ func (x *AiSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AiSummary.ProtoReflect.Descriptor instead.
 func (*AiSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{11}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *AiSummary) GetHtml() string {
@@ -1017,7 +1121,7 @@ type PaceSummary struct {
 
 func (x *PaceSummary) Reset() {
 	*x = PaceSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[12]
+	mi := &file_models_activity_enrichments_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1029,7 +1133,7 @@ func (x *PaceSummary) String() string {
 func (*PaceSummary) ProtoMessage() {}
 
 func (x *PaceSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[12]
+	mi := &file_models_activity_enrichments_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1042,7 +1146,7 @@ func (x *PaceSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaceSummary.ProtoReflect.Descriptor instead.
 func (*PaceSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{12}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *PaceSummary) GetAvgPaceSecondsPerKm() float64 {
@@ -1083,7 +1187,7 @@ type PaceSplit struct {
 
 func (x *PaceSplit) Reset() {
 	*x = PaceSplit{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[13]
+	mi := &file_models_activity_enrichments_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1095,7 +1199,7 @@ func (x *PaceSplit) String() string {
 func (*PaceSplit) ProtoMessage() {}
 
 func (x *PaceSplit) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[13]
+	mi := &file_models_activity_enrichments_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1108,7 +1212,7 @@ func (x *PaceSplit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaceSplit.ProtoReflect.Descriptor instead.
 func (*PaceSplit) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{13}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *PaceSplit) GetKm() int32 {
@@ -1135,7 +1239,7 @@ type CadenceSummary struct {
 
 func (x *CadenceSummary) Reset() {
 	*x = CadenceSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[14]
+	mi := &file_models_activity_enrichments_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1147,7 +1251,7 @@ func (x *CadenceSummary) String() string {
 func (*CadenceSummary) ProtoMessage() {}
 
 func (x *CadenceSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[14]
+	mi := &file_models_activity_enrichments_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1160,7 +1264,7 @@ func (x *CadenceSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CadenceSummary.ProtoReflect.Descriptor instead.
 func (*CadenceSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{14}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CadenceSummary) GetAvgRpm() int32 {
@@ -1190,7 +1294,7 @@ type PowerSummary struct {
 
 func (x *PowerSummary) Reset() {
 	*x = PowerSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[15]
+	mi := &file_models_activity_enrichments_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1202,7 +1306,7 @@ func (x *PowerSummary) String() string {
 func (*PowerSummary) ProtoMessage() {}
 
 func (x *PowerSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[15]
+	mi := &file_models_activity_enrichments_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1215,7 +1319,7 @@ func (x *PowerSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PowerSummary.ProtoReflect.Descriptor instead.
 func (*PowerSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{15}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *PowerSummary) GetAvgWatts() int32 {
@@ -1264,7 +1368,7 @@ type ElevationSummary struct {
 
 func (x *ElevationSummary) Reset() {
 	*x = ElevationSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[16]
+	mi := &file_models_activity_enrichments_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1276,7 +1380,7 @@ func (x *ElevationSummary) String() string {
 func (*ElevationSummary) ProtoMessage() {}
 
 func (x *ElevationSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[16]
+	mi := &file_models_activity_enrichments_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1289,7 +1393,7 @@ func (x *ElevationSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ElevationSummary.ProtoReflect.Descriptor instead.
 func (*ElevationSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{16}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ElevationSummary) GetTotalGainM() float64 {
@@ -1323,7 +1427,7 @@ type SpeedSummary struct {
 
 func (x *SpeedSummary) Reset() {
 	*x = SpeedSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[17]
+	mi := &file_models_activity_enrichments_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1335,7 +1439,7 @@ func (x *SpeedSummary) String() string {
 func (*SpeedSummary) ProtoMessage() {}
 
 func (x *SpeedSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[17]
+	mi := &file_models_activity_enrichments_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1348,7 +1452,7 @@ func (x *SpeedSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpeedSummary.ProtoReflect.Descriptor instead.
 func (*SpeedSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{17}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SpeedSummary) GetAvgSpeedKmh() float64 {
@@ -1378,7 +1482,7 @@ type WeatherSummary struct {
 
 func (x *WeatherSummary) Reset() {
 	*x = WeatherSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[18]
+	mi := &file_models_activity_enrichments_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1390,7 +1494,7 @@ func (x *WeatherSummary) String() string {
 func (*WeatherSummary) ProtoMessage() {}
 
 func (x *WeatherSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[18]
+	mi := &file_models_activity_enrichments_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1403,7 +1507,7 @@ func (x *WeatherSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WeatherSummary.ProtoReflect.Descriptor instead.
 func (*WeatherSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{18}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *WeatherSummary) GetTempC() float64 {
@@ -1453,7 +1557,7 @@ type LocationSummary struct {
 
 func (x *LocationSummary) Reset() {
 	*x = LocationSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[19]
+	mi := &file_models_activity_enrichments_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1465,7 +1569,7 @@ func (x *LocationSummary) String() string {
 func (*LocationSummary) ProtoMessage() {}
 
 func (x *LocationSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[19]
+	mi := &file_models_activity_enrichments_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1478,7 +1582,7 @@ func (x *LocationSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocationSummary.ProtoReflect.Descriptor instead.
 func (*LocationSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{19}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *LocationSummary) GetLocationName() string {
@@ -1520,7 +1624,7 @@ type RunningDynamicsSummary struct {
 
 func (x *RunningDynamicsSummary) Reset() {
 	*x = RunningDynamicsSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[20]
+	mi := &file_models_activity_enrichments_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1532,7 +1636,7 @@ func (x *RunningDynamicsSummary) String() string {
 func (*RunningDynamicsSummary) ProtoMessage() {}
 
 func (x *RunningDynamicsSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[20]
+	mi := &file_models_activity_enrichments_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1545,7 +1649,7 @@ func (x *RunningDynamicsSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunningDynamicsSummary.ProtoReflect.Descriptor instead.
 func (*RunningDynamicsSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{20}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RunningDynamicsSummary) GetAvgGroundContactMs() float64 {
@@ -1584,7 +1688,7 @@ type ParkrunSummary struct {
 
 func (x *ParkrunSummary) Reset() {
 	*x = ParkrunSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[21]
+	mi := &file_models_activity_enrichments_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1596,7 +1700,7 @@ func (x *ParkrunSummary) String() string {
 func (*ParkrunSummary) ProtoMessage() {}
 
 func (x *ParkrunSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[21]
+	mi := &file_models_activity_enrichments_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1609,7 +1713,7 @@ func (x *ParkrunSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ParkrunSummary.ProtoReflect.Descriptor instead.
 func (*ParkrunSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{21}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ParkrunSummary) GetEventName() string {
@@ -1675,7 +1779,7 @@ type PersonalRecord struct {
 
 func (x *PersonalRecord) Reset() {
 	*x = PersonalRecord{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[22]
+	mi := &file_models_activity_enrichments_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1687,7 +1791,7 @@ func (x *PersonalRecord) String() string {
 func (*PersonalRecord) ProtoMessage() {}
 
 func (x *PersonalRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[22]
+	mi := &file_models_activity_enrichments_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1700,7 +1804,7 @@ func (x *PersonalRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PersonalRecord.ProtoReflect.Descriptor instead.
 func (*PersonalRecord) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{22}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *PersonalRecord) GetRecordType() string {
@@ -1754,7 +1858,7 @@ type PersonalRecordsSummary struct {
 
 func (x *PersonalRecordsSummary) Reset() {
 	*x = PersonalRecordsSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[23]
+	mi := &file_models_activity_enrichments_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1766,7 +1870,7 @@ func (x *PersonalRecordsSummary) String() string {
 func (*PersonalRecordsSummary) ProtoMessage() {}
 
 func (x *PersonalRecordsSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[23]
+	mi := &file_models_activity_enrichments_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1779,7 +1883,7 @@ func (x *PersonalRecordsSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PersonalRecordsSummary.ProtoReflect.Descriptor instead.
 func (*PersonalRecordsSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{23}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *PersonalRecordsSummary) GetRecords() []*PersonalRecord {
@@ -1801,7 +1905,7 @@ type DistanceMilestoneSummary struct {
 
 func (x *DistanceMilestoneSummary) Reset() {
 	*x = DistanceMilestoneSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[24]
+	mi := &file_models_activity_enrichments_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1813,7 +1917,7 @@ func (x *DistanceMilestoneSummary) String() string {
 func (*DistanceMilestoneSummary) ProtoMessage() {}
 
 func (x *DistanceMilestoneSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[24]
+	mi := &file_models_activity_enrichments_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1826,7 +1930,7 @@ func (x *DistanceMilestoneSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DistanceMilestoneSummary.ProtoReflect.Descriptor instead.
 func (*DistanceMilestoneSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{24}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *DistanceMilestoneSummary) GetMilestoneKm() float64 {
@@ -1871,7 +1975,7 @@ type GoalEntry struct {
 
 func (x *GoalEntry) Reset() {
 	*x = GoalEntry{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[25]
+	mi := &file_models_activity_enrichments_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1883,7 +1987,7 @@ func (x *GoalEntry) String() string {
 func (*GoalEntry) ProtoMessage() {}
 
 func (x *GoalEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[25]
+	mi := &file_models_activity_enrichments_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1896,7 +2000,7 @@ func (x *GoalEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GoalEntry.ProtoReflect.Descriptor instead.
 func (*GoalEntry) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{25}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GoalEntry) GetLabel() string {
@@ -1950,7 +2054,7 @@ type GoalTrackerSummary struct {
 
 func (x *GoalTrackerSummary) Reset() {
 	*x = GoalTrackerSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[26]
+	mi := &file_models_activity_enrichments_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1962,7 +2066,7 @@ func (x *GoalTrackerSummary) String() string {
 func (*GoalTrackerSummary) ProtoMessage() {}
 
 func (x *GoalTrackerSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[26]
+	mi := &file_models_activity_enrichments_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1975,7 +2079,7 @@ func (x *GoalTrackerSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GoalTrackerSummary.ProtoReflect.Descriptor instead.
 func (*GoalTrackerSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{26}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GoalTrackerSummary) GetGoals() []*GoalEntry {
@@ -1996,7 +2100,7 @@ type SpotifyTrack struct {
 
 func (x *SpotifyTrack) Reset() {
 	*x = SpotifyTrack{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[27]
+	mi := &file_models_activity_enrichments_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2008,7 +2112,7 @@ func (x *SpotifyTrack) String() string {
 func (*SpotifyTrack) ProtoMessage() {}
 
 func (x *SpotifyTrack) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[27]
+	mi := &file_models_activity_enrichments_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2021,7 +2125,7 @@ func (x *SpotifyTrack) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpotifyTrack.ProtoReflect.Descriptor instead.
 func (*SpotifyTrack) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{27}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SpotifyTrack) GetTitle() string {
@@ -2055,7 +2159,7 @@ type SpotifyTracksSummary struct {
 
 func (x *SpotifyTracksSummary) Reset() {
 	*x = SpotifyTracksSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[28]
+	mi := &file_models_activity_enrichments_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2067,7 +2171,7 @@ func (x *SpotifyTracksSummary) String() string {
 func (*SpotifyTracksSummary) ProtoMessage() {}
 
 func (x *SpotifyTracksSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[28]
+	mi := &file_models_activity_enrichments_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2080,7 +2184,7 @@ func (x *SpotifyTracksSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpotifyTracksSummary.ProtoReflect.Descriptor instead.
 func (*SpotifyTracksSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{28}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SpotifyTracksSummary) GetTracks() []*SpotifyTrack {
@@ -2111,7 +2215,7 @@ type IntervalSegment struct {
 
 func (x *IntervalSegment) Reset() {
 	*x = IntervalSegment{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[29]
+	mi := &file_models_activity_enrichments_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2123,7 +2227,7 @@ func (x *IntervalSegment) String() string {
 func (*IntervalSegment) ProtoMessage() {}
 
 func (x *IntervalSegment) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[29]
+	mi := &file_models_activity_enrichments_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2136,7 +2240,7 @@ func (x *IntervalSegment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntervalSegment.ProtoReflect.Descriptor instead.
 func (*IntervalSegment) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{29}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *IntervalSegment) GetType() string {
@@ -2191,7 +2295,7 @@ type IntervalsSummary struct {
 
 func (x *IntervalsSummary) Reset() {
 	*x = IntervalsSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[30]
+	mi := &file_models_activity_enrichments_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2203,7 +2307,7 @@ func (x *IntervalsSummary) String() string {
 func (*IntervalsSummary) ProtoMessage() {}
 
 func (x *IntervalsSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[30]
+	mi := &file_models_activity_enrichments_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2216,7 +2320,7 @@ func (x *IntervalsSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IntervalsSummary.ProtoReflect.Descriptor instead.
 func (*IntervalsSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{30}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *IntervalsSummary) GetSegments() []*IntervalSegment {
@@ -2244,7 +2348,7 @@ type TemperatureSummary struct {
 
 func (x *TemperatureSummary) Reset() {
 	*x = TemperatureSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[31]
+	mi := &file_models_activity_enrichments_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2256,7 +2360,7 @@ func (x *TemperatureSummary) String() string {
 func (*TemperatureSummary) ProtoMessage() {}
 
 func (x *TemperatureSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[31]
+	mi := &file_models_activity_enrichments_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2269,7 +2373,7 @@ func (x *TemperatureSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TemperatureSummary.ProtoReflect.Descriptor instead.
 func (*TemperatureSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{31}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *TemperatureSummary) GetMinC() int32 {
@@ -2304,7 +2408,7 @@ type MuscleHeatmapSummary struct {
 
 func (x *MuscleHeatmapSummary) Reset() {
 	*x = MuscleHeatmapSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[32]
+	mi := &file_models_activity_enrichments_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2316,7 +2420,7 @@ func (x *MuscleHeatmapSummary) String() string {
 func (*MuscleHeatmapSummary) ProtoMessage() {}
 
 func (x *MuscleHeatmapSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[32]
+	mi := &file_models_activity_enrichments_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2329,7 +2433,7 @@ func (x *MuscleHeatmapSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MuscleHeatmapSummary.ProtoReflect.Descriptor instead.
 func (*MuscleHeatmapSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{32}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *MuscleHeatmapSummary) GetPrimary() []string {
@@ -2365,7 +2469,7 @@ type BestEffort struct {
 
 func (x *BestEffort) Reset() {
 	*x = BestEffort{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[33]
+	mi := &file_models_activity_enrichments_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2377,7 +2481,7 @@ func (x *BestEffort) String() string {
 func (*BestEffort) ProtoMessage() {}
 
 func (x *BestEffort) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[33]
+	mi := &file_models_activity_enrichments_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2390,7 +2494,7 @@ func (x *BestEffort) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BestEffort.ProtoReflect.Descriptor instead.
 func (*BestEffort) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{33}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *BestEffort) GetDistanceKey() string {
@@ -2430,7 +2534,7 @@ type BestEffortsSummary struct {
 
 func (x *BestEffortsSummary) Reset() {
 	*x = BestEffortsSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[34]
+	mi := &file_models_activity_enrichments_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2442,7 +2546,7 @@ func (x *BestEffortsSummary) String() string {
 func (*BestEffortsSummary) ProtoMessage() {}
 
 func (x *BestEffortsSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[34]
+	mi := &file_models_activity_enrichments_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2455,7 +2559,7 @@ func (x *BestEffortsSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BestEffortsSummary.ProtoReflect.Descriptor instead.
 func (*BestEffortsSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{34}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *BestEffortsSummary) GetEfforts() []*BestEffort {
@@ -2478,7 +2582,7 @@ type HDropTimeseriesPoint struct {
 
 func (x *HDropTimeseriesPoint) Reset() {
 	*x = HDropTimeseriesPoint{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[35]
+	mi := &file_models_activity_enrichments_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2490,7 +2594,7 @@ func (x *HDropTimeseriesPoint) String() string {
 func (*HDropTimeseriesPoint) ProtoMessage() {}
 
 func (x *HDropTimeseriesPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[35]
+	mi := &file_models_activity_enrichments_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2503,7 +2607,7 @@ func (x *HDropTimeseriesPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HDropTimeseriesPoint.ProtoReflect.Descriptor instead.
 func (*HDropTimeseriesPoint) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{35}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *HDropTimeseriesPoint) GetTimeMinutes() float64 {
@@ -2560,7 +2664,7 @@ type HDropSummary struct {
 
 func (x *HDropSummary) Reset() {
 	*x = HDropSummary{}
-	mi := &file_models_activity_enrichments_proto_msgTypes[36]
+	mi := &file_models_activity_enrichments_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2572,7 +2676,7 @@ func (x *HDropSummary) String() string {
 func (*HDropSummary) ProtoMessage() {}
 
 func (x *HDropSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_models_activity_enrichments_proto_msgTypes[36]
+	mi := &file_models_activity_enrichments_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2585,7 +2689,7 @@ func (x *HDropSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HDropSummary.ProtoReflect.Descriptor instead.
 func (*HDropSummary) Descriptor() ([]byte, []int) {
-	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{36}
+	return file_models_activity_enrichments_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *HDropSummary) GetTotalFluidLossL() float64 {
@@ -2669,7 +2773,7 @@ var File_models_activity_enrichments_proto protoreflect.FileDescriptor
 
 const file_models_activity_enrichments_proto_rawDesc = "" +
 	"\n" +
-	"!models/activity/enrichments.proto\x12\x17fitglue.models.activity\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa8\x13\n" +
+	"!models/activity/enrichments.proto\x12\x17fitglue.models.activity\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cmodels/activity/source.proto\"\x99\x14\n" +
 	"\x13ActivityEnrichments\x12M\n" +
 	"\n" +
 	"heart_rate\x18\x01 \x01(\v2).fitglue.models.activity.HeartRateSummaryH\x00R\theartRate\x88\x01\x01\x12]\n" +
@@ -2700,7 +2804,8 @@ const file_models_activity_enrichments_proto_rawDesc = "" +
 	"\x0emuscle_heatmap\x18\x18 \x01(\v2-.fitglue.models.activity.MuscleHeatmapSummaryH\x16R\rmuscleHeatmap\x88\x01\x01\x12R\n" +
 	"\vtemperature\x18\x19 \x01(\v2+.fitglue.models.activity.TemperatureSummaryH\x17R\vtemperature\x88\x01\x01\x12S\n" +
 	"\fbest_efforts\x18\x1a \x01(\v2+.fitglue.models.activity.BestEffortsSummaryH\x18R\vbestEfforts\x88\x01\x01\x12@\n" +
-	"\x05hdrop\x18\x1b \x01(\v2%.fitglue.models.activity.HDropSummaryH\x19R\x05hdrop\x88\x01\x01B\r\n" +
+	"\x05hdrop\x18\x1b \x01(\v2%.fitglue.models.activity.HDropSummaryH\x19R\x05hdrop\x88\x01\x01\x12\\\n" +
+	"\x0eclassification\x18\x1c \x01(\v2/.fitglue.models.activity.ActivityClassificationH\x1aR\x0eclassification\x88\x01\x01B\r\n" +
 	"\v_heart_rateB\x13\n" +
 	"\x11_heart_rate_zonesB\t\n" +
 	"\a_effortB\v\n" +
@@ -2732,8 +2837,19 @@ const file_models_activity_enrichments_proto_rawDesc = "" +
 	"\x0f_muscle_heatmapB\x0e\n" +
 	"\f_temperatureB\x0f\n" +
 	"\r_best_effortsB\b\n" +
-	"\x06_hdropJ\x04\b\t\x10\n" +
-	"R\tai_banner\"\x9f\x01\n" +
+	"\x06_hdropB\x11\n" +
+	"\x0f_classificationJ\x04\b\t\x10\n" +
+	"R\tai_banner\"\x9e\x02\n" +
+	"\x16ActivityClassification\x12\x10\n" +
+	"\x03tag\x18\x01 \x01(\tR\x03tag\x12\x17\n" +
+	"\ais_race\x18\x02 \x01(\bR\x06isRace\x12\x19\n" +
+	"\brace_why\x18\x03 \x01(\tR\araceWhy\x12F\n" +
+	"\vstrava_type\x18\x04 \x01(\x0e2%.fitglue.models.activity.ActivityTypeR\n" +
+	"stravaType\x12\x14\n" +
+	"\x05model\x18\x05 \x01(\tR\x05model\x12\x1f\n" +
+	"\vinputs_hash\x18\x06 \x01(\tR\n" +
+	"inputsHash\x12?\n" +
+	"\rclassified_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\fclassifiedAt\"\x9f\x01\n" +
 	"\x10HeartRateSummary\x12\x17\n" +
 	"\amin_bpm\x18\x01 \x01(\x05R\x06minBpm\x12\x17\n" +
 	"\aavg_bpm\x18\x02 \x01(\x05R\x06avgBpm\x12\x17\n" +
@@ -2943,92 +3059,97 @@ func file_models_activity_enrichments_proto_rawDescGZIP() []byte {
 }
 
 var file_models_activity_enrichments_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_models_activity_enrichments_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_models_activity_enrichments_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
 var file_models_activity_enrichments_proto_goTypes = []any{
 	(StreakDayState)(0),              // 0: fitglue.models.activity.StreakDayState
 	(*ActivityEnrichments)(nil),      // 1: fitglue.models.activity.ActivityEnrichments
-	(*HeartRateSummary)(nil),         // 2: fitglue.models.activity.HeartRateSummary
-	(*HeartRateZonesSummary)(nil),    // 3: fitglue.models.activity.HeartRateZonesSummary
-	(*HeartRateZoneBucket)(nil),      // 4: fitglue.models.activity.HeartRateZoneBucket
-	(*EffortScoreSummary)(nil),       // 5: fitglue.models.activity.EffortScoreSummary
-	(*EffortFactor)(nil),             // 6: fitglue.models.activity.EffortFactor
-	(*CaloriesSummary)(nil),          // 7: fitglue.models.activity.CaloriesSummary
-	(*TrainingLoadSummary)(nil),      // 8: fitglue.models.activity.TrainingLoadSummary
-	(*RecoverySummary)(nil),          // 9: fitglue.models.activity.RecoverySummary
-	(*StreakSummary)(nil),            // 10: fitglue.models.activity.StreakSummary
-	(*StreakDay)(nil),                // 11: fitglue.models.activity.StreakDay
-	(*AiSummary)(nil),                // 12: fitglue.models.activity.AiSummary
-	(*PaceSummary)(nil),              // 13: fitglue.models.activity.PaceSummary
-	(*PaceSplit)(nil),                // 14: fitglue.models.activity.PaceSplit
-	(*CadenceSummary)(nil),           // 15: fitglue.models.activity.CadenceSummary
-	(*PowerSummary)(nil),             // 16: fitglue.models.activity.PowerSummary
-	(*ElevationSummary)(nil),         // 17: fitglue.models.activity.ElevationSummary
-	(*SpeedSummary)(nil),             // 18: fitglue.models.activity.SpeedSummary
-	(*WeatherSummary)(nil),           // 19: fitglue.models.activity.WeatherSummary
-	(*LocationSummary)(nil),          // 20: fitglue.models.activity.LocationSummary
-	(*RunningDynamicsSummary)(nil),   // 21: fitglue.models.activity.RunningDynamicsSummary
-	(*ParkrunSummary)(nil),           // 22: fitglue.models.activity.ParkrunSummary
-	(*PersonalRecord)(nil),           // 23: fitglue.models.activity.PersonalRecord
-	(*PersonalRecordsSummary)(nil),   // 24: fitglue.models.activity.PersonalRecordsSummary
-	(*DistanceMilestoneSummary)(nil), // 25: fitglue.models.activity.DistanceMilestoneSummary
-	(*GoalEntry)(nil),                // 26: fitglue.models.activity.GoalEntry
-	(*GoalTrackerSummary)(nil),       // 27: fitglue.models.activity.GoalTrackerSummary
-	(*SpotifyTrack)(nil),             // 28: fitglue.models.activity.SpotifyTrack
-	(*SpotifyTracksSummary)(nil),     // 29: fitglue.models.activity.SpotifyTracksSummary
-	(*IntervalSegment)(nil),          // 30: fitglue.models.activity.IntervalSegment
-	(*IntervalsSummary)(nil),         // 31: fitglue.models.activity.IntervalsSummary
-	(*TemperatureSummary)(nil),       // 32: fitglue.models.activity.TemperatureSummary
-	(*MuscleHeatmapSummary)(nil),     // 33: fitglue.models.activity.MuscleHeatmapSummary
-	(*BestEffort)(nil),               // 34: fitglue.models.activity.BestEffort
-	(*BestEffortsSummary)(nil),       // 35: fitglue.models.activity.BestEffortsSummary
-	(*HDropTimeseriesPoint)(nil),     // 36: fitglue.models.activity.HDropTimeseriesPoint
-	(*HDropSummary)(nil),             // 37: fitglue.models.activity.HDropSummary
-	(*timestamppb.Timestamp)(nil),    // 38: google.protobuf.Timestamp
+	(*ActivityClassification)(nil),   // 2: fitglue.models.activity.ActivityClassification
+	(*HeartRateSummary)(nil),         // 3: fitglue.models.activity.HeartRateSummary
+	(*HeartRateZonesSummary)(nil),    // 4: fitglue.models.activity.HeartRateZonesSummary
+	(*HeartRateZoneBucket)(nil),      // 5: fitglue.models.activity.HeartRateZoneBucket
+	(*EffortScoreSummary)(nil),       // 6: fitglue.models.activity.EffortScoreSummary
+	(*EffortFactor)(nil),             // 7: fitglue.models.activity.EffortFactor
+	(*CaloriesSummary)(nil),          // 8: fitglue.models.activity.CaloriesSummary
+	(*TrainingLoadSummary)(nil),      // 9: fitglue.models.activity.TrainingLoadSummary
+	(*RecoverySummary)(nil),          // 10: fitglue.models.activity.RecoverySummary
+	(*StreakSummary)(nil),            // 11: fitglue.models.activity.StreakSummary
+	(*StreakDay)(nil),                // 12: fitglue.models.activity.StreakDay
+	(*AiSummary)(nil),                // 13: fitglue.models.activity.AiSummary
+	(*PaceSummary)(nil),              // 14: fitglue.models.activity.PaceSummary
+	(*PaceSplit)(nil),                // 15: fitglue.models.activity.PaceSplit
+	(*CadenceSummary)(nil),           // 16: fitglue.models.activity.CadenceSummary
+	(*PowerSummary)(nil),             // 17: fitglue.models.activity.PowerSummary
+	(*ElevationSummary)(nil),         // 18: fitglue.models.activity.ElevationSummary
+	(*SpeedSummary)(nil),             // 19: fitglue.models.activity.SpeedSummary
+	(*WeatherSummary)(nil),           // 20: fitglue.models.activity.WeatherSummary
+	(*LocationSummary)(nil),          // 21: fitglue.models.activity.LocationSummary
+	(*RunningDynamicsSummary)(nil),   // 22: fitglue.models.activity.RunningDynamicsSummary
+	(*ParkrunSummary)(nil),           // 23: fitglue.models.activity.ParkrunSummary
+	(*PersonalRecord)(nil),           // 24: fitglue.models.activity.PersonalRecord
+	(*PersonalRecordsSummary)(nil),   // 25: fitglue.models.activity.PersonalRecordsSummary
+	(*DistanceMilestoneSummary)(nil), // 26: fitglue.models.activity.DistanceMilestoneSummary
+	(*GoalEntry)(nil),                // 27: fitglue.models.activity.GoalEntry
+	(*GoalTrackerSummary)(nil),       // 28: fitglue.models.activity.GoalTrackerSummary
+	(*SpotifyTrack)(nil),             // 29: fitglue.models.activity.SpotifyTrack
+	(*SpotifyTracksSummary)(nil),     // 30: fitglue.models.activity.SpotifyTracksSummary
+	(*IntervalSegment)(nil),          // 31: fitglue.models.activity.IntervalSegment
+	(*IntervalsSummary)(nil),         // 32: fitglue.models.activity.IntervalsSummary
+	(*TemperatureSummary)(nil),       // 33: fitglue.models.activity.TemperatureSummary
+	(*MuscleHeatmapSummary)(nil),     // 34: fitglue.models.activity.MuscleHeatmapSummary
+	(*BestEffort)(nil),               // 35: fitglue.models.activity.BestEffort
+	(*BestEffortsSummary)(nil),       // 36: fitglue.models.activity.BestEffortsSummary
+	(*HDropTimeseriesPoint)(nil),     // 37: fitglue.models.activity.HDropTimeseriesPoint
+	(*HDropSummary)(nil),             // 38: fitglue.models.activity.HDropSummary
+	(ActivityType)(0),                // 39: fitglue.models.activity.ActivityType
+	(*timestamppb.Timestamp)(nil),    // 40: google.protobuf.Timestamp
 }
 var file_models_activity_enrichments_proto_depIdxs = []int32{
-	2,  // 0: fitglue.models.activity.ActivityEnrichments.heart_rate:type_name -> fitglue.models.activity.HeartRateSummary
-	3,  // 1: fitglue.models.activity.ActivityEnrichments.heart_rate_zones:type_name -> fitglue.models.activity.HeartRateZonesSummary
-	5,  // 2: fitglue.models.activity.ActivityEnrichments.effort:type_name -> fitglue.models.activity.EffortScoreSummary
-	7,  // 3: fitglue.models.activity.ActivityEnrichments.calories:type_name -> fitglue.models.activity.CaloriesSummary
-	8,  // 4: fitglue.models.activity.ActivityEnrichments.training_load:type_name -> fitglue.models.activity.TrainingLoadSummary
-	9,  // 5: fitglue.models.activity.ActivityEnrichments.recovery:type_name -> fitglue.models.activity.RecoverySummary
-	10, // 6: fitglue.models.activity.ActivityEnrichments.streak:type_name -> fitglue.models.activity.StreakSummary
-	12, // 7: fitglue.models.activity.ActivityEnrichments.ai_summary:type_name -> fitglue.models.activity.AiSummary
-	13, // 8: fitglue.models.activity.ActivityEnrichments.pace:type_name -> fitglue.models.activity.PaceSummary
-	15, // 9: fitglue.models.activity.ActivityEnrichments.cadence:type_name -> fitglue.models.activity.CadenceSummary
-	16, // 10: fitglue.models.activity.ActivityEnrichments.power:type_name -> fitglue.models.activity.PowerSummary
-	17, // 11: fitglue.models.activity.ActivityEnrichments.elevation:type_name -> fitglue.models.activity.ElevationSummary
-	18, // 12: fitglue.models.activity.ActivityEnrichments.speed:type_name -> fitglue.models.activity.SpeedSummary
-	22, // 13: fitglue.models.activity.ActivityEnrichments.parkrun:type_name -> fitglue.models.activity.ParkrunSummary
-	19, // 14: fitglue.models.activity.ActivityEnrichments.weather:type_name -> fitglue.models.activity.WeatherSummary
-	20, // 15: fitglue.models.activity.ActivityEnrichments.location:type_name -> fitglue.models.activity.LocationSummary
-	21, // 16: fitglue.models.activity.ActivityEnrichments.running_dynamics:type_name -> fitglue.models.activity.RunningDynamicsSummary
-	24, // 17: fitglue.models.activity.ActivityEnrichments.personal_records:type_name -> fitglue.models.activity.PersonalRecordsSummary
-	25, // 18: fitglue.models.activity.ActivityEnrichments.distance_milestone:type_name -> fitglue.models.activity.DistanceMilestoneSummary
-	27, // 19: fitglue.models.activity.ActivityEnrichments.goal_tracker:type_name -> fitglue.models.activity.GoalTrackerSummary
-	29, // 20: fitglue.models.activity.ActivityEnrichments.spotify:type_name -> fitglue.models.activity.SpotifyTracksSummary
-	31, // 21: fitglue.models.activity.ActivityEnrichments.intervals:type_name -> fitglue.models.activity.IntervalsSummary
-	33, // 22: fitglue.models.activity.ActivityEnrichments.muscle_heatmap:type_name -> fitglue.models.activity.MuscleHeatmapSummary
-	32, // 23: fitglue.models.activity.ActivityEnrichments.temperature:type_name -> fitglue.models.activity.TemperatureSummary
-	35, // 24: fitglue.models.activity.ActivityEnrichments.best_efforts:type_name -> fitglue.models.activity.BestEffortsSummary
-	37, // 25: fitglue.models.activity.ActivityEnrichments.hdrop:type_name -> fitglue.models.activity.HDropSummary
-	4,  // 26: fitglue.models.activity.HeartRateZonesSummary.zones:type_name -> fitglue.models.activity.HeartRateZoneBucket
-	6,  // 27: fitglue.models.activity.EffortScoreSummary.factors:type_name -> fitglue.models.activity.EffortFactor
-	11, // 28: fitglue.models.activity.StreakSummary.calendar:type_name -> fitglue.models.activity.StreakDay
-	0,  // 29: fitglue.models.activity.StreakDay.state:type_name -> fitglue.models.activity.StreakDayState
-	38, // 30: fitglue.models.activity.AiSummary.generated_at:type_name -> google.protobuf.Timestamp
-	14, // 31: fitglue.models.activity.PaceSummary.splits:type_name -> fitglue.models.activity.PaceSplit
-	23, // 32: fitglue.models.activity.PersonalRecordsSummary.records:type_name -> fitglue.models.activity.PersonalRecord
-	26, // 33: fitglue.models.activity.GoalTrackerSummary.goals:type_name -> fitglue.models.activity.GoalEntry
-	28, // 34: fitglue.models.activity.SpotifyTracksSummary.tracks:type_name -> fitglue.models.activity.SpotifyTrack
-	30, // 35: fitglue.models.activity.IntervalsSummary.segments:type_name -> fitglue.models.activity.IntervalSegment
-	34, // 36: fitglue.models.activity.BestEffortsSummary.efforts:type_name -> fitglue.models.activity.BestEffort
-	36, // 37: fitglue.models.activity.HDropSummary.timeseries:type_name -> fitglue.models.activity.HDropTimeseriesPoint
-	38, // [38:38] is the sub-list for method output_type
-	38, // [38:38] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	3,  // 0: fitglue.models.activity.ActivityEnrichments.heart_rate:type_name -> fitglue.models.activity.HeartRateSummary
+	4,  // 1: fitglue.models.activity.ActivityEnrichments.heart_rate_zones:type_name -> fitglue.models.activity.HeartRateZonesSummary
+	6,  // 2: fitglue.models.activity.ActivityEnrichments.effort:type_name -> fitglue.models.activity.EffortScoreSummary
+	8,  // 3: fitglue.models.activity.ActivityEnrichments.calories:type_name -> fitglue.models.activity.CaloriesSummary
+	9,  // 4: fitglue.models.activity.ActivityEnrichments.training_load:type_name -> fitglue.models.activity.TrainingLoadSummary
+	10, // 5: fitglue.models.activity.ActivityEnrichments.recovery:type_name -> fitglue.models.activity.RecoverySummary
+	11, // 6: fitglue.models.activity.ActivityEnrichments.streak:type_name -> fitglue.models.activity.StreakSummary
+	13, // 7: fitglue.models.activity.ActivityEnrichments.ai_summary:type_name -> fitglue.models.activity.AiSummary
+	14, // 8: fitglue.models.activity.ActivityEnrichments.pace:type_name -> fitglue.models.activity.PaceSummary
+	16, // 9: fitglue.models.activity.ActivityEnrichments.cadence:type_name -> fitglue.models.activity.CadenceSummary
+	17, // 10: fitglue.models.activity.ActivityEnrichments.power:type_name -> fitglue.models.activity.PowerSummary
+	18, // 11: fitglue.models.activity.ActivityEnrichments.elevation:type_name -> fitglue.models.activity.ElevationSummary
+	19, // 12: fitglue.models.activity.ActivityEnrichments.speed:type_name -> fitglue.models.activity.SpeedSummary
+	23, // 13: fitglue.models.activity.ActivityEnrichments.parkrun:type_name -> fitglue.models.activity.ParkrunSummary
+	20, // 14: fitglue.models.activity.ActivityEnrichments.weather:type_name -> fitglue.models.activity.WeatherSummary
+	21, // 15: fitglue.models.activity.ActivityEnrichments.location:type_name -> fitglue.models.activity.LocationSummary
+	22, // 16: fitglue.models.activity.ActivityEnrichments.running_dynamics:type_name -> fitglue.models.activity.RunningDynamicsSummary
+	25, // 17: fitglue.models.activity.ActivityEnrichments.personal_records:type_name -> fitglue.models.activity.PersonalRecordsSummary
+	26, // 18: fitglue.models.activity.ActivityEnrichments.distance_milestone:type_name -> fitglue.models.activity.DistanceMilestoneSummary
+	28, // 19: fitglue.models.activity.ActivityEnrichments.goal_tracker:type_name -> fitglue.models.activity.GoalTrackerSummary
+	30, // 20: fitglue.models.activity.ActivityEnrichments.spotify:type_name -> fitglue.models.activity.SpotifyTracksSummary
+	32, // 21: fitglue.models.activity.ActivityEnrichments.intervals:type_name -> fitglue.models.activity.IntervalsSummary
+	34, // 22: fitglue.models.activity.ActivityEnrichments.muscle_heatmap:type_name -> fitglue.models.activity.MuscleHeatmapSummary
+	33, // 23: fitglue.models.activity.ActivityEnrichments.temperature:type_name -> fitglue.models.activity.TemperatureSummary
+	36, // 24: fitglue.models.activity.ActivityEnrichments.best_efforts:type_name -> fitglue.models.activity.BestEffortsSummary
+	38, // 25: fitglue.models.activity.ActivityEnrichments.hdrop:type_name -> fitglue.models.activity.HDropSummary
+	2,  // 26: fitglue.models.activity.ActivityEnrichments.classification:type_name -> fitglue.models.activity.ActivityClassification
+	39, // 27: fitglue.models.activity.ActivityClassification.strava_type:type_name -> fitglue.models.activity.ActivityType
+	40, // 28: fitglue.models.activity.ActivityClassification.classified_at:type_name -> google.protobuf.Timestamp
+	5,  // 29: fitglue.models.activity.HeartRateZonesSummary.zones:type_name -> fitglue.models.activity.HeartRateZoneBucket
+	7,  // 30: fitglue.models.activity.EffortScoreSummary.factors:type_name -> fitglue.models.activity.EffortFactor
+	12, // 31: fitglue.models.activity.StreakSummary.calendar:type_name -> fitglue.models.activity.StreakDay
+	0,  // 32: fitglue.models.activity.StreakDay.state:type_name -> fitglue.models.activity.StreakDayState
+	40, // 33: fitglue.models.activity.AiSummary.generated_at:type_name -> google.protobuf.Timestamp
+	15, // 34: fitglue.models.activity.PaceSummary.splits:type_name -> fitglue.models.activity.PaceSplit
+	24, // 35: fitglue.models.activity.PersonalRecordsSummary.records:type_name -> fitglue.models.activity.PersonalRecord
+	27, // 36: fitglue.models.activity.GoalTrackerSummary.goals:type_name -> fitglue.models.activity.GoalEntry
+	29, // 37: fitglue.models.activity.SpotifyTracksSummary.tracks:type_name -> fitglue.models.activity.SpotifyTrack
+	31, // 38: fitglue.models.activity.IntervalsSummary.segments:type_name -> fitglue.models.activity.IntervalSegment
+	35, // 39: fitglue.models.activity.BestEffortsSummary.efforts:type_name -> fitglue.models.activity.BestEffort
+	37, // 40: fitglue.models.activity.HDropSummary.timeseries:type_name -> fitglue.models.activity.HDropTimeseriesPoint
+	41, // [41:41] is the sub-list for method output_type
+	41, // [41:41] is the sub-list for method input_type
+	41, // [41:41] is the sub-list for extension type_name
+	41, // [41:41] is the sub-list for extension extendee
+	0,  // [0:41] is the sub-list for field type_name
 }
 
 func init() { file_models_activity_enrichments_proto_init() }
@@ -3036,16 +3157,17 @@ func file_models_activity_enrichments_proto_init() {
 	if File_models_activity_enrichments_proto != nil {
 		return
 	}
+	file_models_activity_source_proto_init()
 	file_models_activity_enrichments_proto_msgTypes[0].OneofWrappers = []any{}
-	file_models_activity_enrichments_proto_msgTypes[22].OneofWrappers = []any{}
-	file_models_activity_enrichments_proto_msgTypes[24].OneofWrappers = []any{}
+	file_models_activity_enrichments_proto_msgTypes[23].OneofWrappers = []any{}
+	file_models_activity_enrichments_proto_msgTypes[25].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_models_activity_enrichments_proto_rawDesc), len(file_models_activity_enrichments_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   37,
+			NumMessages:   38,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

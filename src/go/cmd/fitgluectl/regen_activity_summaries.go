@@ -121,9 +121,14 @@ func (f *regenSummariesFlags) selects(e *pbactivity.ShowcaseProfileEntry) bool {
 	return true
 }
 
+// summaryLoader reads one showcased activity's stored state.
+type summaryLoader interface {
+	LoadActivitySummary(ctx context.Context, showcaseID string) (*activity.ActivitySummary, error)
+}
+
 // loadSummaries reads the selected activities, newest first. An activity that
 // cannot be read is reported and left out.
-func loadSummaries(ctx context.Context, st summaryStore, ids []string, out io.Writer) []*activity.ActivitySummary {
+func loadSummaries(ctx context.Context, st summaryLoader, ids []string, out io.Writer) []*activity.ActivitySummary {
 	res := make([]*activity.ActivitySummary, len(ids))
 	errs := make([]error, len(ids))
 	var wg sync.WaitGroup

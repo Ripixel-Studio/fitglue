@@ -41,6 +41,11 @@ type ActivitySummary struct {
 	Old string
 	// Model is the stored AiSummary.model ("" for every summary before the marker).
 	Model string
+	// ActivityType and Tags are the showcase's.
+	ActivityType pbactivity.ActivityType
+	Tags         []string
+	// Classification is the stored ai-activity-type verdict, nil when there is none.
+	Classification *pbactivity.ActivityClassification
 
 	doc     *pbactivity.ShowcasedActivity
 	blob    *pbevents.EnrichedActivityEvent
@@ -58,8 +63,8 @@ func (a *ActivitySummary) IsCurrent(model string) bool {
 // enrichments is where this showcase's enrichments live: the document when it
 // carries them (hydration then ignores the blob's), else the blob.
 func (a *ActivitySummary) enrichments() *pbactivity.ActivityEnrichments {
-	if a.doc.Enrichments != nil {
-		return a.doc.Enrichments
+	if e := a.doc.GetEnrichments(); e != nil {
+		return e
 	}
 	return a.blob.GetEnrichments()
 }
@@ -73,7 +78,8 @@ func (s *Service) LoadActivitySummary(ctx context.Context, showcaseID string) (*
 	if doc == nil {
 		return nil, fmt.Errorf("showcase %s not found", showcaseID)
 	}
-	a := &ActivitySummary{ShowcaseID: showcaseID, UserID: owner, Title: doc.Title, doc: doc}
+	a := &ActivitySummary{ShowcaseID: showcaseID, UserID: owner, Title: doc.Title, doc: doc,
+		ActivityType: doc.ActivityType, Tags: doc.Tags}
 	if doc.StartTime != nil {
 		a.StartTime = doc.StartTime.AsTime()
 	}
@@ -114,6 +120,7 @@ func (s *Service) LoadActivitySummary(ctx context.Context, showcaseID string) (*
 	} else if oldAI != "" {
 		a.Old = "AI Summary:\n" + oldAI
 	}
+	a.Classification = a.enrichments().GetClassification()
 	return a, nil
 }
 
@@ -150,6 +157,56 @@ func (s *Service) SaveActivitySummary(ctx context.Context, a *ActivitySummary, t
 		return fmt.Errorf("update showcase %s: %w", a.ShowcaseID, err)
 	}
 	a.Old, a.Model = text, model
+	s.siteActivityChanged(ctx, a.ShowcaseID)
+	return nil
+}
+
+// Parkrun is the stored parkrun result, nil when there is none.
+func (a *ActivitySummary) Parkrun() *pbactivity.ParkrunSummary {
+	return a.enrichments().GetParkrun()
+}
+
+// SaveClassification stores the site's tag, race flag and reason where the
+// showcase keeps its enrichments (the document when it carries them, else the
+// data blob), copies the tag and race flag onto the profile entry and tells the
+// site exporter. The title, description, activity type and data are untouched,
+// and nothing goes to Strava or any other destination.
+func (s *Service) SaveClassification(ctx context.Context, a *ActivitySummary, c *pbactivity.ActivityClassification, entry *pbactivity.ShowcaseProfileEntry) error {
+	if c == nil || c.Tag == "" {
+		return errors.New("empty classification")
+	}
+	docChanged := true
+	switch {
+	case a.doc.Enrichments != nil:
+		a.doc.Enrichments.Classification = c
+	case a.blob != nil:
+		docChanged = false
+		if a.blob.Enrichments == nil {
+			a.blob.Enrichments = &pbactivity.ActivityEnrichments{}
+		}
+		a.blob.Enrichments.Classification = c
+		raw, err := protojson.Marshal(a.blob)
+		if err != nil {
+			return fmt.Errorf("encode blob: %w", err)
+		}
+		if err := s.blobStore.Write(ctx, "", a.blobURI, raw); err != nil {
+			return fmt.Errorf("write %s: %w", a.blobURI, err)
+		}
+	default:
+		a.doc.Enrichments = &pbactivity.ActivityEnrichments{Classification: c}
+	}
+	if docChanged {
+		if _, err := s.store.UpdateShowcase(ctx, a.UserID, a.doc); err != nil {
+			return fmt.Errorf("update showcase %s: %w", a.ShowcaseID, err)
+		}
+	}
+	if entry != nil {
+		entry.Tag, entry.IsRace = c.Tag, c.IsRace
+		if err := s.store.SetShowcaseProfileEntry(ctx, a.UserID, entry); err != nil {
+			return fmt.Errorf("update entry %s: %w", a.ShowcaseID, err)
+		}
+	}
+	a.Classification = c
 	s.siteActivityChanged(ctx, a.ShowcaseID)
 	return nil
 }

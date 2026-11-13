@@ -106,6 +106,8 @@ message ShowcaseProfileEntry {
   optional string weather_description = 25;  // "Clear", "Rain", etc.
   repeated BestEffort best_efforts = 26;     // reuse enrichments.BestEffort
   repeated string primary_muscles = 27;      // primary muscles worked (strength)
+  string tag = 28;                           // the site's activity tag (ActivityClassification.tag)
+  bool is_race = 29;                         // ActivityClassification.is_race
 }
 
 // EntrySparkline is a downsampled timeseries for card-level sparklines.

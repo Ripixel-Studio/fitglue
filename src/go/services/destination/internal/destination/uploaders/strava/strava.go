@@ -232,6 +232,7 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 	var existingActivity struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
+		SportType   string `json:"sport_type"`
 	}
 	if err := json.NewDecoder(getResp.Body).Decode(&existingActivity); err != nil {
 		return fmt.Errorf("failed to decode existing activity: %w", err)
@@ -262,6 +263,9 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 	}
 	if mergedDescription != existingActivity.Description {
 		updateBody["description"] = mergedDescription
+	}
+	if sport, ok := createdSportType(isSameSource, payload.Metadata["strava_sport_type"], existingActivity.SportType); ok {
+		updateBody["sport_type"] = sport
 	}
 
 	if len(updateBody) == 0 {
@@ -294,6 +298,16 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 		u.recordWrittenTitle(ctx, payload, stravaIDStr, name)
 	}
 	return nil
+}
+
+// createdSportType is the sport type an update writes to a Strava activity FitGlue
+// created itself: the pipeline's type (the ai-activity-type verdict) when it differs.
+// An activity recorded on Strava keeps the type it was recorded with.
+func createdSportType(isSameSource bool, proposed, existing string) (string, bool) {
+	if isSameSource || proposed == "" || proposed == existing {
+		return "", false
+	}
+	return proposed, true
 }
 
 // createdTitle is the title an update writes to a Strava activity FitGlue created itself

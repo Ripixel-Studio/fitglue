@@ -13,11 +13,11 @@ import (
 // Top-level shapes from the S0 fixtures (contract §2, §3, §6).
 var (
 	indexKeys    = []string{"schemaVersion", "generatedAt", "siteSlug", "profile", "streaks", "activities", "roundups"}
-	activityKeys = []string{"schemaVersion", "slug", "exportedAt", "category", "activity", "entry", "series", "routePoints"}
+	activityKeys = []string{"schemaVersion", "slug", "exportedAt", "category", "tag", "isRace", "activity", "entry", "series", "routePoints"}
 	roundupKeys  = []string{"schemaVersion", "key", "exportedAt", "previousKey", "roundup"}
 	entryKeys    = []string{"showcaseId", "title", "activityType", "source", "startTime", "routeThumbnailUrl", "distanceMeters",
 		"durationSeconds", "totalSets", "totalReps", "totalWeightKg", "boosterCount", "destinationCount", "hrZoneMinutes",
-		"photoUrls", "createdAt", "bestEfforts", "primaryMuscles"}
+		"photoUrls", "createdAt", "bestEfforts", "primaryMuscles", "tag", "isRace"}
 	showcaseKeys = []string{"showcaseId", "title", "description", "activityType", "source", "startTime", "activityData",
 		"appliedEnrichments", "tags", "createdAt", "expiresAt", "ownerDisplayName", "ownerProfilePictureUrl",
 		"ownerProfileSlug", "photoUrls", "enrichments"}
