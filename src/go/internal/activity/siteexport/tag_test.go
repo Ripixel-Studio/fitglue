@@ -16,6 +16,7 @@ func TestBuildActivityCarriesTagAndRace(t *testing.T) {
 	}
 	sc.Enrichments.Classification = &pbactivity.ActivityClassification{
 		Tag: "run", IsRace: true, RaceWhy: "parkrun near his usual time", Model: "claude-haiku",
+		RaceType: "parkrun", RaceVariant: "Newark",
 	}
 	b, err := BuildActivity(sc, runEntry(), fixedNow, nil, nil)
 	if err != nil {
@@ -27,6 +28,9 @@ func TestBuildActivityCarriesTagAndRace(t *testing.T) {
 	got := decode(t, b)
 	if got["tag"] != "run" || got["isRace"] != true {
 		t.Errorf("top level tag/isRace = %v/%v", got["tag"], got["isRace"])
+	}
+	if got["raceType"] != "parkrun" || got["raceVariant"] != "Newark" {
+		t.Errorf("raceType/raceVariant = %v/%v", got["raceType"], got["raceVariant"])
 	}
 	entry := got["entry"].(map[string]any)
 	if entry["tag"] != "run" || entry["isRace"] != true {

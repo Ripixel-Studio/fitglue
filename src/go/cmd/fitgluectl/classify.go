@@ -61,6 +61,9 @@ type classifyFlags struct {
 	out      string
 	limit    int
 	interval time.Duration
+	// race overrides the race verdict by hand ("yes" or "no"; needs --id), with
+	// raceType/raceVariant for a "yes" whose verdict did not place it.
+	race, raceType, raceVariant string
 }
 
 // classifyStore is what the command needs: the profile's entries, each
@@ -98,9 +101,15 @@ func parseClassifyFlags(args []string, stderr io.Writer) (*classifyFlags, error)
 	fs.StringVar(&f.cache, "cache", defaultClassifyCache(), "local verdict cache (\"\" for none)")
 	fs.StringVar(&f.out, "out", "", "also write every verdict as TSV here")
 	fs.IntVar(&f.limit, "limit", 0, "stop after this many, newest first (0: all)")
+	fs.StringVar(&f.race, "race", "", "override the race verdict by hand: yes or no (needs --id)")
+	fs.StringVar(&f.raceType, "race-type", "", "with --race yes: the PB board's race type ("+strings.Join(ai_activity_type.RaceTypes, "|")+")")
+	fs.StringVar(&f.raceVariant, "race-variant", "", "with --race yes: the variant (division, format, distance, event, course)")
 	fs.DurationVar(&f.interval, "interval", defaultClassifyInterval, "pause between Haiku calls per worker (the window is shared with Jarvis)")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
+	}
+	if f.race != "" && (f.id == "" || (f.race != "yes" && f.race != "no")) {
+		return nil, errors.New("--race takes yes or no, and needs --id")
 	}
 	if f.export.slug == "" || strings.ContainsAny(f.export.slug, "/ ") {
 		return nil, fmt.Errorf("invalid --slug %q", f.export.slug)
@@ -163,11 +172,13 @@ type verdictCache struct {
 }
 
 type cachedVerdict struct {
-	Hash       string `json:"hash"`
-	Tag        string `json:"tag"`
-	IsRace     bool   `json:"isRace"`
-	RaceWhy    string `json:"raceWhy"`
-	StravaType string `json:"stravaType"`
+	Hash        string `json:"hash"`
+	Tag         string `json:"tag"`
+	IsRace      bool   `json:"isRace"`
+	RaceWhy     string `json:"raceWhy"`
+	StravaType  string `json:"stravaType"`
+	RaceType    string `json:"raceType,omitempty"`
+	RaceVariant string `json:"raceVariant,omitempty"`
 }
 
 func loadVerdictCache(path string) *verdictCache {
@@ -190,13 +201,14 @@ func (vc *verdictCache) get(id, hash string) *pbactivity.ActivityClassification 
 	}
 	t := pbactivity.ActivityType(pbactivity.ActivityType_value[v.StravaType])
 	return &pbactivity.ActivityClassification{Tag: v.Tag, IsRace: v.IsRace, RaceWhy: v.RaceWhy, StravaType: t,
-		Model: ai_activity_type.Model, InputsHash: hash}
+		Model: ai_activity_type.Model, InputsHash: hash, RaceType: v.RaceType, RaceVariant: v.RaceVariant}
 }
 
 func (vc *verdictCache) put(id string, c *pbactivity.ActivityClassification) {
 	vc.mu.Lock()
 	defer vc.mu.Unlock()
-	vc.m[id] = cachedVerdict{Hash: c.InputsHash, Tag: c.Tag, IsRace: c.IsRace, RaceWhy: c.RaceWhy, StravaType: c.StravaType.String()}
+	vc.m[id] = cachedVerdict{Hash: c.InputsHash, Tag: c.Tag, IsRace: c.IsRace, RaceWhy: c.RaceWhy, StravaType: c.StravaType.String(),
+		RaceType: c.RaceType, RaceVariant: c.RaceVariant}
 }
 
 func (vc *verdictCache) save() error {
@@ -358,6 +370,9 @@ func runClassify(ctx context.Context, f *classifyFlags, st classifyStore, out io
 	var got []*classifyJob
 	for _, j := range jobs {
 		if j.c != nil {
+			if f.race != "" {
+				overrideRace(j.c, f)
+			}
 			got = append(got, j)
 		}
 	}
@@ -446,4 +461,20 @@ func writeClassifyTSV(path string, js []*classifyJob) error {
 			j.c.Tag, j.c.IsRace, strings.TrimPrefix(j.c.StravaType.String(), "ACTIVITY_TYPE_"), j.from, clean.Replace(j.c.RaceWhy))
 	}
 	return os.WriteFile(path, []byte(b.String()), 0o600)
+}
+
+// overrideRace applies --race to a verdict: his call wins over the model's.
+func overrideRace(c *pbactivity.ActivityClassification, f *classifyFlags) {
+	c.IsRace = f.race == "yes"
+	if !c.IsRace {
+		c.RaceType, c.RaceVariant, c.RaceWhy = "", "", "not a race, set by hand"
+		return
+	}
+	c.RaceWhy = "a race, set by hand"
+	if f.raceType != "" {
+		c.RaceType = f.raceType
+	}
+	if f.raceVariant != "" {
+		c.RaceVariant = f.raceVariant
+	}
 }

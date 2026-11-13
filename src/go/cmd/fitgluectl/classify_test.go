@@ -209,3 +209,18 @@ func TestClassifyShowsThePaidEventsOnTheDay(t *testing.T) {
 		t.Errorf("a day with no paid event: %v", got)
 	}
 }
+
+func TestClassifyRaceOverrideByHand(t *testing.T) {
+	st := newFakeClassifyStore()
+	f := classifyFlagsFor(t, "--id", "hyrox-sim-2026-10-11", "--force", "--apply", "--race", "yes", "--race-type", "hyrox", "--race-variant", "Open Men's Doubles")
+	if err := runClassify(context.Background(), f, st, io.Discard, time.Now); err != nil {
+		t.Fatal(err)
+	}
+	c := st.saves["hyrox-sim-2026-10-11"]
+	if c == nil || !c.IsRace || c.RaceType != "hyrox" || c.RaceVariant != "Open Men's Doubles" {
+		t.Errorf("override not saved: %+v", c)
+	}
+	if _, err := parseClassifyFlags([]string{"--race", "yes"}, io.Discard); err == nil {
+		t.Error("--race without --id must fail")
+	}
+}

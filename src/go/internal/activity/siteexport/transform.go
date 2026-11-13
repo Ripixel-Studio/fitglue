@@ -110,8 +110,10 @@ type activityFile struct {
 	Slug          string          `json:"slug"`
 	ExportedAt    string          `json:"exportedAt"`
 	Category      Category        `json:"category"`
-	Tag           string          `json:"tag"`    // the site's activity tag (pkg/activitytag)
-	IsRace        bool            `json:"isRace"` // the actual thing: an entered race or a raced parkrun
+	Tag           string          `json:"tag"`                   // the site's activity tag (pkg/activitytag)
+	IsRace        bool            `json:"isRace"`                // the actual thing: an entered race or a raced parkrun
+	RaceType      string          `json:"raceType,omitempty"`    // a race's PB board type (hyrox, spartan, road, ...)
+	RaceVariant   string          `json:"raceVariant,omitempty"` // its comparable variant (division, format, distance, event, course)
 	Activity      json.RawMessage `json:"activity"`
 	Entry         json.RawMessage `json:"entry"`
 	Series        *Series         `json:"series"`
@@ -174,6 +176,10 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 	race := DeriveRace(showcase)
 	kmSplits := DeriveKmSplits(showcase.ActivityData, category)
 	tag, isRace := activitytag.ForShowcase(showcase)
+	var raceType, raceVariant string
+	if c := showcase.GetEnrichments().GetClassification(); isRace && c.GetIsRace() {
+		raceType, raceVariant = c.GetRaceType(), c.GetRaceVariant()
+	}
 
 	// Strip the records after deriving series/route from them (§3.1). Work on
 	// a clone so the caller's message is untouched.
@@ -218,6 +224,8 @@ func BuildActivity(showcase *pbactivity.ShowcasedActivity, entry *pbactivity.Sho
 		Category:      category,
 		Tag:           tag,
 		IsRace:        isRace,
+		RaceType:      raceType,
+		RaceVariant:   raceVariant,
 		Activity:      activityJSON,
 		Entry:         entryJSON,
 		Series:        series,
