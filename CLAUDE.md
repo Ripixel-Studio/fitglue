@@ -59,6 +59,11 @@ bin/fitgluectl regen-activity-summaries [--id ID | --since 2026-01-01] [--limit 
                                                         # rewrite every site activity's AI summary through the enricher's own
                                                         # path (ai_companion.Summarize); site copy only, never Strava; skips
                                                         # summaries stamped aiSummary.model=claude-sonnet-observer
+bin/fitgluectl backfill-photos [--since 2025-01-01] [--until 2025-12-31] [--id X] [--apply]
+                                                        # copy his Strava photos (read only) onto showcased activities with
+                                                        # none: resized into showcase-assets, set on showcase + entry, roundup
+                                                        # mosaics refreshed (stories untouched), site re-exported + rebuild
+                                                        # signalled. State: ~/.local/state/fitgluectl/backfill-photos.json.
 bin/fitgluectl health-check                             # sleep/body/nutrition routes vs Google Health: counts + dates only
 bin/fitgluectl reconcile [--since 14d] [--apply] [--json] # three-way check Hevy × FitGlue × Strava, one row per session;
                                                         # --apply replays missed ingests (same event as the webhook) and
