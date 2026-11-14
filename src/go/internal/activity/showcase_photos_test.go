@@ -104,3 +104,39 @@ func TestRefreshRoundupPhotos(t *testing.T) {
 		t.Errorf("second refresh changed=%v saves=%d err=%v", changed, saves, err)
 	}
 }
+
+func TestRemoveShowcasePhotos(t *testing.T) {
+	store := &MockActivityStore{}
+	doc := &pbactivity.ShowcasedActivity{ShowcaseId: "gym", PhotoUrls: []string{"card", "real", "mine"}}
+	store.GetPublicShowcaseFunc = func(context.Context, string) (*pbactivity.ShowcasedActivity, string, error) {
+		return doc, "uid", nil
+	}
+	writes := 0
+	store.UpdateShowcaseFunc = func(_ context.Context, _ string, sc *pbactivity.ShowcasedActivity) (*pbactivity.ShowcasedActivity, error) {
+		writes++
+		return sc, nil
+	}
+	var savedEntry *pbactivity.ShowcaseProfileEntry
+	store.SetShowcaseProfileEntryFunc = func(_ context.Context, _ string, e *pbactivity.ShowcaseProfileEntry) error {
+		savedEntry = e
+		return nil
+	}
+	svc := newTestSvc(store, &MockBlobStore{})
+	x := &recordingExporter{}
+	svc.SetSiteExporter(x)
+	entry := &pbactivity.ShowcaseProfileEntry{ShowcaseId: "gym", PhotoUrls: []string{"card", "real", "mine"}, DistanceMeters: 1}
+	n, err := svc.RemoveShowcasePhotos(context.Background(), "gym", entry, []string{"card"})
+	if err != nil || n != 1 {
+		t.Fatalf("n=%d err=%v", n, err)
+	}
+	if !slices.Equal(doc.PhotoUrls, []string{"real", "mine"}) || savedEntry == nil || !slices.Equal(savedEntry.PhotoUrls, []string{"real", "mine"}) || savedEntry.DistanceMeters != 1 {
+		t.Errorf("doc %v entry %v", doc.PhotoUrls, savedEntry)
+	}
+	if len(x.activities) != 1 {
+		t.Errorf("site export not told: %v", x.activities)
+	}
+	n, err = svc.RemoveShowcasePhotos(context.Background(), "gym", entry, []string{"card"})
+	if err != nil || n != 0 || writes != 1 || len(x.activities) != 1 {
+		t.Errorf("second remove n=%d writes=%d exports=%v err=%v", n, writes, x.activities, err)
+	}
+}

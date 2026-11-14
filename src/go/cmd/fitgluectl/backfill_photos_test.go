@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"image"
+	"image/color"
 	"image/jpeg"
 	"image/png"
 	"io"
@@ -28,6 +29,7 @@ type fakePhotoSite struct {
 	strava    map[string]string // showcase id -> strava id
 	saved     map[string][]string
 	roundups  []string
+	removed   []string
 }
 
 func (f *fakePhotoSite) Profile(context.Context, string) (*pbactivity.ShowcaseProfile, error) {
@@ -81,7 +83,8 @@ func photoFixture() (*fakePhotoSite, *fakeLister) {
 	add("has-photos", time.Date(2025, 5, 6, 9, 0, 0, 0, time.UTC), "333", []string{"mine.jpg"})
 	add("next-year", time.Date(2026, 1, 2, 9, 0, 0, 0, time.UTC), "444", nil)
 	l := &fakeLister{photos: map[string][]stravaPhoto{
-		"111": {{UniqueID: "b", URL: "https://cdn/b"}, {UniqueID: "a", URL: "https://cdn/a"}},
+		"111": {{UniqueID: "b", URL: "https://cdn/b"}, {UniqueID: "g1", URL: "https://cdn/g1"}, {UniqueID: "a", URL: "https://cdn/a"}},
+		"222": {{UniqueID: "g", URL: "https://cdn/g"}},
 		"333": {{UniqueID: "c", URL: "https://cdn/c"}},
 		"444": {{UniqueID: "d", URL: "https://cdn/d"}},
 	}}
@@ -97,10 +100,55 @@ func photoFlags(t *testing.T, args ...string) *backfillPhotosFlags {
 	return f
 }
 
-func fakeCopy(copied *[]string) photoCopier {
-	return func(_ context.Context, uid, sid string, p stravaPhoto) (string, error) {
-		*copied = append(*copied, p.UniqueID)
-		return "https://storage.googleapis.com/bkt/" + photoObject(uid, sid, p.UniqueID), nil
+// photoJPEG is a camera-like image: many colours, no flat background.
+func photoJPEG(t testing.TB) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, 200, 150))
+	for y := 0; y < 150; y++ {
+		for x := 0; x < 200; x++ {
+			img.Set(x, y, color.RGBA{uint8(x + y*3), uint8(x*5 + y), uint8(60 + (x*y)%150), 255})
+		}
+	}
+	var b bytes.Buffer
+	if err := jpeg.Encode(&b, img, &jpeg.Options{Quality: 90}); err != nil {
+		t.Fatal(err)
+	}
+	return b.Bytes()
+}
+
+// cardJPEG is a Hevy-style summary card: white with a little dark text.
+func cardJPEG(t testing.TB, bg color.RGBA) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, 300, 200))
+	for y := 0; y < 200; y++ {
+		for x := 0; x < 300; x++ {
+			c := bg
+			if y > 40 && y < 60 && x > 20 && x < 120 {
+				c = color.RGBA{90, 90, 90, 255}
+			}
+			img.Set(x, y, c)
+		}
+	}
+	var b bytes.Buffer
+	if err := jpeg.Encode(&b, img, &jpeg.Options{Quality: 90}); err != nil {
+		t.Fatal(err)
+	}
+	return b.Bytes()
+}
+
+// fakeIO serves https://cdn/g* as a card and everything else as a photo, and
+// records what it stores.
+func fakeIO(t testing.TB, copied *[]string) photoIO {
+	photo, card := photoJPEG(t), cardJPEG(t, color.RGBA{255, 255, 255, 255})
+	return photoIO{
+		Fetch: func(_ context.Context, u string) ([]byte, error) {
+			if strings.Contains(u, "/g") {
+				return card, nil
+			}
+			return photo, nil
+		},
+		Store: func(_ context.Context, uid, sid, id string, _ []byte) (string, error) {
+			*copied = append(*copied, id)
+			return publicURL("bkt", photoObject(uid, sid, id)), nil
+		},
 	}
 }
 
@@ -109,12 +157,12 @@ func TestBackfillPhotosDryRunThenApply(t *testing.T) {
 	f := photoFlags(t, "--since", "2025-01-01", "--until", "2025-12-31")
 	var copied []string
 	var out bytes.Buffer
-	if err := runBackfillPhotos(context.Background(), f, site, l, fakeCopy(&copied), &out, time.Now); err != nil {
+	if err := runBackfillPhotos(context.Background(), f, site, l, fakeIO(t, &copied), &out, time.Now); err != nil {
 		t.Fatal(err)
 	}
 	s := out.String()
-	for _, want := range []string{"parkrun  strava 111  2 photos", "gym  strava 222  no photos", "hevy-only  no Strava copy",
-		"3 activities without photos checked (1 already had photos): 1 have Strava photos (2 photos), 1 no Strava copy, 0 failed", "dry run"} {
+	for _, want := range []string{"parkrun  strava 111  2 photos (1 graphics skipped)", "gym  strava 222  1 graphics skipped, no photos", "hevy-only  no Strava copy",
+		"3 activities without photos checked (1 already had photos): 1 have Strava photos (2 photos; 2 graphics skipped), 1 no Strava copy, 0 failed", "dry run"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("missing %q in:\n%s", want, s)
 		}
@@ -129,7 +177,7 @@ func TestBackfillPhotosDryRunThenApply(t *testing.T) {
 	// --apply reuses the dry run's answers from the state file: no second listing.
 	f.apply = true
 	out.Reset()
-	if err := runBackfillPhotos(context.Background(), f, site, l, fakeCopy(&copied), &out, time.Now); err != nil {
+	if err := runBackfillPhotos(context.Background(), f, site, l, fakeIO(t, &copied), &out, time.Now); err != nil {
 		t.Fatal(err)
 	}
 	if l.calls != 2 {
@@ -159,7 +207,7 @@ func TestBackfillPhotosDryRunThenApply(t *testing.T) {
 	copied = nil
 	site.roundups = nil
 	out.Reset()
-	if err := runBackfillPhotos(context.Background(), f, site, l, fakeCopy(&copied), &out, time.Now); err != nil {
+	if err := runBackfillPhotos(context.Background(), f, site, l, fakeIO(t, &copied), &out, time.Now); err != nil {
 		t.Fatal(err)
 	}
 	if len(copied) != 0 || len(site.roundups) != 0 {
@@ -170,14 +218,12 @@ func TestBackfillPhotosDryRunThenApply(t *testing.T) {
 func TestBackfillPhotosCopyFailureLeavesActivity(t *testing.T) {
 	site, l := photoFixture()
 	f := photoFlags(t, "--id", "parkrun", "--apply")
-	failing := func(context.Context, string, string, stravaPhoto) (string, error) {
-		return "", errors.New("download status 403")
-	}
+	failing := photoIO{Fetch: func(context.Context, string) ([]byte, error) { return nil, errors.New("download status 403") }}
 	var out bytes.Buffer
 	if err := runBackfillPhotos(context.Background(), f, site, l, failing, &out, time.Now); err != nil {
 		t.Fatal(err)
 	}
-	if len(site.saved) != 0 || !strings.Contains(out.String(), "failure: parkrun: copy photo b: download status 403") {
+	if len(site.saved) != 0 || !strings.Contains(out.String(), "failure: parkrun: download photo b: download status 403") {
 		t.Errorf("saved=%v out:\n%s", site.saved, out.String())
 	}
 }
@@ -245,11 +291,15 @@ func TestPhotoCopierResizes(t *testing.T) {
 	defer srv.Close()
 	var obj string
 	var stored []byte
-	cp := newPhotoCopier(srv.Client(), "bkt", func(_ context.Context, o string, data []byte) error {
+	pio := newPhotoIO(srv.Client(), "bkt", func(_ context.Context, o string, data []byte) error {
 		obj, stored = o, data
 		return nil
 	})
-	u, err := cp(context.Background(), "uid", "42", stravaPhoto{UniqueID: "ab/c?", URL: srv.URL})
+	data, err := pio.Fetch(context.Background(), srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, err := pio.Store(context.Background(), "uid", "42", "ab/c?", data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,10 +352,97 @@ func TestBackfillPhotosMatchesHevyByTime(t *testing.T) {
 	fl := &findingLister{fakeLister: *l, found: "111"}
 	f := photoFlags(t, "--id", "hevy-only")
 	var out bytes.Buffer
-	if err := runBackfillPhotos(context.Background(), f, site, fl, nil, &out, time.Now); err != nil {
+	if err := runBackfillPhotos(context.Background(), f, site, fl, fakeIO(t, new([]string)), &out, time.Now); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "hevy-only  strava 111  2 photos") {
+		t.Errorf("out:\n%s", out.String())
+	}
+}
+
+func TestIsGraphic(t *testing.T) {
+	for name, tc := range map[string]struct {
+		data []byte
+		want bool
+	}{
+		"photo":                               {photoJPEG(t), false},
+		"white card":                          {cardJPEG(t, color.RGBA{255, 255, 255, 255}), true},
+		"dark card":                           {cardJPEG(t, color.RGBA{12, 12, 14, 255}), true},
+		"flat app card (purple, few colours)": {cardJPEG(t, color.RGBA{130, 90, 200, 255}), true},
+	} {
+		got, s, err := isGraphic(tc.data)
+		if err != nil || got != tc.want {
+			t.Errorf("%s: graphic=%v (%+v) err=%v, want %v", name, got, s, err, tc.want)
+		}
+	}
+	// A whiteboard photo: a light board under uneven light (never near-white),
+	// a wall around it and marker writing.
+	img := image.NewRGBA(image.Rect(0, 0, 256, 192))
+	for y := 0; y < 192; y++ {
+		for x := 0; x < 256; x++ {
+			c := color.RGBA{uint8(150 + x/3), uint8(140 + y/3), uint8(120 + (x+y)/6), 255}
+			if x < 30 || y < 20 {
+				c = color.RGBA{uint8(90 + y/4), uint8(70 + x/5), 60, 255}
+			}
+			if y%24 < 3 && x > 50 && x < 220 {
+				c = color.RGBA{30, 60, uint8(120 + x/4), 255}
+			}
+			img.Set(x, y, c)
+		}
+	}
+	var b bytes.Buffer
+	_ = jpeg.Encode(&b, img, nil)
+	if g, s, _ := isGraphic(b.Bytes()); g {
+		t.Errorf("whiteboard judged a graphic: %+v", s)
+	}
+}
+
+func (f *fakePhotoSite) RemoveShowcasePhotos(_ context.Context, id string, e *pbactivity.ShowcaseProfileEntry, drop []string) (int, error) {
+	keep := func(u string) bool { return !slices.Contains(drop, u) }
+	var kept []string
+	for _, u := range f.showcases[id].PhotoUrls {
+		if keep(u) {
+			kept = append(kept, u)
+		}
+	}
+	n := len(f.showcases[id].PhotoUrls) - len(kept)
+	f.showcases[id].PhotoUrls = kept
+	e.PhotoUrls = kept
+	f.removed = append(f.removed, drop...)
+	return n, nil
+}
+
+func TestPrunePhotos(t *testing.T) {
+	site, _ := photoFixture()
+	ours := func(sid, id string) string { return publicURL("bkt", photoObject("uid", sid, id)) }
+	urls := []string{ours("111", "b"), ours("111", "g1"), ours("111", "app"), "https://storage.googleapis.com/bkt/activity_photos/uid/x/g-his-own.jpg"}
+	site.entries[0].PhotoUrls = urls
+	site.showcases["parkrun"].PhotoUrls = slices.Clone(urls)
+	var copied []string
+	pio := fakeIO(t, &copied)
+
+	f := photoFlags(t, "--prune", "--bucket", "bkt", "--drop-url", ours("111", "app"))
+	var out bytes.Buffer
+	if err := runPrunePhotos(context.Background(), f, site, pio, &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(site.removed) != 0 || !strings.Contains(out.String(), "would remove 2 imported photos from 1 activities; 1 imported photos kept") {
+		t.Errorf("dry run removed %v:\n%s", site.removed, out.String())
+	}
+
+	f.apply = true
+	out.Reset()
+	if err := runPrunePhotos(context.Background(), f, site, pio, &out); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{ours("111", "b"), "https://storage.googleapis.com/bkt/activity_photos/uid/x/g-his-own.jpg"}
+	if !slices.Equal(site.showcases["parkrun"].PhotoUrls, want) || !slices.Equal(site.entries[0].PhotoUrls, want) {
+		t.Errorf("kept %v / %v", site.showcases["parkrun"].PhotoUrls, site.entries[0].PhotoUrls)
+	}
+	if !slices.Equal(site.roundups, []string{"month-05-2025", "week-18-2025", "year-2025"}) {
+		t.Errorf("roundups %v", site.roundups)
+	}
+	if !strings.Contains(out.String(), "removed 2 imported photos from 1 activities; 1 imported photos kept") {
 		t.Errorf("out:\n%s", out.String())
 	}
 }

@@ -63,7 +63,11 @@ bin/fitgluectl backfill-photos [--since 2025-01-01] [--until 2025-12-31] [--id X
                                                         # copy his Strava photos (read only) onto showcased activities with
                                                         # none: resized into showcase-assets, set on showcase + entry, roundup
                                                         # mosaics refreshed (stories untouched), site re-exported + rebuild
-                                                        # signalled. State: ~/.local/state/fitgluectl/backfill-photos.json.
+                                                        # signalled. Graphics (Hevy cards, watch screenshots, app cards) are
+                                                        # skipped. State: ~/.local/state/fitgluectl/backfill-photos.json.
+bin/fitgluectl backfill-photos --prune [--drop-url U,...] [--apply]
+                                                        # remove graphics it imported earlier (and any --drop-url) from showcase
+                                                        # + entry, refresh roundup mosaics, re-export; his own uploads untouched
 bin/fitgluectl health-check                             # sleep/body/nutrition routes vs Google Health: counts + dates only
 bin/fitgluectl reconcile [--since 14d] [--apply] [--json] # three-way check Hevy × FitGlue × Strava, one row per session;
                                                         # --apply replays missed ingests (same event as the webhook) and
