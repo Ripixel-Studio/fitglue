@@ -90,3 +90,40 @@ var RoundupKeysAt = periodKeysAt
 func samePhotos(a, b []*pbactivity.RoundupPhoto) bool {
 	return slices.EqualFunc(a, b, func(x, y *pbactivity.RoundupPhoto) bool { return proto.Equal(x, y) })
 }
+
+// RemoveShowcasePhotos drops the given URLs from a showcase's photos and from its
+// profile entry's (keeping the order of the rest), then tells the site exporter.
+// It reports how many URLs the showcase lost; 0 means nothing was written.
+func (s *Service) RemoveShowcasePhotos(ctx context.Context, showcaseID string, entry *pbactivity.ShowcaseProfileEntry, drop []string) (int, error) {
+	doc, owner, err := s.store.GetPublicShowcase(ctx, showcaseID)
+	if err != nil {
+		return 0, fmt.Errorf("showcase %s: %w", showcaseID, err)
+	}
+	if doc == nil {
+		return 0, fmt.Errorf("showcase %s not found", showcaseID)
+	}
+	keep := func(urls []string) []string {
+		return slices.DeleteFunc(slices.Clone(urls), func(u string) bool { return slices.Contains(drop, u) })
+	}
+	kept := keep(doc.PhotoUrls)
+	removed := len(doc.PhotoUrls) - len(kept)
+	entryKept := keep(entry.GetPhotoUrls())
+	entryChanged := entry != nil && len(entryKept) != len(entry.PhotoUrls)
+	if removed == 0 && !entryChanged {
+		return 0, nil
+	}
+	if removed > 0 {
+		doc.PhotoUrls = kept
+		if _, err := s.store.UpdateShowcase(ctx, owner, doc); err != nil {
+			return 0, fmt.Errorf("update showcase %s: %w", showcaseID, err)
+		}
+	}
+	if entryChanged {
+		entry.PhotoUrls = entryKept
+		if err := s.store.SetShowcaseProfileEntry(ctx, owner, entry); err != nil {
+			return removed, fmt.Errorf("update entry %s: %w", showcaseID, err)
+		}
+	}
+	s.siteActivityChanged(ctx, showcaseID)
+	return removed, nil
+}

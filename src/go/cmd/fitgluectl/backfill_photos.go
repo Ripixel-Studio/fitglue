@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -63,6 +64,8 @@ type backfillPhotosFlags struct {
 	since, until time.Time // until is exclusive (the day after --until)
 	ids          []string
 	apply        bool
+	prune        bool
+	dropURLs     []string
 	state        string
 }
 
@@ -75,12 +78,16 @@ type photoSite interface {
 	StravaActivityID(ctx context.Context, sc *pbactivity.ShowcasedActivity) (string, error)
 	SetShowcasePhotos(ctx context.Context, showcaseID string, entry *pbactivity.ShowcaseProfileEntry, urls []string) error
 	RefreshRoundupPhotos(ctx context.Context, userID, slug, periodKey string) (bool, error)
+	RemoveShowcasePhotos(ctx context.Context, showcaseID string, entry *pbactivity.ShowcaseProfileEntry, drop []string) (int, error)
 }
 
 // stravaPhoto is one photo Strava lists on an activity.
 type stravaPhoto struct {
 	UniqueID string `json:"uniqueId"`
 	URL      string `json:"url"`
+	// Graphic is the verdict of isGraphic on the downloaded image (a Hevy card,
+	// a watch screenshot); nil until judged. Graphics are never imported.
+	Graphic *bool `json:"graphic,omitempty"`
 }
 
 type photoLister interface {
@@ -94,8 +101,13 @@ type stravaFinder interface {
 	FindByTime(ctx context.Context, start time.Time, dur time.Duration) (string, error)
 }
 
-// photoCopier downloads a Strava photo, resizes it and stores it, returning its public URL.
-type photoCopier func(ctx context.Context, uid, stravaID string, p stravaPhoto) (string, error)
+// photoIO fetches an image by URL (Strava's CDN, or a stored photo's public
+// URL) and stores a Strava photo (resized like the photo-upload enricher),
+// returning its public URL.
+type photoIO struct {
+	Fetch func(ctx context.Context, url string) ([]byte, error)
+	Store func(ctx context.Context, uid, stravaID, uniqueID string, data []byte) (string, error)
+}
 
 // photoState is one activity's last answer from Strava, and what was applied.
 type photoState struct {
@@ -167,6 +179,9 @@ func parseBackfillPhotosFlags(args []string, stderr io.Writer) (*backfillPhotosF
 	fs.StringVar(&ids, "id", "", "only these activities (showcase ids, comma-separated); ignores --since/--until")
 	fs.BoolVar(&f.apply, "apply", false, "copy the photos and save them (default: dry run)")
 	fs.StringVar(&f.state, "state", defaultPhotoState(), "local state file (\"\" for none)")
+	fs.BoolVar(&f.prune, "prune", false, "instead: remove graphics (cards, screenshots) this command imported earlier; --apply writes")
+	var drop string
+	fs.StringVar(&drop, "drop-url", "", "with --prune: also remove these imported photo URLs (comma-separated), graphic or not")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
@@ -184,6 +199,14 @@ func parseBackfillPhotosFlags(args []string, stderr io.Writer) (*backfillPhotosF
 			return nil, errors.New("--until is before --since")
 		}
 	}
+	for _, u := range strings.Split(drop, ",") {
+		if u = strings.TrimSpace(u); u != "" {
+			f.dropURLs = append(f.dropURLs, u)
+		}
+	}
+	if len(f.dropURLs) > 0 && !f.prune {
+		return nil, errors.New("--drop-url needs --prune")
+	}
 	for _, id := range strings.Split(ids, ",") {
 		if id = strings.TrimSpace(id); id != "" {
 			f.ids = append(f.ids, id)
@@ -199,8 +222,8 @@ func parseBackfillPhotosFlags(args []string, stderr io.Writer) (*backfillPhotosF
 }
 
 type backfillCounts struct {
-	checked, noStrava, withPhotos, photosFound, copied, applied, skippedHas, failed int
-	failures                                                                        []string
+	checked, noStrava, withPhotos, photosFound, graphics, copied, applied, skippedHas, failed int
+	failures                                                                                  []string
 }
 
 func (f *backfillPhotosFlags) wants(e *pbactivity.ShowcaseProfileEntry) bool {
@@ -219,15 +242,16 @@ func (f *backfillPhotosFlags) wants(e *pbactivity.ShowcaseProfileEntry) bool {
 	return !t.Before(f.since) && (f.until.IsZero() || t.Before(f.until))
 }
 
-func runBackfillPhotos(ctx context.Context, f *backfillPhotosFlags, site photoSite, strava photoLister, copyPhoto photoCopier, out io.Writer, now func() time.Time) error {
+// selectEntries is the profile owner's uid and the wanted entries, oldest first.
+func selectEntries(ctx context.Context, f *backfillPhotosFlags, site photoSite) (string, []*pbactivity.ShowcaseProfileEntry, error) {
 	prof, err := site.Profile(ctx, f.export.slug)
 	if err != nil {
-		return fmt.Errorf("profile %q: %w", f.export.slug, err)
+		return "", nil, fmt.Errorf("profile %q: %w", f.export.slug, err)
 	}
 	uid := prof.GetUserId()
 	entries, err := site.Entries(ctx, uid)
 	if err != nil {
-		return fmt.Errorf("entries: %w", err)
+		return "", nil, fmt.Errorf("entries: %w", err)
 	}
 	var todo []*pbactivity.ShowcaseProfileEntry
 	for _, e := range entries {
@@ -238,6 +262,42 @@ func runBackfillPhotos(ctx context.Context, f *backfillPhotosFlags, site photoSi
 	sort.SliceStable(todo, func(i, j int) bool {
 		return todo[i].GetStartTime().AsTime().Before(todo[j].GetStartTime().AsTime())
 	})
+	return uid, todo, nil
+}
+
+// refreshRoundups re-collects the photo mosaic of each roundup key; it returns
+// how many changed, appending failures.
+func refreshRoundups(ctx context.Context, site photoSite, uid, slug string, keys map[string]bool, failures *[]string) (int, []string) {
+	sorted := make([]string, 0, len(keys))
+	for k := range keys {
+		sorted = append(sorted, k)
+	}
+	sort.Strings(sorted)
+	n := 0
+	for _, k := range sorted {
+		changed, err := site.RefreshRoundupPhotos(ctx, uid, slug, k)
+		if err != nil {
+			*failures = append(*failures, "roundup "+k+": "+err.Error())
+			continue
+		}
+		if changed {
+			n++
+		}
+	}
+	return n, sorted
+}
+
+func addRoundupKeys(keys map[string]bool, e *pbactivity.ShowcaseProfileEntry) {
+	for _, k := range activity.RoundupKeysAt(e.GetStartTime().AsTime()) {
+		keys[k] = true
+	}
+}
+
+func runBackfillPhotos(ctx context.Context, f *backfillPhotosFlags, site photoSite, strava photoLister, pio photoIO, out io.Writer, now func() time.Time) error {
+	uid, todo, err := selectEntries(ctx, f, site)
+	if err != nil {
+		return err
+	}
 	state := loadPhotoState(f.state)
 	defer func() { _ = state.save() }()
 
@@ -259,8 +319,8 @@ func runBackfillPhotos(ctx context.Context, f *backfillPhotosFlags, site photoSi
 		if st != nil && len(st.Applied) > 0 {
 			// Applied by an earlier run; the entry above would normally show it.
 			c.withPhotos++
-			c.photosFound += len(st.Photos)
-			fmt.Fprintf(out, "%s  %s  strava %s  %d photos (applied earlier)\n", day(e), e.ShowcaseId, st.StravaID, len(st.Photos))
+			c.photosFound += len(st.Applied)
+			fmt.Fprintf(out, "%s  %s  strava %s  %d photos (applied earlier)\n", day(e), e.ShowcaseId, st.StravaID, len(st.Applied))
 			continue
 		}
 		if st == nil || now().Sub(st.CheckedAt) > stateFreshFor {
@@ -318,19 +378,65 @@ func runBackfillPhotos(ctx context.Context, f *backfillPhotosFlags, site photoSi
 			fmt.Fprintf(out, "%s  %s  strava %s  no photos\n", day(e), e.ShowcaseId, st.StravaID)
 			continue
 		}
-		c.withPhotos++
-		c.photosFound += len(st.Photos)
-		fmt.Fprintf(out, "%s  %s  strava %s  %d photos  %q\n", day(e), e.ShowcaseId, st.StravaID, len(st.Photos), e.Title)
-		if !f.apply {
-			for _, k := range activity.RoundupKeysAt(e.GetStartTime().AsTime()) {
-				roundupKeys[k] = true
+		// Judge every photo once (CDN downloads; no Strava API calls) and keep the
+		// bytes for --apply.
+		data := map[string][]byte{}
+		var judgeErr error
+		for i := range st.Photos {
+			p := &st.Photos[i]
+			if p.Graphic != nil {
+				continue
 			}
+			b, err := pio.Fetch(ctx, p.URL)
+			if err != nil {
+				judgeErr = fmt.Errorf("photo %s: %w", p.UniqueID, err)
+				break
+			}
+			g, _, err := isGraphic(b)
+			if err != nil {
+				judgeErr = fmt.Errorf("photo %s: %w", p.UniqueID, err)
+				break
+			}
+			p.Graphic = &g
+			data[p.UniqueID] = b
+		}
+		if judgeErr != nil {
+			// Strava's CDN links can go stale: list again next run.
+			st.CheckedAt = time.Time{}
+			fail(e, "download "+judgeErr.Error())
+			continue
+		}
+		_ = state.save()
+		var real []stravaPhoto
+		for _, p := range st.Photos {
+			if !*p.Graphic {
+				real = append(real, p)
+			}
+		}
+		skipped := len(st.Photos) - len(real)
+		c.graphics += skipped
+		if len(real) == 0 {
+			fmt.Fprintf(out, "%s  %s  strava %s  %d graphics skipped, no photos\n", day(e), e.ShowcaseId, st.StravaID, skipped)
+			continue
+		}
+		c.withPhotos++
+		c.photosFound += len(real)
+		fmt.Fprintf(out, "%s  %s  strava %s  %d photos (%d graphics skipped)  %q\n", day(e), e.ShowcaseId, st.StravaID, len(real), skipped, e.Title)
+		if !f.apply {
+			addRoundupKeys(roundupKeys, e)
 			continue
 		}
 		var urls []string
 		var copyErr error
-		for _, p := range st.Photos {
-			u, err := copyPhoto(ctx, uid, st.StravaID, p)
+		for _, p := range real {
+			b, ok := data[p.UniqueID]
+			if !ok {
+				if b, copyErr = pio.Fetch(ctx, p.URL); copyErr != nil {
+					copyErr = fmt.Errorf("photo %s: %w", p.UniqueID, copyErr)
+					break
+				}
+			}
+			u, err := pio.Store(ctx, uid, st.StravaID, p.UniqueID, b)
 			if err != nil {
 				copyErr = fmt.Errorf("photo %s: %w", p.UniqueID, err)
 				break
@@ -338,7 +444,6 @@ func runBackfillPhotos(ctx context.Context, f *backfillPhotosFlags, site photoSi
 			urls = append(urls, u)
 		}
 		if copyErr != nil {
-			// Strava's CDN links can go stale: list again next run.
 			st.CheckedAt = time.Time{}
 			fail(e, "copy "+copyErr.Error())
 			continue
@@ -356,32 +461,21 @@ func runBackfillPhotos(ctx context.Context, f *backfillPhotosFlags, site photoSi
 		st.Applied = urls
 		_ = state.save()
 		c.applied++
-		for _, k := range activity.RoundupKeysAt(e.GetStartTime().AsTime()) {
-			roundupKeys[k] = true
-		}
+		addRoundupKeys(roundupKeys, e)
 	}
 
-	keys := make([]string, 0, len(roundupKeys))
-	for k := range roundupKeys {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	refreshed := 0
+	refreshed, keys := 0, []string(nil)
 	if f.apply {
-		for _, k := range keys {
-			changed, err := site.RefreshRoundupPhotos(ctx, uid, f.export.slug, k)
-			if err != nil {
-				c.failures = append(c.failures, "roundup "+k+": "+err.Error())
-				continue
-			}
-			if changed {
-				refreshed++
-			}
+		refreshed, keys = refreshRoundups(ctx, site, uid, f.export.slug, roundupKeys, &c.failures)
+	} else {
+		keys = make([]string, 0, len(roundupKeys))
+		for k := range roundupKeys {
+			keys = append(keys, k)
 		}
 	}
 
-	fmt.Fprintf(out, "\n%d activities without photos checked (%d already had photos): %d have Strava photos (%d photos), %d no Strava copy, %d failed\n",
-		c.checked, c.skippedHas, c.withPhotos, c.photosFound, c.noStrava, c.failed)
+	fmt.Fprintf(out, "\n%d activities without photos checked (%d already had photos): %d have Strava photos (%d photos; %d graphics skipped), %d no Strava copy, %d failed\n",
+		c.checked, c.skippedHas, c.withPhotos, c.photosFound, c.graphics, c.noStrava, c.failed)
 	if f.apply {
 		fmt.Fprintf(out, "applied: %d activities, %d photos copied; roundup photo mosaics refreshed: %d of %d (stories untouched)\n",
 			c.applied, c.copied, refreshed, len(keys))
@@ -583,36 +677,40 @@ func photoObject(uid, stravaID, uniqueID string) string {
 	return fmt.Sprintf("activity_photos/%s/strava-%s/%s.jpg", uid, stravaID, safe)
 }
 
-// newPhotoCopier downloads from Strava's CDN, resizes like the photo-upload
-// enricher and writes the JPEG with put.
-func newPhotoCopier(hc *http.Client, bucket string, put func(ctx context.Context, obj string, data []byte) error) photoCopier {
-	return func(ctx context.Context, uid, stravaID string, p stravaPhoto) (string, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.URL, nil)
-		if err != nil {
-			return "", err
-		}
-		resp, err := hc.Do(req)
-		if err != nil {
-			return "", err
-		}
-		defer func() { _ = resp.Body.Close() }()
-		if resp.StatusCode != http.StatusOK {
-			return "", fmt.Errorf("download status %d", resp.StatusCode)
-		}
-		data, err := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
-		if err != nil {
-			return "", err
-		}
-		jpg, err := photo_upload.ResizeForShowcase(data)
-		if err != nil {
-			return "", err
-		}
-		obj := photoObject(uid, stravaID, p.UniqueID)
-		if err := put(ctx, obj, jpg); err != nil {
-			return "", fmt.Errorf("upload: %w", err)
-		}
-		return "https://storage.googleapis.com/" + bucket + "/" + obj, nil
+// newPhotoIO downloads over HTTP and stores resized JPEGs with put.
+func newPhotoIO(hc *http.Client, bucket string, put func(ctx context.Context, obj string, data []byte) error) photoIO {
+	return photoIO{
+		Fetch: func(ctx context.Context, url string) ([]byte, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+			if err != nil {
+				return nil, err
+			}
+			resp, err := hc.Do(req)
+			if err != nil {
+				return nil, err
+			}
+			defer func() { _ = resp.Body.Close() }()
+			if resp.StatusCode != http.StatusOK {
+				return nil, fmt.Errorf("download status %d", resp.StatusCode)
+			}
+			return io.ReadAll(io.LimitReader(resp.Body, 64<<20))
+		},
+		Store: func(ctx context.Context, uid, stravaID, uniqueID string, data []byte) (string, error) {
+			jpg, err := photo_upload.ResizeForShowcase(data)
+			if err != nil {
+				return "", err
+			}
+			obj := photoObject(uid, stravaID, uniqueID)
+			if err := put(ctx, obj, jpg); err != nil {
+				return "", fmt.Errorf("upload: %w", err)
+			}
+			return publicURL(bucket, obj), nil
+		},
 	}
+}
+
+func publicURL(bucket, obj string) string {
+	return "https://storage.googleapis.com/" + bucket + "/" + obj
 }
 
 // photoSiteAdapter joins the site source to the service's photo halves.
@@ -624,6 +722,10 @@ func (a photoSiteAdapter) SetShowcasePhotos(ctx context.Context, id string, e *p
 
 func (a photoSiteAdapter) RefreshRoundupPhotos(ctx context.Context, uid, slug, key string) (bool, error) {
 	return a.Service.RefreshRoundupPhotos(ctx, uid, slug, key)
+}
+
+func (a photoSiteAdapter) RemoveShowcasePhotos(ctx context.Context, id string, e *pbactivity.ShowcaseProfileEntry, drop []string) (int, error) {
+	return a.Service.RemoveShowcasePhotos(ctx, id, e, drop)
 }
 
 func backfillPhotosCommand(ctx context.Context, args []string, stdout, stderr io.Writer) error {
@@ -682,6 +784,104 @@ func backfillPhotosCommand(ctx context.Context, args []string, stdout, stderr io
 		}
 		return wc.Close()
 	}
-	cp := newPhotoCopier(&http.Client{Timeout: 60 * time.Second}, f.export.bucket, put)
-	return runBackfillPhotos(ctx, f, photoSiteAdapter{summaryAdapter{site.source}}, strava, cp, stdout, time.Now)
+	pio := newPhotoIO(&http.Client{Timeout: 60 * time.Second}, f.export.bucket, put)
+	ps := photoSiteAdapter{summaryAdapter{site.source}}
+	if f.prune {
+		return runPrunePhotos(ctx, f, ps, pio, stdout)
+	}
+	return runBackfillPhotos(ctx, f, ps, strava, pio, stdout, time.Now)
+}
+
+// runPrunePhotos removes the graphics (isGraphic) and any --drop-url among the
+// photos this command imported (activity_photos/<uid>/strava-*), from the
+// showcase and its profile entry, refreshes the roundup mosaics holding them
+// and records the verdict in the state file so a later backfill skips them. The
+// bucket objects stay (nothing links them). Photos he uploaded himself are never
+// looked at.
+func runPrunePhotos(ctx context.Context, f *backfillPhotosFlags, site photoSite, pio photoIO, out io.Writer) error {
+	uid, todo, err := selectEntries(ctx, f, site)
+	if err != nil {
+		return err
+	}
+	state := loadPhotoState(f.state)
+	defer func() { _ = state.save() }()
+	prefix := publicURL(f.export.bucket, "activity_photos/"+uid+"/strava-")
+	var activities, removed, kept, failed int
+	var failures []string
+	roundupKeys := map[string]bool{}
+	for _, e := range todo {
+		var drop []string
+		for _, u := range e.PhotoUrls {
+			if !strings.HasPrefix(u, prefix) {
+				continue
+			}
+			if slices.Contains(f.dropURLs, u) {
+				drop = append(drop, u)
+				continue
+			}
+			b, err := pio.Fetch(ctx, u)
+			if err != nil {
+				failures = append(failures, e.ShowcaseId+": "+u+": "+err.Error())
+				failed++
+				kept++
+				continue
+			}
+			g, _, err := isGraphic(b)
+			if err != nil {
+				failures = append(failures, e.ShowcaseId+": "+u+": "+err.Error())
+				failed++
+				kept++
+				continue
+			}
+			if g {
+				drop = append(drop, u)
+			} else {
+				kept++
+			}
+		}
+		if len(drop) == 0 {
+			continue
+		}
+		activities++
+		fmt.Fprintf(out, "%s  %s  remove %d of %d photos\n", day(e), e.ShowcaseId, len(drop), len(e.PhotoUrls))
+		if !f.apply {
+			removed += len(drop)
+			continue
+		}
+		n, err := site.RemoveShowcasePhotos(ctx, e.ShowcaseId, e, drop)
+		if err != nil {
+			failures = append(failures, e.ShowcaseId+": "+err.Error())
+			failed++
+			continue
+		}
+		removed += n
+		addRoundupKeys(roundupKeys, e)
+		if st := state.m[e.ShowcaseId]; st != nil {
+			st.Applied = slices.DeleteFunc(st.Applied, func(u string) bool { return slices.Contains(drop, u) })
+			for i := range st.Photos {
+				if slices.Contains(drop, publicURL(f.export.bucket, photoObject(uid, st.StravaID, st.Photos[i].UniqueID))) {
+					t := true
+					st.Photos[i].Graphic = &t
+				}
+			}
+		}
+	}
+	refreshed, keys := 0, []string(nil)
+	if f.apply {
+		refreshed, keys = refreshRoundups(ctx, site, uid, f.export.slug, roundupKeys, &failures)
+	}
+	verb := "would remove"
+	if f.apply {
+		verb = "removed"
+	}
+	fmt.Fprintf(out, "\nprune: %s %d imported photos from %d activities; %d imported photos kept; %d failed\n", verb, removed, activities, kept, failed)
+	if f.apply {
+		fmt.Fprintf(out, "roundup photo mosaics refreshed: %d of %d (stories untouched)\n", refreshed, len(keys))
+	} else {
+		fmt.Fprintln(out, "dry run: nothing written; --prune --apply removes them")
+	}
+	for _, fl := range failures {
+		fmt.Fprintf(out, "failure: %s\n", fl)
+	}
+	return nil
 }
