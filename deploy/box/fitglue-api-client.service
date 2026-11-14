@@ -21,6 +21,8 @@ Environment=LOG_LEVEL=info
 Environment=GOOGLE_APPLICATION_CREDENTIALS=%h/.jarvis/fitglue-box-sa.json
 Environment=SERVICE_NAME=api-client
 Environment=PORT=8102
+# Loopback only: Caddy (127.0.0.1:8100, behind Funnel) is the one way in.
+Environment=BIND_ADDR=127.0.0.1
 Environment=USER_SERVICE_URL=http://127.0.0.1:8103
 Environment=PIPELINE_SERVICE_URL=http://127.0.0.1:8104
 Environment=ACTIVITY_SERVICE_URL=http://127.0.0.1:8105

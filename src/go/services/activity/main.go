@@ -124,7 +124,7 @@ func main() {
 
 	h2s := &http2.Server{}
 	logger.Info(ctx, "Starting service.activity (gRPC + HTTP)", "port", port)
-	if err := http.ListenAndServe(":"+port, h2c.NewHandler(handler, h2s)); err != nil {
+	if err := http.ListenAndServe(os.Getenv("BIND_ADDR")+":"+port, h2c.NewHandler(handler, h2s)); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }

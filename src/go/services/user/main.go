@@ -45,7 +45,7 @@ func main() {
 	healthcheck := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(server, healthcheck)
 
-	lis, err := net.Listen("tcp", ":"+port)
+	lis, err := net.Listen("tcp", os.Getenv("BIND_ADDR")+":"+port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
