@@ -264,3 +264,48 @@ func TestPhotoCopierResizes(t *testing.T) {
 		t.Errorf("resized to %v", b)
 	}
 }
+
+func TestStravaFindByTime(t *testing.T) {
+	start := time.Date(2025, 7, 27, 9, 0, 0, 0, time.UTC)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/athlete/activities" || r.URL.Query().Get("after") == "" {
+			t.Errorf("request %s", r.URL)
+		}
+		_, _ = w.Write([]byte(`[
+		 {"id":1,"start_date":"2025-07-27T09:05:00Z","elapsed_time":3600},
+		 {"id":2,"start_date":"2025-07-27T09:01:00Z","elapsed_time":600},
+		 {"id":3,"start_date":"2025-07-27T09:00:30Z","elapsed_time":3500}
+		]`))
+	}))
+	defer srv.Close()
+	c := &stravaPhotoClient{BaseURL: srv.URL, HTTP: srv.Client(),
+		Token: func(context.Context) (string, error) { return "tok", nil },
+		Now:   time.Now, Sleep: func(time.Duration) {}, Logf: func(string, ...any) {}}
+	id, err := c.FindByTime(context.Background(), start, time.Hour)
+	if err != nil || id != "3" {
+		t.Errorf("id %q err %v, want 3 (1 is outside the window, 2 too short)", id, err)
+	}
+}
+
+type findingLister struct {
+	fakeLister
+	found string
+}
+
+func (l *findingLister) FindByTime(context.Context, time.Time, time.Duration) (string, error) {
+	return l.found, nil
+}
+
+func TestBackfillPhotosMatchesHevyByTime(t *testing.T) {
+	site, l := photoFixture()
+	site.showcases["hevy-only"].Source = pbactivity.ActivitySource_SOURCE_HEVY
+	fl := &findingLister{fakeLister: *l, found: "111"}
+	f := photoFlags(t, "--id", "hevy-only")
+	var out bytes.Buffer
+	if err := runBackfillPhotos(context.Background(), f, site, fl, nil, &out, time.Now); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "hevy-only  strava 111  2 photos") {
+		t.Errorf("out:\n%s", out.String())
+	}
+}

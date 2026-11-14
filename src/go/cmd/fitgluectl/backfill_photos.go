@@ -22,6 +22,7 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/activity"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/photo_upload"
+	"github.com/fitglue/server/src/go/internal/reconcile"
 	stravamap "github.com/fitglue/server/src/go/pkg/domain/sourcemap/strava"
 	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
@@ -84,6 +85,13 @@ type stravaPhoto struct {
 
 type photoLister interface {
 	Photos(ctx context.Context, stravaID string) ([]stravaPhoto, error)
+}
+
+// stravaFinder finds his Strava activity for a session FitGlue has no Strava id
+// for (a Hevy workout Hevy itself posted to Strava): the one starting within
+// reconcile.MatchWindow of it with a similar duration, as reconcile pairs them.
+type stravaFinder interface {
+	FindByTime(ctx context.Context, start time.Time, dur time.Duration) (string, error)
 }
 
 // photoCopier downloads a Strava photo, resizes it and stores it, returning its public URL.
@@ -275,6 +283,19 @@ func runBackfillPhotos(ctx context.Context, f *backfillPhotosFlags, site photoSi
 				fail(e, "strava id: "+err.Error())
 				continue
 			}
+			if sid == "" && sc.GetSource() == pbactivity.ActivitySource_SOURCE_HEVY {
+				if fd, ok := strava.(stravaFinder); ok {
+					sid, err = fd.FindByTime(ctx, e.GetStartTime().AsTime(), time.Duration(e.DurationSeconds*float64(time.Second)))
+					if errors.Is(err, errStravaDailyLimit) {
+						stopErr = err
+						break
+					}
+					if err != nil {
+						fail(e, "strava match: "+err.Error())
+						continue
+					}
+				}
+			}
 			if sid == "" {
 				c.noStrava++
 				fmt.Fprintf(out, "%s  %s  no Strava copy (%s)\n", day(e), e.ShowcaseId, strings.TrimPrefix(sc.GetSource().String(), "SOURCE_"))
@@ -428,6 +449,15 @@ func (c *stravaPhotoClient) noteUsage(h http.Header) {
 }
 
 func (c *stravaPhotoClient) Photos(ctx context.Context, stravaID string) ([]stravaPhoto, error) {
+	body, err := c.get(ctx, "/activities/"+stravaID+"/photos?size=2048&photo_sources=true")
+	if err != nil {
+		return nil, err
+	}
+	return parseStravaPhotos(body)
+}
+
+// get makes one paced GET against the Strava API and returns the body of a 200.
+func (c *stravaPhotoClient) get(ctx context.Context, path string) ([]byte, error) {
 	for attempt := 0; ; attempt++ {
 		if err := c.wait(); err != nil {
 			return nil, err
@@ -436,8 +466,7 @@ func (c *stravaPhotoClient) Photos(ctx context.Context, stravaID string) ([]stra
 		if err != nil {
 			return nil, fmt.Errorf("token: %w", err)
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet,
-			strings.TrimRight(c.BaseURL, "/")+"/activities/"+stravaID+"/photos?size=2048&photo_sources=true", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(c.BaseURL, "/")+path, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -466,8 +495,45 @@ func (c *stravaPhotoClient) Photos(ctx context.Context, stravaID string) ([]stra
 		case resp.StatusCode != http.StatusOK:
 			return nil, fmt.Errorf("status %d", resp.StatusCode)
 		}
-		return parseStravaPhotos(body)
+		return body, nil
 	}
+}
+
+func (c *stravaPhotoClient) FindByTime(ctx context.Context, start time.Time, dur time.Duration) (string, error) {
+	q := fmt.Sprintf("/athlete/activities?after=%d&before=%d&per_page=30",
+		start.Add(-reconcile.MatchWindow-time.Second).Unix(), start.Add(reconcile.MatchWindow+time.Second).Unix())
+	body, err := c.get(ctx, q)
+	if err != nil {
+		return "", err
+	}
+	var acts []struct {
+		ID          int64     `json:"id"`
+		StartDate   time.Time `json:"start_date"`
+		ElapsedTime int64     `json:"elapsed_time"`
+	}
+	if err := json.Unmarshal(body, &acts); err != nil {
+		return "", fmt.Errorf("decode activities: %w", err)
+	}
+	best, bestGap := int64(0), time.Duration(-1)
+	for _, a := range acts {
+		gap := a.StartDate.Sub(start).Abs()
+		if gap > reconcile.MatchWindow {
+			continue
+		}
+		if d := time.Duration(a.ElapsedTime) * time.Second; d > 0 && dur > 0 {
+			diff := (d - dur).Abs()
+			if diff > 10*time.Minute && float64(diff) > 0.25*float64(max(d, dur)) {
+				continue
+			}
+		}
+		if bestGap < 0 || gap < bestGap {
+			best, bestGap = a.ID, gap
+		}
+	}
+	if best == 0 {
+		return "", nil
+	}
+	return strconv.FormatInt(best, 10), nil
 }
 
 // parseStravaPhotos keeps Strava's order and drops videos; each photo's URL is
