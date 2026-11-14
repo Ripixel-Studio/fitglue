@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -125,7 +124,7 @@ func main() {
 	}
 
 	logger.Info(ctx, "Webhook Gateway listening", "port", port)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), infra.LoggingMiddleware(logger, apiServer)); err != nil {
+	if err := http.ListenAndServe(os.Getenv("BIND_ADDR")+":"+port, infra.LoggingMiddleware(logger, apiServer)); err != nil {
 		logger.Error(ctx, "HTTP server failed", "error", err)
 		os.Exit(1)
 	}

@@ -123,7 +123,7 @@ func main() {
 
 	logger.Info(ctx, "Starting service.api.client", "port", port)
 
-	if err := http.ListenAndServe(":"+port, infra.LoggingMiddleware(logger, apiServer)); err != nil {
+	if err := http.ListenAndServe(os.Getenv("BIND_ADDR")+":"+port, infra.LoggingMiddleware(logger, apiServer)); err != nil {
 		log.Fatalf("failed to serve HTTP: %v", err)
 	}
 }
