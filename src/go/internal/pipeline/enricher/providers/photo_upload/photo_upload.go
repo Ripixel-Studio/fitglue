@@ -180,13 +180,9 @@ func (p *Provider) processOnePhoto(ctx context.Context, publicURL string) (strin
 		return publicURL, nil
 	}
 
-	// Resize if needed.
-	resized := scaleToMax(src, maxServerDim)
-
-	// Encode as JPEG.
-	var buf bytes.Buffer
-	if err := jpeg.Encode(&buf, resized, &jpeg.Options{Quality: jpegQuality}); err != nil {
-		return "", fmt.Errorf("jpeg encode: %w", err)
+	out, err := encodeShowcaseJPEG(src)
+	if err != nil {
+		return "", err
 	}
 
 	// Build processed path: strip original extension, append "_p.jpg".
@@ -196,11 +192,30 @@ func (p *Provider) processOnePhoto(ctx context.Context, publicURL string) (strin
 	}
 	processedPath := base + "_p.jpg"
 
-	if err := p.service.Store.Write(ctx, bucket, processedPath, buf.Bytes()); err != nil {
+	if err := p.service.Store.Write(ctx, bucket, processedPath, out); err != nil {
 		return "", fmt.Errorf("upload: %w", err)
 	}
 
 	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucket, processedPath), nil
+}
+
+// ResizeForShowcase decodes a photo (JPEG, PNG or WebP) and re-encodes it the
+// way every showcase photo is stored: at most maxServerDim on the longest side,
+// JPEG at jpegQuality. fitgluectl backfill-photos uses it for Strava's photos.
+func ResizeForShowcase(data []byte) ([]byte, error) {
+	src, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("decode: %w", err)
+	}
+	return encodeShowcaseJPEG(src)
+}
+
+func encodeShowcaseJPEG(src image.Image) ([]byte, error) {
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, scaleToMax(src, maxServerDim), &jpeg.Options{Quality: jpegQuality}); err != nil {
+		return nil, fmt.Errorf("jpeg encode: %w", err)
+	}
+	return buf.Bytes(), nil
 }
 
 // scaleToMax returns a scaled-down version of src if either dimension exceeds maxDim.

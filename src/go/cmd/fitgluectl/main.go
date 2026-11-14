@@ -54,6 +54,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  regen-roundup-stories  rewrite roundup stories through the Claude path as the observer (dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  regen-activity-summaries  rewrite the site's activity AI summaries through the enricher's path (site only; dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  classify      give every site activity its tag, race flag and reason through Haiku (site only; dry run unless --apply)")
+	fmt.Fprintln(os.Stderr, "  backfill-photos  copy his Strava photos onto showcased activities that have none (Strava read only; dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
 	fmt.Fprintln(os.Stderr, "  connections   list the owner's connected providers")
 	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup / parkrun-check trigger message (what the box timers run)")
@@ -84,6 +85,8 @@ func main() {
 		err = regenSummariesCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
 	case "classify":
 		err = classifyCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
+	case "backfill-photos":
+		err = backfillPhotosCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
 	case "connect":
 		err = connectCommand(ctx, os.Args[2:], os.Stdin, os.Stdout, os.Stderr, openOwnerStore)
 	case "connections":

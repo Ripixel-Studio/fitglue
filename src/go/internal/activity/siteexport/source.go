@@ -60,23 +60,52 @@ func (s ServiceSource) Roundup(ctx context.Context, slug, periodKey string) (*pb
 }
 
 // StravaID returns the id of the Strava page to link for sc, only when Strava says
-// that activity is visible to everyone (otherwise ""): the activity's own id when it
-// came from Strava, else the successful Strava upload of its pipeline run (Hevy
-// activities). No Firestore read happens for other sources, and none for a
-// Strava-sourced activity whose answer is cached.
+// that activity is visible to everyone (otherwise ""). No Strava call happens for
+// an activity with no Strava copy, and none for one whose answer is cached.
 func (s ServiceSource) StravaID(ctx context.Context, sc *pbactivity.ShowcasedActivity) (string, error) {
 	if sc == nil || s.Visibility == nil {
 		return "", nil
 	}
-	var owner string
-	ownerFn := func(ctx context.Context) (string, error) {
-		if owner != "" {
-			return owner, nil
-		}
-		_, uid, err := s.Store.GetPublicShowcase(ctx, sc.ShowcaseId)
-		owner = uid
-		return uid, err
+	o := &ownerOf{store: s.Store, showcaseID: sc.ShowcaseId}
+	id, err := s.stravaActivityID(ctx, sc, o)
+	if err != nil || id == "" {
+		return "", err
 	}
+	pub, err := s.Visibility.Public(ctx, id, o.get)
+	if err != nil || !pub {
+		return "", err
+	}
+	return id, nil
+}
+
+// StravaActivityID is sc's Strava activity, whatever its visibility: the
+// activity's own id when it came from Strava, else the successful Strava upload
+// of its pipeline run (Hevy activities); "" when there is none. No Firestore read
+// happens for a Strava-sourced activity.
+func (s ServiceSource) StravaActivityID(ctx context.Context, sc *pbactivity.ShowcasedActivity) (string, error) {
+	if sc == nil {
+		return "", nil
+	}
+	return s.stravaActivityID(ctx, sc, &ownerOf{store: s.Store, showcaseID: sc.ShowcaseId})
+}
+
+// ownerOf reads a showcase's owner once, on first use.
+type ownerOf struct {
+	store      activity.ActivityStore
+	showcaseID string
+	uid        string
+}
+
+func (o *ownerOf) get(ctx context.Context) (string, error) {
+	if o.uid != "" {
+		return o.uid, nil
+	}
+	_, uid, err := o.store.GetPublicShowcase(ctx, o.showcaseID)
+	o.uid = uid
+	return uid, err
+}
+
+func (s ServiceSource) stravaActivityID(ctx context.Context, sc *pbactivity.ShowcasedActivity, o *ownerOf) (string, error) {
 	var id string
 	switch linkSource(sc) {
 	case pbactivity.ActivitySource_SOURCE_STRAVA:
@@ -85,7 +114,7 @@ func (s ServiceSource) StravaID(ctx context.Context, sc *pbactivity.ShowcasedAct
 		if sc.GetPipelineExecutionId() == "" {
 			return "", nil
 		}
-		uid, err := ownerFn(ctx)
+		uid, err := o.get(ctx)
 		if err != nil || uid == "" {
 			return "", err
 		}
@@ -102,10 +131,6 @@ func (s ServiceSource) StravaID(ctx context.Context, sc *pbactivity.ShowcasedAct
 	}
 	if !stravaIDRe.MatchString(id) {
 		return "", nil
-	}
-	pub, err := s.Visibility.Public(ctx, id, ownerFn)
-	if err != nil || !pub {
-		return "", err
 	}
 	return id, nil
 }
