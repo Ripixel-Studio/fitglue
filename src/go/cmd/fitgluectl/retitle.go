@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	fsconv "github.com/fitglue/server/src/go/pkg/storage/firestore"
 	"github.com/fitglue/server/src/go/pkg/title"
 )
 
@@ -133,6 +134,11 @@ func planRetitle(ctx context.Context, store retitleStore, uid string, series []r
 		}
 		return entries[i].ID < entries[j].ID
 	})
+	for _, e := range entries {
+		if e.Start.IsZero() {
+			return nil, fmt.Errorf("entry %s has no start time; numbering would be wrong", e.ID)
+		}
+	}
 	plan := &retitlePlan{Changes: []retitleChange{}, Counters: []counterChange{}}
 	counts := make([]int, len(series))
 	for _, e := range entries {
@@ -287,12 +293,11 @@ func (s *firestoreRetitle) Entries(ctx context.Context, uid string) ([]retitleEn
 		if err != nil {
 			return nil, err
 		}
-		e := retitleEntry{ID: doc.Ref.ID}
-		if v, ok := doc.Data()["title"].(string); ok {
-			e.Title = v
-		}
-		if v, ok := doc.Data()["start_time"].(time.Time); ok {
-			e.Start = v
+		// The shared converter: start_time is a timestamp or an RFC3339 string.
+		pe := fsconv.FirestoreToShowcaseProfileEntry(doc.Data())
+		e := retitleEntry{ID: doc.Ref.ID, Title: pe.GetTitle()}
+		if pe.GetStartTime() != nil {
+			e.Start = pe.GetStartTime().AsTime()
 		}
 		out = append(out, e)
 	}
