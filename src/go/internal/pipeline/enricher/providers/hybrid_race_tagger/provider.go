@@ -14,6 +14,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/user_input"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
 	"github.com/fitglue/server/src/go/pkg/hyrox"
+	"github.com/fitglue/server/src/go/pkg/title"
 
 	pendinginput "github.com/fitglue/server/src/go/pkg/pending_input"
 
@@ -331,7 +332,7 @@ func (p *HybridRaceTaggerProvider) Enrich(ctx context.Context, logger *slog.Logg
 			"name", activity.Name,
 			"lap_count", len(activity.Sessions[0].Laps),
 		)
-		return p.applySelection(activity, UserSelection{PresetID: presetID})
+		return p.applySelection(activity, UserSelection{PresetID: presetID}, inputs["source_title"])
 	}
 
 	if !looksLikeHybridRace(activity) {
@@ -434,13 +435,14 @@ func (p *HybridRaceTaggerProvider) EnrichResume(ctx context.Context, activity *p
 		}, nil
 	}
 
-	return p.applySelection(activity, selection)
+	return p.applySelection(activity, selection, "")
 }
 
 // applySelection maps the activity's laps onto the selected preset. It is the single
 // code path behind both the pending-input continuation (EnrichResume) and the
-// auto_preset shortcut in Enrich, so the two produce identical results.
-func (p *HybridRaceTaggerProvider) applySelection(activity *pbactivity.StandardizedActivity, selection UserSelection) (*providers.EnrichmentResult, error) {
+// auto_preset shortcut in Enrich, so the two produce identical results. sourceTitle is
+// the source's own title as ingested (ROXFIT's), "" when unknown.
+func (p *HybridRaceTaggerProvider) applySelection(activity *pbactivity.StandardizedActivity, selection UserSelection, sourceTitle string) (*providers.EnrichmentResult, error) {
 	if len(activity.Sessions) == 0 {
 		return nil, fmt.Errorf("activity has no sessions")
 	}
@@ -462,6 +464,7 @@ func (p *HybridRaceTaggerProvider) applySelection(activity *pbactivity.Standardi
 		hybridSummary := generateHybridSummary(stationResults)
 		session.StrengthSets = append(session.StrengthSets, strengthSets...)
 		return &providers.EnrichmentResult{
+			Name:         raceTitle(activity, preset, sourceTitle),
 			ActivityType: pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT,
 			Tags:         []string{strings.ToUpper(preset.RaceType)},
 			ExcludeEnrichers: []pbplugin.EnricherProviderType{
@@ -535,6 +538,32 @@ func (p *HybridRaceTaggerProvider) applySelection(activity *pbactivity.Standardi
 			"summary_segments": fmt.Sprintf("%d", len(hybridSummary.Segments)),
 		},
 	}, nil
+}
+
+// raceTitle is the canonical race title ("Hyrox Open Men's Doubles - Birmingham -
+// 01:15:29", pkg/title) for a race a timing app wrote official splits for: the division
+// from its "Division:" line, the location and finish time from a title (the source's
+// own first, ROXFIT's "HYROX - Birmingham - 01:15:29", then the current one). "" for a
+// simulation, or when the division or the finish time is missing.
+func raceTitle(activity *pbactivity.StandardizedActivity, preset RacePreset, sourceTitle string) string {
+	if !strings.EqualFold(preset.RaceType, "hyrox") || hyrox.IsSimulation(activity.Name) || hyrox.IsSimulation(sourceTitle) {
+		return ""
+	}
+	division := hyrox.OfficialDivision(activity.Description)
+	candidates := []string{sourceTitle, activity.Name}
+	for _, t := range candidates {
+		r, ok := title.HyroxRace(division, t)
+		if !ok {
+			continue
+		}
+		for _, other := range candidates {
+			if r.Location == "" {
+				r.Location = hyrox.EventName(other)
+			}
+		}
+		return r.String()
+	}
+	return ""
 }
 
 // generateHybridSummary creates HybridRaceSegment entries for each station transition

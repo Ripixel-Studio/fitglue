@@ -134,7 +134,7 @@ func TestHRT_ApplySelection_UsesOfficialSplits(t *testing.T) {
 // Without an official block the existing lap path (and its description section) is unchanged.
 func TestHRT_ApplySelection_NoOfficialSplitsKeepsLapPath(t *testing.T) {
 	a := &pbactivity.StandardizedActivity{Name: "HYROX London", Sessions: []*pbactivity.Session{hyroxLikeSession()}}
-	res, err := (&HybridRaceTaggerProvider{}).applySelection(a, UserSelection{PresetID: "hyrox_men_open"})
+	res, err := (&HybridRaceTaggerProvider{}).applySelection(a, UserSelection{PresetID: "hyrox_men_open"}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,5 +254,37 @@ func TestHRT_OfficialDivisionBeatsKeywordMap(t *testing.T) {
 	}
 	if res.Metadata["preset"] != "Hyrox - Men's Pro Doubles" {
 		t.Errorf("preset = %q", res.Metadata["preset"])
+	}
+}
+
+// A race with official splits gets the canonical race title, whichever title the tagger
+// sees (ROXFIT's own, or the calendar's after ical_title, with ROXFIT's as the source
+// title); a simulation, or a race without a finish time anywhere, is left alone.
+func TestHRT_OfficialSplits_CanonicalRaceTitle(t *testing.T) {
+	const want = "Hyrox Open Men's Doubles - Birmingham - 01:15:29"
+	cases := []struct {
+		name, current, source, want string
+	}{
+		{"ROXFIT title", "HYROX - Birmingham - 01:15:29", "HYROX - Birmingham - 01:15:29", want},
+		{"calendar title, ROXFIT source", "Hyrox Birmingham - Open Men's Doubles", "HYROX Men's Doubles - Birmingham - 01:15:29", want},
+		{"source unknown (resume), current canonical", want, "", want},
+		{"no time anywhere", "Hyrox Birmingham - Open Men's Doubles", "Hyrox Birmingham", ""},
+		{"simulation", "Hyrox Sim - Birmingham - 01:15:29", "Hyrox Sim - Birmingham - 01:15:29", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := &pbactivity.StandardizedActivity{
+				Name:        tc.current,
+				Description: roxfitBirmingham,
+				Sessions:    []*pbactivity.Session{{TotalDistance: 8700, StartTime: timestamppb.Now()}},
+			}
+			res, err := (&HybridRaceTaggerProvider{}).applySelection(a, UserSelection{PresetID: "hyrox_doubles_men"}, tc.source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if res.Name != tc.want {
+				t.Errorf("Name = %q, want %q", res.Name, tc.want)
+			}
+		})
 	}
 }

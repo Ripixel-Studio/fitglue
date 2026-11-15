@@ -64,7 +64,7 @@ func TestHRT_Enrich_AutoPreset_MatchesEnrichResume(t *testing.T) {
 	}
 
 	manual := &pbactivity.StandardizedActivity{Name: "Hyrox Glasgow", Sessions: []*pbactivity.Session{hyroxLikeSession()}}
-	manualRes, err := p.applySelection(manual, UserSelection{PresetID: "hyrox_women_pro"})
+	manualRes, err := p.applySelection(manual, UserSelection{PresetID: "hyrox_women_pro"}, "")
 	if err != nil {
 		t.Fatalf("manual path: %v", err)
 	}

@@ -72,3 +72,12 @@ func TestApplyEnricherContribution_NilInputs(t *testing.T) {
 		t.Errorf("nil contribution must be a no-op: got %q", base.Name)
 	}
 }
+
+// A number lands before a parkrun special tail, as the orchestrator folds it.
+func TestApplyEnricherContribution_NumberBeforeSpecialTail(t *testing.T) {
+	base := &pbactivity.StandardizedActivity{Name: "Newark parkrun - Christmas Special"}
+	ApplyEnricherContribution(base, &pbactivity.EnricherContribution{NameSuffix: proto.String(" (#13)")})
+	if want := "Newark parkrun (#13) - Christmas Special"; base.Name != want {
+		t.Errorf("Name = %q, want %q", base.Name, want)
+	}
+}

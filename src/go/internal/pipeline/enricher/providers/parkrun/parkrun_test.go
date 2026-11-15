@@ -81,7 +81,7 @@ func TestParkrunProvider_Enrich(t *testing.T) {
 			lat:       51.4106,
 			long:      -0.3421,
 			wantMatch: true,
-			wantName:  "Bushy Park Parkrun",
+			wantName:  "Bushy Park parkrun",
 			wantTags:  []string{"Parkrun"},
 		},
 		{
@@ -90,7 +90,7 @@ func TestParkrunProvider_Enrich(t *testing.T) {
 			lat:       51.4115, // Approx 100m North
 			long:      -0.3421,
 			wantMatch: true,
-			wantName:  "Bushy Park Parkrun",
+			wantName:  "Bushy Park parkrun",
 			wantTags:  []string{"Parkrun"},
 		},
 		{
@@ -123,7 +123,7 @@ func TestParkrunProvider_Enrich(t *testing.T) {
 				"enable_titling": "true",
 			},
 			wantMatch: true,
-			wantName:  "Bushy Park Parkrun - Christmas Day Edition",
+			wantName:  "Bushy Park parkrun - Christmas Special",
 		},
 		{
 			name: "Australian Parkrun (Timezone check - Albert Park)",
@@ -134,7 +134,7 @@ func TestParkrunProvider_Enrich(t *testing.T) {
 			lat:       -37.8427,
 			long:      144.9654,
 			wantMatch: true,
-			wantName:  "Albert Parkrun, Melbourne",
+			wantName:  "Albert parkrun, Melbourne",
 		},
 		{
 			name:      "Saturday Morning at Bushy Park (BST - Summer, 09:00 local = 08:00 UTC)",
@@ -142,7 +142,7 @@ func TestParkrunProvider_Enrich(t *testing.T) {
 			lat:       51.4106,
 			long:      -0.3421,
 			wantMatch: true,
-			wantName:  "Bushy Park Parkrun",
+			wantName:  "Bushy Park parkrun",
 			wantTags:  []string{"Parkrun"},
 		},
 		{
@@ -151,7 +151,7 @@ func TestParkrunProvider_Enrich(t *testing.T) {
 			lat:       51.4106,
 			long:      -0.3421,
 			wantMatch: true,
-			wantName:  "Bushy Park Parkrun",
+			wantName:  "Bushy Park parkrun",
 			wantTags:  []string{"Parkrun"},
 		},
 		{
@@ -163,7 +163,7 @@ func TestParkrunProvider_Enrich(t *testing.T) {
 				"tags": "Parkrun,Race,5k",
 			},
 			wantMatch: true,
-			wantName:  "Bushy Park Parkrun",
+			wantName:  "Bushy Park parkrun",
 			wantTags:  []string{"Parkrun", "Race", "5k"},
 		},
 	}
@@ -204,60 +204,6 @@ func TestParkrunProvider_Enrich(t *testing.T) {
 				if len(res.Tags) != len(tt.wantTags) {
 					t.Errorf("Expected %d tags, got %v", len(tt.wantTags), res.Tags)
 				}
-			}
-		})
-	}
-}
-
-func TestTitlePatterns(t *testing.T) {
-	tests := []struct {
-		name           string
-		normalPattern  string
-		specialPattern string
-		location       string
-		time           time.Time
-		specialDay     string
-		want           string
-	}{
-		{
-			name:          "Default location only",
-			normalPattern: "{location}",
-			location:      "Newark Parkrun",
-			time:          time.Date(2025, 12, 20, 9, 0, 0, 0, time.UTC),
-			want:          "Newark Parkrun",
-		},
-		{
-			name:          "Location with date",
-			normalPattern: "{location} - {date}",
-			location:      "Newark Parkrun",
-			time:          time.Date(2025, 12, 20, 9, 0, 0, 0, time.UTC),
-			want:          "Newark Parkrun - 20 Dec 2025",
-		},
-		{
-			name:           "Special day uses special pattern",
-			normalPattern:  "{location}",
-			specialPattern: "{location} - {special} Edition",
-			location:       "Newark Parkrun",
-			time:           time.Date(2025, 12, 25, 9, 0, 0, 0, time.UTC),
-			specialDay:     "Christmas Day",
-			want:           "Newark Parkrun - Christmas Day Edition",
-		},
-		{
-			name:           "New Year's Day",
-			normalPattern:  "{location}",
-			specialPattern: "{location} 🎉 {special}",
-			location:       "Newark Parkrun",
-			time:           time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC),
-			specialDay:     "New Year's Day",
-			want:           "Newark Parkrun 🎉 New Year's Day",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := applyTitlePattern(tt.normalPattern, tt.specialPattern, tt.location, tt.time, tt.specialDay)
-			if got != tt.want {
-				t.Errorf("applyTitlePattern() = %q, want %q", got, tt.want)
 			}
 		})
 	}
@@ -319,27 +265,6 @@ func TestParkrunLocationsService_FindNearest(t *testing.T) {
 				if got != nil {
 					t.Errorf("Expected nil, got %s", got.Name)
 				}
-			}
-		})
-	}
-}
-
-func TestSpecialDayDetection(t *testing.T) {
-	tests := []struct {
-		time time.Time
-		want string
-	}{
-		{time.Date(2025, 12, 25, 9, 0, 0, 0, time.UTC), "Christmas Day"},
-		{time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC), "New Year's Day"},
-		{time.Date(2025, 12, 20, 9, 0, 0, 0, time.UTC), ""},
-		{time.Date(2025, 6, 15, 9, 0, 0, 0, time.UTC), ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.time.Format("2006-01-02"), func(t *testing.T) {
-			got := getSpecialDay(tt.time)
-			if got != tt.want {
-				t.Errorf("getSpecialDay(%v) = %q, want %q", tt.time, got, tt.want)
 			}
 		})
 	}
