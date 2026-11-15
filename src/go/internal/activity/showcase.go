@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/fitglue/server/src/go/internal/infra"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -39,6 +40,9 @@ func (s *Service) hydrateShowcaseFromBlob(ctx context.Context, showcase *pbactiv
 	if err != nil {
 		if errors.Is(err, storage.ErrObjectNotExist) {
 			s.logger.Warn(ctx, "showcase activity data blob missing in GCS", "error", err, "uri", showcase.ActivityDataUri)
+		} else if infra.CallerGone(ctx, err) {
+			// The caller hung up mid-read (SERVER-V): nothing to hydrate for.
+			s.logger.Info(ctx, "caller went away: showcase activity data read stopped", "uri", showcase.ActivityDataUri)
 		} else {
 			s.logger.Error(ctx, "failed to fetch activity data from GCS", "error", err, "uri", showcase.ActivityDataUri)
 		}
@@ -66,11 +70,12 @@ func (s *Service) GetShowcase(ctx context.Context, req *pbsvc.GetShowcaseRequest
 	if req.UserId == "" || req.ShowcaseId == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id and showcase_id are required")
 	}
+	ctx, cancel := infra.WithReadCeiling(ctx)
+	defer cancel()
 
 	showcase, err := s.store.GetShowcase(ctx, req.UserId, req.ShowcaseId)
 	if err != nil {
-		s.logger.Error(ctx, "failed to get showcase", "error", err)
-		return nil, status.Error(codes.Internal, "failed to read showcase")
+		return nil, infra.HandlerError(ctx, s.logger, err, "failed to read showcase")
 	}
 	if showcase == nil {
 		return nil, status.Error(codes.NotFound, "showcase not found")
@@ -86,10 +91,12 @@ func (s *Service) ListShowcases(ctx context.Context, req *pbsvc.ListShowcasesReq
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 
+	ctx, cancel := infra.WithReadCeiling(ctx)
+	defer cancel()
+
 	showcases, err := s.store.ListShowcases(ctx, req.UserId)
 	if err != nil {
-		s.logger.Error(ctx, "failed to list showcases", "error", err)
-		return nil, status.Error(codes.Internal, "failed to list showcases")
+		return nil, infra.HandlerError(ctx, s.logger, err, "failed to list showcases")
 	}
 
 	return &pbsvc.ListShowcasesResponse{

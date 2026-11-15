@@ -347,10 +347,12 @@ func (s *Service) ListPendingInputs(ctx context.Context, req *pbsvc.ListPendingI
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 
+	ctx, cancel := infra.WithReadCeiling(ctx)
+	defer cancel()
+
 	inputs, err := s.store.ListPendingInputs(ctx, req.UserId)
 	if err != nil {
-		s.logger.Error(ctx, "failed to list pending inputs", "error", err)
-		return nil, status.Error(codes.Internal, "failed to list inputs")
+		return nil, infra.HandlerError(ctx, s.logger, err, "failed to list inputs")
 	}
 
 	return &pbsvc.ListPendingInputsResponse{

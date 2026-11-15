@@ -22,6 +22,8 @@ type MockPipelineStore struct {
 	Pipelines     map[string]*pipeline.PipelineConfig
 	PendingInputs map[string]*pipeline.PendingInput
 	Runs          map[string]*pipeline.PipelineRun
+	// ListPendingErr, when set, is returned by ListPendingInputs (with ctx).
+	ListPendingErr func(ctx context.Context) error
 }
 
 func NewMockStore() *MockPipelineStore {
@@ -65,6 +67,11 @@ func (m *MockPipelineStore) DeletePipeline(ctx context.Context, userID, pipeline
 }
 
 func (m *MockPipelineStore) ListPendingInputs(ctx context.Context, userID string) ([]*pipeline.PendingInput, error) {
+	if m.ListPendingErr != nil {
+		if err := m.ListPendingErr(ctx); err != nil {
+			return nil, err
+		}
+	}
 	var results []*pipeline.PendingInput
 	for _, p := range m.PendingInputs {
 		results = append(results, p)

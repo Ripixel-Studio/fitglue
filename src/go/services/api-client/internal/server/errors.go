@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"google.golang.org/grpc/codes"
@@ -9,6 +11,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
+
+// StatusClientClosedRequest is nginx's 499: the client closed the connection
+// before the response. net/http has no constant for it.
+const StatusClientClosedRequest = 499
 
 // APIError represents the standard JSON error shape returned to clients
 type APIError struct {
@@ -50,6 +56,10 @@ func WriteError(w http.ResponseWriter, err error) {
 	if customErr, isCustom := err.(*CustomError); isCustom {
 		httpCode = customErr.HTTPCode
 		errCode = "CLIENT_ERROR"
+	} else if !ok && errors.Is(err, context.Canceled) {
+		// The client hung up before the answer: not a server fault.
+		httpCode = StatusClientClosedRequest
+		errCode = "CLIENT_CLOSED_REQUEST"
 	} else if !ok {
 		// Not a gRPC error
 		httpCode = http.StatusInternalServerError
@@ -84,6 +94,11 @@ func WriteError(w http.ResponseWriter, err error) {
 		case codes.ResourceExhausted:
 			httpCode = http.StatusTooManyRequests
 			errCode = "RESOURCE_EXHAUSTED"
+		case codes.Canceled:
+			// The caller went away while a domain service was answering
+			// (infra.HandlerError). Logged as 499, never as a 500.
+			httpCode = StatusClientClosedRequest
+			errCode = "CLIENT_CLOSED_REQUEST"
 		case codes.DeadlineExceeded:
 			httpCode = http.StatusGatewayTimeout
 			errCode = "DEADLINE_EXCEEDED"

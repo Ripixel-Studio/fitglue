@@ -37,10 +37,15 @@ func LoggingMiddleware(logger Logger, next http.Handler) http.Handler {
 				"ce_source", ceSource,
 			)
 		} else {
+			// user_agent + remote_addr name the caller, so a hang-up can be
+			// traced to the process that made it (the Jarvis gateway's aiohttp
+			// poller, a script, curl) instead of guessed at from timings.
 			logger.Info(ctx, "HTTP Request Received",
 				"req_id", reqID,
 				"method", r.Method,
 				"path", r.URL.Path,
+				"user_agent", r.UserAgent(),
+				"remote_addr", r.RemoteAddr,
 			)
 		}
 
@@ -50,10 +55,15 @@ func LoggingMiddleware(logger Logger, next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		logger.Info(ctx, "Request Finished",
+		attrs := []any{
 			"req_id", reqID,
 			"status_code", rw.status,
 			"duration_ms", duration.Milliseconds(),
-		)
+		}
+		if ctx.Err() != nil {
+			// The client went away before we finished (closed connection).
+			attrs = append(attrs, "client_gone", true)
+		}
+		logger.Info(ctx, "Request Finished", attrs...)
 	})
 }

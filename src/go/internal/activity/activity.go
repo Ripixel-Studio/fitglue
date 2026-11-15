@@ -4,6 +4,7 @@ package activity
 import (
 	"context"
 	"encoding/json"
+	"github.com/fitglue/server/src/go/internal/infra"
 
 	activitydomain "github.com/fitglue/server/src/go/pkg/domain/activity"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
@@ -19,13 +20,14 @@ func (s *Service) GetActivity(ctx context.Context, req *pbsvc.GetActivityRequest
 	if req.UserId == "" || req.ActivityId == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id and activity_id are required")
 	}
+	ctx, cancel := infra.WithReadCeiling(ctx)
+	defer cancel()
 
 	// Because of Activity Storage Consolidation (Rule E37), we look up the PipelineRun record.
 	// ActivityId in the request maps to the PipelineRun ID.
 	run, err := s.store.GetPipelineRun(ctx, req.UserId, req.ActivityId)
 	if err != nil {
-		s.logger.Error(ctx, "failed to get pipeline run for activity", "error", err)
-		return nil, status.Error(codes.Internal, "failed to read activity metadata")
+		return nil, infra.HandlerError(ctx, s.logger, err, "failed to read activity metadata")
 	}
 	if run == nil {
 		return nil, status.Error(codes.NotFound, "activity not found")
@@ -38,6 +40,9 @@ func (s *Service) GetActivity(ctx context.Context, req *pbsvc.GetActivityRequest
 	if run.ActivityRecordUri != "" {
 		rec, err := activitydomain.LoadActivityRecord(ctx, run.ActivityRecordUri, s.blobStore)
 		if err != nil {
+			if infra.CallerGone(ctx, err) {
+				return nil, infra.HandlerError(ctx, s.logger, err, "failed to read activity record", "uri", run.ActivityRecordUri)
+			}
 			s.logger.Warn(ctx, "failed to read layered activity record, falling back to enriched-event blob", "error", err, "uri", run.ActivityRecordUri)
 		} else if eff := activitydomain.EffectiveActivity(rec); eff != nil {
 			return eff, nil
@@ -70,8 +75,7 @@ func (s *Service) GetActivity(ctx context.Context, req *pbsvc.GetActivityRequest
 	// Fetch from BlobStore
 	data, err := s.blobStore.Get(ctx, "", uri) // using full URI inside Get() convention
 	if err != nil {
-		s.logger.Error(ctx, "failed to read activity payload from GCS", "error", err, "uri", uri)
-		return nil, status.Error(codes.Internal, "failed to read activity data")
+		return nil, infra.HandlerError(ctx, s.logger, err, "failed to read activity data", "uri", uri)
 	}
 
 	// Payload could be ActivityPayload or EnrichedActivityEvent.
@@ -234,11 +238,12 @@ func (s *Service) ListActivities(ctx context.Context, req *pbsvc.ListActivitiesR
 	if req.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
+	ctx, cancel := infra.WithReadCeiling(ctx)
+	defer cancel()
 
 	runs, nextToken, err := s.store.ListPipelineRuns(ctx, req.UserId, req.Limit, req.PageToken)
 	if err != nil {
-		s.logger.Error(ctx, "failed to list activities", "error", err)
-		return nil, status.Error(codes.Internal, "failed to list activities")
+		return nil, infra.HandlerError(ctx, s.logger, err, "failed to list activities")
 	}
 
 	var activities []*pbactivity.StandardizedActivity
