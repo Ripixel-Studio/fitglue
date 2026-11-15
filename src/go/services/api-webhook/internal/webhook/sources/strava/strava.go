@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"sort"
 
 	shared "github.com/fitglue/server/src/go/pkg"
 	stravamap "github.com/fitglue/server/src/go/pkg/domain/sourcemap/strava"
@@ -78,11 +80,28 @@ func (p *Provider) ParseEvent(r *http.Request) ([]*webhook.WebhookEvent, error) 
 		return nil, nil
 	}
 
+	// Only a new activity runs the pipeline. Strava's "update" events carry nothing but
+	// title / type / sport_type / private / visibility changes, so re-running the
+	// pipeline on one re-numbers counters and re-raises pending inputs (a bulk rename
+	// once re-ran 21 old activities). Nothing downstream handles "delete" either.
+	if payload.AspectType != "create" {
+		keys := make([]string, 0, len(payload.Updates))
+		for k := range payload.Updates {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		slog.Info("strava webhook: ignoring non-create activity event",
+			"aspect_type", payload.AspectType,
+			"activity_id", payload.ObjectID,
+			"update_keys", keys)
+		return nil, nil
+	}
+
 	evt := &webhook.WebhookEvent{
 		Provider:    p.ID(),
 		ProviderUID: fmt.Sprintf("%d", payload.OwnerID),
 		ActivityID:  fmt.Sprintf("%d", payload.ObjectID),
-		Event:       payload.AspectType, // "create", "update", "delete"
+		Event:       payload.AspectType, // always "create"
 		RawPayload:  body,
 	}
 
