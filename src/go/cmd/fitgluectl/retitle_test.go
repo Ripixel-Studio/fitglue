@@ -138,3 +138,11 @@ func TestParkrunPlaceFromTitle(t *testing.T) {
 		}
 	}
 }
+
+func TestRetitle_RefusesEntryWithoutStartTime(t *testing.T) {
+	store := newFakeRetitle()
+	store.entries = append(store.entries, retitleEntry{ID: "undated", Title: "Newark parkrun"})
+	if _, err := planRetitle(context.Background(), store, "u", retitleSeriesList); err == nil {
+		t.Fatal("planned an entry with no start time")
+	}
+}
