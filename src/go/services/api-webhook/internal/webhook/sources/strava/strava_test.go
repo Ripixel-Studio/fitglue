@@ -74,3 +74,29 @@ func TestParseEvent(t *testing.T) {
 		assert.Empty(t, events)
 	})
 }
+
+// Only "create" runs the pipeline: an update (a rename, a type or privacy change) or a
+// delete returns no event, so the processor acknowledges it and does nothing.
+func TestParseEvent_OnlyCreateRunsThePipeline(t *testing.T) {
+	provider := strava.NewProvider("secret-token", nil)
+	cases := []struct {
+		name    string
+		payload map[string]interface{}
+		events  int
+	}{
+		{"create", map[string]interface{}{"object_type": "activity", "object_id": 1, "aspect_type": "create", "owner_id": 2}, 1},
+		{"update title", map[string]interface{}{"object_type": "activity", "object_id": 1, "aspect_type": "update", "owner_id": 2, "updates": map[string]interface{}{"title": "Newark parkrun (#13)"}}, 0},
+		{"update type and privacy", map[string]interface{}{"object_type": "activity", "object_id": 1, "aspect_type": "update", "owner_id": 2, "updates": map[string]interface{}{"type": "Run", "sport_type": "Run", "private": "true", "visibility": "only_me"}}, 0},
+		{"update without updates", map[string]interface{}{"object_type": "activity", "object_id": 1, "aspect_type": "update", "owner_id": 2}, 0},
+		{"delete", map[string]interface{}{"object_type": "activity", "object_id": 1, "aspect_type": "delete", "owner_id": 2}, 0},
+		{"athlete deauthorize", map[string]interface{}{"object_type": "athlete", "object_id": 2, "aspect_type": "update", "owner_id": 2, "updates": map[string]interface{}{"authorized": "false"}}, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			body, _ := json.Marshal(tc.payload)
+			events, err := provider.ParseEvent(httptest.NewRequest(http.MethodPost, "/", bytes.NewBuffer(body)))
+			assert.NoError(t, err)
+			assert.Len(t, events, tc.events)
+		})
+	}
+}
