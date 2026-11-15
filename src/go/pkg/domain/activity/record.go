@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	shared "github.com/fitglue/server/src/go/pkg"
+	"github.com/fitglue/server/src/go/pkg/title"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 )
 
@@ -101,7 +102,7 @@ func ApplyEnricherContribution(base *pbactivity.StandardizedActivity, c *pbactiv
 		base.Name = c.GetName()
 	}
 	if c.NameSuffix != nil {
-		base.Name += c.GetNameSuffix()
+		base.Name = title.AddSuffix(base.Name, c.GetNameSuffix())
 	}
 	if c.Type != nil && c.GetType() != pbactivity.ActivityType_ACTIVITY_TYPE_UNSPECIFIED {
 		base.Type = c.GetType()

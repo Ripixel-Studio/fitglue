@@ -24,6 +24,8 @@ import (
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
+
+	"github.com/fitglue/server/src/go/pkg/title"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -186,14 +188,6 @@ func (p *ParkrunProvider) Enrich(ctx context.Context, logger *slog.Logger, activ
 
 	// 1. Parse Inputs
 	enableTitling := inputs["enable_titling"] != "false" // Default true
-	titlePattern := inputs["title_pattern"]
-	if titlePattern == "" {
-		titlePattern = "{location}"
-	}
-	specialTitlePattern := inputs["special_title_pattern"]
-	if specialTitlePattern == "" {
-		specialTitlePattern = "{location} - {special} Edition"
-	}
 	tagValueStr := inputs["tags"]
 	if _, ok := inputs["tags"]; !ok {
 		tagValueStr = "Parkrun"
@@ -278,7 +272,7 @@ func (p *ParkrunProvider) Enrich(ctx context.Context, logger *slog.Logger, activ
 
 	// 7. Check for Parkrun day (Saturday or special event)
 	isSaturday := estimatedLocalTime.Weekday() == time.Saturday
-	specialDay := getSpecialDay(estimatedLocalTime)
+	specialDay := title.SpecialDay(estimatedLocalTime)
 	isSpecial := specialDay != ""
 
 	logger.Debug("parkrun: checking day",
@@ -345,9 +339,10 @@ func (p *ParkrunProvider) Enrich(ctx context.Context, logger *slog.Logger, activ
 		result.Metadata["parkrun_special_day"] = specialDay
 	}
 
-	// 10. Apply title using pattern
+	// 10. Title: "<Place> parkrun", plus " - <special> Special" on 25 Dec / 1 Jan.
+	// auto_increment numbers it before that tail (pkg/title).
 	if enableTitling {
-		result.Name = applyTitlePattern(titlePattern, specialTitlePattern, matchedLocation.Name, estimatedLocalTime, specialDay)
+		result.Name = title.Parkrun(matchedLocation.Name, 0, specialDay)
 	}
 
 	// 11. Apply tags
@@ -611,37 +606,6 @@ func resolveTimezone(loc ParkrunLocation) string {
 		}
 	}
 	return ""
-}
-
-// getSpecialDay returns the special day name if applicable, or empty string.
-func getSpecialDay(t time.Time) string {
-	month := t.Month()
-	day := t.Day()
-
-	if month == time.December && day == 25 {
-		return "Christmas Day"
-	}
-	if month == time.January && day == 1 {
-		return "New Year's Day"
-	}
-	return ""
-}
-
-// applyTitlePattern applies the appropriate title pattern.
-func applyTitlePattern(normalPattern, specialPattern, location string, t time.Time, specialDay string) string {
-	pattern := normalPattern
-	if specialDay != "" {
-		pattern = specialPattern
-	}
-
-	dateFormatted := t.Format("2 Jan 2006")
-
-	result := pattern
-	result = strings.ReplaceAll(result, "{location}", location)
-	result = strings.ReplaceAll(result, "{date}", dateFormatted)
-	result = strings.ReplaceAll(result, "{special}", specialDay)
-
-	return result
 }
 
 func getStartLocation(activity *pbactivity.StandardizedActivity) (float64, float64, bool) {

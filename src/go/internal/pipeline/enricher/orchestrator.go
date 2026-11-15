@@ -370,7 +370,7 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 						currentActivity.Name = v
 					}
 					if v := replayMeta["replay_name_suffix"]; v != "" {
-						currentActivity.Name += v
+						currentActivity.Name = title.AddSuffix(currentActivity.Name, v)
 					}
 					if v := replayMeta["replay_activity_type"]; v != "" {
 						if n, err := strconv.ParseInt(v, 10, 32); err == nil && n != 0 {
@@ -462,6 +462,7 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 		enricherConfig["external_id"] = currentActivity.GetExternalId()    // For same-source dedup
 		enricherConfig["is_repost"] = strconv.FormatBool(payload.IsRepost) // For repost guards
 		enricherConfig["is_resume"] = strconv.FormatBool(isResumeMode)     // Re-arm data-lag retries on resume
+		enricherConfig["source_title"] = originalName                      // The source's own title (hybrid_race_tagger's race title)
 
 		// Clear stale pending inputs when re-running (not resuming)
 		// This allows users to provide different input on a fresh re-run.
@@ -670,7 +671,7 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 			currentActivity.Name = res.Name
 		}
 		if res.NameSuffix != "" {
-			currentActivity.Name += res.NameSuffix
+			currentActivity.Name = title.AddSuffix(currentActivity.Name, res.NameSuffix)
 		}
 		if res.ActivityType != pbactivity.ActivityType_ACTIVITY_TYPE_UNSPECIFIED {
 			currentActivity.Type = res.ActivityType
@@ -836,7 +837,7 @@ func (o *Orchestrator) Process(ctx context.Context, logger *slog.Logger, payload
 				currentActivity.Name = res.Name
 			}
 			if res.NameSuffix != "" {
-				currentActivity.Name += res.NameSuffix
+				currentActivity.Name = title.AddSuffix(currentActivity.Name, res.NameSuffix)
 			}
 			if res.ActivityType != pbactivity.ActivityType_ACTIVITY_TYPE_UNSPECIFIED {
 				currentActivity.Type = res.ActivityType

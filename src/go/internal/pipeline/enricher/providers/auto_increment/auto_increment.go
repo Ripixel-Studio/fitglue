@@ -11,6 +11,7 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
+	"github.com/fitglue/server/src/go/pkg/title"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
@@ -151,7 +152,7 @@ func (p *AutoIncrementProvider) Enrich(ctx context.Context, logger *slog.Logger,
 		return nil, fmt.Errorf("failed to update counter: %w", err)
 	}
 
-	nameSuffix := fmt.Sprintf(" (#%d)", newCount)
+	nameSuffix := title.NumberSuffix(int(newCount))
 
 	// Cache result for same-source dedup
 	if externalId != "" && p.service.DB != nil {

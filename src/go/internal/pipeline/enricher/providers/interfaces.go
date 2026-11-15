@@ -25,7 +25,7 @@ type EnrichmentResult struct {
 	SectionHeader string
 
 	Name       string
-	NameSuffix string // Appended to the final name (e.g. " (#5)")
+	NameSuffix string // Added to the name (e.g. " (#5)"), before a " - <...> Special" tail (title.AddSuffix)
 	Tags       []string
 
 	// Raw Data Streams (for merging)
