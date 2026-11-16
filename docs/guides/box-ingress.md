@@ -35,7 +35,7 @@ internet ──TLS──▶ Tailscale Funnel (jarvis.tail3065f7.ts.net:443)
 | Strava webhook callback | `https://jarvis.tail3065f7.ts.net/fg/webhook/strava` |
 | Fitbit subscriber endpoint | `https://jarvis.tail3065f7.ts.net/fg/webhook/fitbit` |
 | Hevy webhook | `https://jarvis.tail3065f7.ts.net/fg/webhook/hevy` |
-| Pub/Sub push: raw / run / enriched / parkrun-check | `https://jarvis.tail3065f7.ts.net/fg/pubsub/pipeline/{raw,run,enriched,parkrun-check}` |
+| Pub/Sub push: raw / run / enriched | `https://jarvis.tail3065f7.ts.net/fg/pubsub/pipeline/{raw,run,enriched}` |
 | Pub/Sub push: roundup | `https://jarvis.tail3065f7.ts.net/fg/pubsub/activity/roundup` |
 | Pub/Sub push: destination | `https://jarvis.tail3065f7.ts.net/fg/pubsub/destination/` |
 | OAuth callback (`fitgluectl connect`) | `https://jarvis.tail3065f7.ts.net/fg/api/v2/oauth/{provider}/callback` — what `oauthflow` builds from `FITGLUE_PUBLIC_BASE_URL=…/fg`; register this one. `/fg/oauth/{provider}/callback` is an alias (F3.5, `box-secrets.md`) |

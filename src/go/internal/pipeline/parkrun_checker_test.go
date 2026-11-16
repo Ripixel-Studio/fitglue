@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -17,10 +18,11 @@ func TestNewParkrunChecker(t *testing.T) {
 	}
 }
 
-func TestParkrunChecker_HandleCheck_NoPending(t *testing.T) {
+func TestParkrunChecker_HandleExpire_NoPending(t *testing.T) {
 	c := NewParkrunChecker(&mocks.MockDatabase{}, nil, infra.NewLogger())
+	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
 	w := httptest.NewRecorder()
-	c.HandleCheck(w, httptest.NewRequest(http.MethodPost, "/pubsub/parkrun-check", nil))
+	c.HandleExpire(w, agentRequest(http.MethodPost, "/internal/parkrun-expire", "ok", nil))
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
@@ -28,7 +30,7 @@ func TestParkrunChecker_HandleCheck_NoPending(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("response not JSON: %v", err)
 	}
-	if body["status"] != "ok" {
+	if body["status"] != "ok" || body["pending"].(float64) != 0 {
 		t.Errorf("unexpected body: %v", body)
 	}
 }

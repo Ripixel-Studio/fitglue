@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
+	parkrunutil "github.com/fitglue/server/src/go/pkg/parkrun"
 	"github.com/fitglue/server/src/go/pkg/testing/mocks"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
@@ -33,10 +35,17 @@ func (p *parkrunDB) ListPendingInputsByEnricher(ctx context.Context, enricherID 
 	return nil, nil
 }
 
+// doCheck runs the expiry pass (POST /internal/parkrun-expire) as the box
+// agent would, past the identity check, and returns its tallies.
 func doCheck(t *testing.T, c *ParkrunChecker) (int, map[string]interface{}) {
 	t.Helper()
+	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
+	c.fetch = func(_ context.Context, _ *slog.Logger, _, _, _ string, _ time.Time) (*parkrunutil.Result, parkrunutil.FetchDiagnostics, error) {
+		t.Fatal("the expiry pass must never fetch")
+		return nil, parkrunutil.FetchDiagnostics{}, nil
+	}
 	w := httptest.NewRecorder()
-	c.HandleCheck(w, httptest.NewRequest(http.MethodPost, "/pubsub/parkrun-check", nil))
+	c.HandleExpire(w, agentRequest(http.MethodPost, "/internal/parkrun-expire", "ok", nil))
 	var body map[string]interface{}
 	if w.Body.Len() > 0 {
 		_ = json.Unmarshal(w.Body.Bytes(), &body)
@@ -44,7 +53,7 @@ func doCheck(t *testing.T, c *ParkrunChecker) (int, map[string]interface{}) {
 	return w.Code, body
 }
 
-func TestParkrunChecker_HandleCheck_ListError(t *testing.T) {
+func TestParkrunChecker_HandleExpire_ListError(t *testing.T) {
 	db := &parkrunDB{
 		MockDatabase: &mocks.MockDatabase{},
 		listFn: func(ctx context.Context, _ string, _ pbpipeline.PendingInput_Status) ([]*pbpipeline.PendingInput, error) {
@@ -284,5 +293,60 @@ func TestParkrunChecker_ProcessInput_BadDateSkips(t *testing.T) {
 	}
 	if body["skipped"].(float64) != 1 {
 		t.Errorf("expected 1 skipped on bad date, got %v", body["skipped"])
+	}
+}
+
+// An input still inside its deadline is left to the agent's fetch: the expiry
+// pass counts it as polling and neither updates nor fetches it.
+func TestParkrunChecker_HandleExpire_InsideDeadlineLeftPolling(t *testing.T) {
+	base := &mocks.MockDatabase{
+		GetUserFunc: func(ctx context.Context, id string) (*user.Record, error) { return parkrunUser(), nil },
+		UpdatePendingInputFunc: func(ctx context.Context, userID, id string, data map[string]interface{}) error {
+			t.Error("an input inside its deadline must not be updated")
+			return nil
+		},
+	}
+	db := &parkrunDB{
+		MockDatabase: base,
+		listFn: func(ctx context.Context, _ string, _ pbpipeline.PendingInput_Status) ([]*pbpipeline.PendingInput, error) {
+			return []*pbpipeline.PendingInput{{
+				ActivityId:   "i1",
+				UserId:       "u1",
+				AutoDeadline: timestamppb.New(time.Now().Add(time.Hour)),
+				ProviderMetadata: map[string]string{
+					"parkrun_event_slug": "bushy",
+					"expected_date":      "26/07/2025",
+				},
+			}}, nil
+		},
+	}
+	c := NewParkrunChecker(db, nil, infra.NewLogger())
+	code, body := doCheck(t, c)
+	if code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", code)
+	}
+	if body["polling"].(float64) != 1 || body["expired"].(float64) != 0 || body["skipped"].(float64) != 0 {
+		t.Errorf("want polling=1 expired=0 skipped=0, got %v", body)
+	}
+}
+
+func TestParkrunChecker_HandleExpire_Auth(t *testing.T) {
+	c := NewParkrunChecker(&mocks.MockDatabase{}, nil, infra.NewLogger())
+	w := httptest.NewRecorder()
+	c.HandleExpire(w, agentRequest(http.MethodPost, "/internal/parkrun-expire", "", nil))
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expire without token: got %d, want 401", w.Code)
+	}
+	c.verifyIdentity = func(_ context.Context, _, _ string) error { return errors.New("bad") }
+	w = httptest.NewRecorder()
+	c.HandleExpire(w, agentRequest(http.MethodPost, "/internal/parkrun-expire", "x.y.z", nil))
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expire with rejected token: got %d, want 403", w.Code)
+	}
+	c.verifyIdentity = func(_ context.Context, _, _ string) error { return nil }
+	w = httptest.NewRecorder()
+	c.HandleExpire(w, agentRequest(http.MethodGet, "/internal/parkrun-expire", "ok", nil))
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expire by GET: got %d, want 405", w.Code)
 	}
 }

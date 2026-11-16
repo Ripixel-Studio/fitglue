@@ -5,6 +5,22 @@ Hand-written since F1.8 of the single-user conversion; entries below
 
 ## Unreleased
 
+### refactor!: the scheduled parkrun check is retired; Jarvis expires parkrun inputs
+
+- Removed `fitglue-parkrun-check.timer`/`.service`, `fitgluectl trigger
+  parkrun-check`, the pipeline's `/pubsub/parkrun-check` handler and the
+  `topic-parkrun-results-trigger` topic + `sub-parkrun-results-check`
+  subscription (terraform). Its fetch was WAF-walled since 2026-08-22; Jarvis's
+  parkrun agent (`~/jarvis/scripts/parkrun_agent.py`) fetches results from home.
+- Added `POST /internal/parkrun-expire` (identity token, like the other
+  `/internal/parkrun-*` endpoints): the check's deadline pass, unchanged — a
+  WAITING input past `auto_deadline` becomes the manual-entry prompt
+  (`parkrun_results_state=EXPIRED`, `auto_populated=false`), one whose user lost
+  the parkrun integration is completed. No fetch. Jarvis calls it on every agent
+  run and from its FitGlue poller when an input is past its deadline.
+  `processInput` is now `settle` (no fetch) + `fetchAndSubmit`, so the
+  on-demand `/internal/parkrun-recheck` behaves as before.
+
 ### feat: sleep, body and nutrition routes from Google Health (L0.1b)
 
 - `GET /api/v2/users/me/sleep?days=7` (the J9.4 shape Jarvis's readiness card

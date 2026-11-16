@@ -19,18 +19,17 @@ import (
 //	fitglue-roundup-weekly.timer   → trigger roundup --data '{"period_type":"week"}'
 //	fitglue-roundup-monthly.timer  → trigger roundup --data '{"period_type":"month"}'
 //	fitglue-roundup-yearly.timer   → trigger roundup --data '{"period_type":"year"}'
-//	fitglue-parkrun-check.timer    → trigger parkrun-check            (data "{}")
 //
 // The message body and attributes are exactly what the Scheduler jobs sent, so
-// the push handlers (activity /pubsub/roundup, pipeline /pubsub/parkrun-check)
-// are untouched. Publishing uses ADC: on the box GOOGLE_APPLICATION_CREDENTIALS
+// the push handler (activity /pubsub/roundup) is untouched. (The parkrun-check
+// trigger went 2026-11-16: Jarvis's parkrun agent calls the pipeline's
+// /internal/parkrun-expire instead.) Publishing uses ADC: on the box GOOGLE_APPLICATION_CREDENTIALS
 // is the fitglue-box key, which has pubsub.publisher.
 
 // triggerTopics maps the short names the timers use to the real topic ids. A
 // full `topic-…` name is accepted as well so a new topic needs no code change.
 var triggerTopics = map[string]string{
-	"roundup":       "topic-roundup-trigger",
-	"parkrun-check": "topic-parkrun-results-trigger",
+	"roundup": "topic-roundup-trigger",
 }
 
 type triggerFlags struct {
@@ -71,7 +70,7 @@ func parseTriggerFlags(args []string, stderr io.Writer) (*triggerFlags, error) {
 	fs.SetOutput(stderr)
 	fs.Usage = func() {
 		fmt.Fprintln(stderr, "usage: fitgluectl trigger <topic> [--data <json>] [--attr k=v ...] [--project P] [--dry-run]")
-		fmt.Fprintln(stderr, "topics: roundup (topic-roundup-trigger), parkrun-check (topic-parkrun-results-trigger), or any full topic-… name")
+		fmt.Fprintln(stderr, "topics: roundup (topic-roundup-trigger), or any full topic-… name")
 		fs.PrintDefaults()
 	}
 	fs.StringVar(&f.project, "project", envOr(projectEnv, defaultProject), "GCP project holding the topic (default $"+projectEnv+", else fitglue-server-prod)")
@@ -103,7 +102,7 @@ func parseTriggerFlags(args []string, stderr io.Writer) (*triggerFlags, error) {
 	} else if strings.HasPrefix(short, "topic-") {
 		f.topic = short
 	} else {
-		return nil, fmt.Errorf("unknown topic %q (roundup, parkrun-check, or a full topic-… name)", short)
+		return nil, fmt.Errorf("unknown topic %q (roundup, or a full topic-… name)", short)
 	}
 
 	var body map[string]any

@@ -14,12 +14,13 @@ import (
 	shared "github.com/fitglue/server/src/go/pkg"
 	parkrunutil "github.com/fitglue/server/src/go/pkg/parkrun"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
+	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	pbsvc "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
 	"google.golang.org/api/idtoken"
 )
 
 // Outcomes of a single resolve attempt. These are also the keys tallied in the
-// /pubsub/parkrun-check response body, so they must stay stable.
+// /internal/parkrun-expire response body, so they must stay stable.
 const (
 	outcomeResolved = "resolved"
 	outcomeExpired  = "expired"
@@ -85,8 +86,10 @@ type submitFunc func(ctx context.Context, req *pbsvc.SubmitInputRequest) error
 // Defaults to Google OIDC validation; overridable in tests.
 type verifyIdentityFunc func(ctx context.Context, token, audience string) error
 
-// ParkrunChecker polls for parkrun results for all WAITING pending inputs.
-// Triggered by Cloud Scheduler → Pub/Sub push → /pubsub/parkrun-check.
+// ParkrunChecker serves the parkrun pending inputs' upkeep: the box agent's
+// endpoints (parkrun_agent.go: the pending list, the fetched page, the expiry
+// pass) and the on-demand /internal/parkrun-recheck. Nothing here is on a
+// schedule: Jarvis's parkrun agent and its FitGlue poller call in.
 type ParkrunChecker struct {
 	db     shared.Database
 	svc    *Service
@@ -126,54 +129,6 @@ func defaultVerifyIdentity(ctx context.Context, token, audience string) error {
 	return err
 }
 
-// HandleCheck is the HTTP handler for /pubsub/parkrun-check.
-// Returns 200 always (per-input errors are logged but don't fail the batch).
-// Returns 500 only if the Firestore query itself fails, so Pub/Sub retries.
-func (c *ParkrunChecker) HandleCheck(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	inputs, err := c.db.ListPendingInputsByEnricher(ctx, "parkrun", pbpipeline.PendingInput_STATUS_WAITING)
-	if err != nil {
-		c.logger.Error(ctx, "parkrun checker: failed to list pending inputs", "error", err)
-		http.Error(w, "failed to list pending inputs", http.StatusInternalServerError)
-		return
-	}
-
-	c.logger.Info(ctx, "parkrun checker: starting run", "pending_count", len(inputs))
-
-	resolved, expired, skipped, unresolved := 0, 0, 0, 0
-	for _, input := range inputs {
-		diag := c.processInput(ctx, input)
-		switch diag.Outcome {
-		case outcomeResolved:
-			resolved++
-		case outcomeExpired:
-			expired++
-		default:
-			skipped++
-		}
-		// Surface every still-stuck input so its diagnostics reach error-tracking
-		// (Sentry → Slack) without anyone tailing Cloud Run logs. One line per
-		// unresolved input per run.
-		if diag.surfaceable() {
-			unresolved++
-			c.emitDiagnostic(ctx, diag)
-		}
-	}
-
-	c.logger.Info(ctx, "parkrun checker: run complete",
-		"resolved", resolved, "expired", expired, "skipped", skipped, "unresolved", unresolved)
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":     "ok",
-		"resolved":   resolved,
-		"expired":    expired,
-		"skipped":    skipped,
-		"unresolved": unresolved,
-	})
-}
-
 // emitDiagnostic surfaces a still-unresolved input's diagnostics to error-tracking.
 // It logs at Error level so the SentryHandler forwards it to Sentry (and onward to
 // the team's Slack alert channel). The message is constant so all such events group
@@ -198,8 +153,7 @@ func (c *ParkrunChecker) emitDiagnostic(ctx context.Context, d ParkrunDiagnostic
 
 // HandleRecheck is the HTTP handler for /internal/parkrun-recheck. It runs a real
 // resolve attempt for a single pending input right now and returns the diagnostic,
-// so an operator can probe one input without waiting for the next 2-hourly scheduler
-// fire. Because it drives processInput, it CAN resolve or expire the input as a side
+// so an operator can probe one input without waiting for the box agent's next run. Because it drives processInput, it CAN resolve or expire the input as a side
 // effect — it is a real re-check, not a dry run.
 //
 // Guarded by the same OIDC trust boundary as the other internal endpoints on this
@@ -254,9 +208,33 @@ func (c *ParkrunChecker) HandleRecheck(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(diag)
 }
 
+// fetchPlan is what settle hands to the fetch step when an input is still
+// auto-polling: who to fetch for and what row to look for.
+type fetchPlan struct {
+	integration  *pbuser.ParkrunIntegration
+	countryURL   string
+	eventSlug    string
+	eventName    string
+	expectedDate time.Time
+}
+
 // processInput attempts to resolve one pending input, returning a diagnostic that
 // records both the outcome and the discriminating signals of the attempt.
 func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.PendingInput) ParkrunDiagnostic {
+	diag, plan := c.settle(ctx, input)
+	if plan == nil {
+		return diag
+	}
+	return c.fetchAndSubmit(ctx, input, plan, diag)
+}
+
+// settle runs every step of a resolve attempt that needs no parkrun fetch: the
+// deadline rule (past auto_deadline → EXPIRED manual-entry prompt), the removed-
+// integration rule (→ COMPLETED), and the metadata checks. It returns the
+// diagnostic with a nil plan when the input's outcome is decided here, or the
+// fetch plan when it is still auto-polling. The box's expiry pass
+// (/internal/parkrun-expire, HandleExpire) is exactly this, for every input.
+func (c *ParkrunChecker) settle(ctx context.Context, input *pbpipeline.PendingInput) (ParkrunDiagnostic, *fetchPlan) {
 	diag := ParkrunDiagnostic{
 		InputID:   input.ActivityId,
 		UserID:    input.UserId,
@@ -269,7 +247,7 @@ func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.Pen
 	// expired input is (by definition) also past its deadline.
 	if input.ProviderMetadata["parkrun_results_state"] == "EXPIRED" {
 		diag.Outcome, diag.Reason = outcomeSkipped, reasonAlreadyExpired
-		return diag
+		return diag, nil
 	}
 
 	// Deadline elapsed without results — the official results won't come now. Rather than
@@ -296,9 +274,9 @@ func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.Pen
 			// Jarvis picks up via GET /users/me/pending-inputs.
 			c.logger.Error(ctx, "parkrun checker: failed to mark input expired",
 				"error", err, "input_id", input.ActivityId)
-			return diag
+			return diag, nil
 		}
-		return diag
+		return diag, nil
 	}
 
 	// Need the user's parkrun integration for athlete ID + country URL.
@@ -307,7 +285,7 @@ func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.Pen
 		c.logger.Error(ctx, "parkrun checker: failed to get user",
 			"error", err, "user_id", input.UserId)
 		diag.Outcome, diag.Reason = outcomeSkipped, reasonUserLookup
-		return diag
+		return diag, nil
 	}
 	if user.Integrations == nil || user.Integrations.Parkrun == nil || !user.Integrations.Parkrun.Enabled {
 		// Integration removed — can never resolve. Expire immediately.
@@ -318,7 +296,7 @@ func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.Pen
 			"updated_at": time.Now(),
 		})
 		diag.Outcome, diag.Reason = outcomeExpired, reasonNoIntegration
-		return diag
+		return diag, nil
 	}
 
 	integration := user.Integrations.Parkrun
@@ -330,7 +308,7 @@ func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.Pen
 		c.logger.Error(ctx, "parkrun checker: input missing required metadata",
 			"input_id", input.ActivityId, "event_slug", eventSlug, "expected_date", expectedDateStr)
 		diag.Outcome, diag.Reason = outcomeSkipped, reasonMissingMetadata
-		return diag
+		return diag, nil
 	}
 
 	expectedDate, err := time.Parse("02/01/2006", expectedDateStr)
@@ -338,7 +316,7 @@ func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.Pen
 		c.logger.Error(ctx, "parkrun checker: could not parse expected_date",
 			"date", expectedDateStr, "error", err, "input_id", input.ActivityId)
 		diag.Outcome, diag.Reason = outcomeSkipped, reasonBadDate
-		return diag
+		return diag, nil
 	}
 
 	// Resolve the country host for the athlete's results page. The athlete page
@@ -351,16 +329,22 @@ func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.Pen
 		countryURL = input.ProviderMetadata["parkrun_country"]
 	}
 	diag.Country = countryURL
+	return diag, &fetchPlan{integration: integration, countryURL: countryURL, eventSlug: eventSlug,
+		eventName: eventName, expectedDate: expectedDate}
+}
 
+// fetchAndSubmit is the cloud fetch step of a resolve attempt (the on-demand
+// recheck's): fetch the athlete's results page, match the row, submit it.
+func (c *ParkrunChecker) fetchAndSubmit(ctx context.Context, input *pbpipeline.PendingInput, plan *fetchPlan, diag ParkrunDiagnostic) ParkrunDiagnostic {
 	results, fdiag, err := c.fetch(ctx, slog.Default(),
-		integration.AthleteId, countryURL, eventSlug, expectedDate)
+		plan.integration.AthleteId, plan.countryURL, plan.eventSlug, plan.expectedDate)
 	diag.URL = fdiag.URL
 	diag.HTMLBytes = fdiag.HTMLBytes
 	diag.RowsParsed = fdiag.RowsParsed
 	diag.SlugMatched = fdiag.SlugMatched
 	diag.DateMatched = fdiag.DateMatched
 	if err != nil {
-		// Transient failure — retry at next scheduled check. Surfaced by the caller.
+		// Transient failure. Surfaced by the caller.
 		diag.Outcome, diag.Reason, diag.FetchError = outcomeSkipped, reasonFetchFailed, err.Error()
 		return diag
 	}
@@ -372,7 +356,7 @@ func (c *ParkrunChecker) processInput(ctx context.Context, input *pbpipeline.Pen
 		return diag
 	}
 
-	return c.submitResults(ctx, input, eventName, results, diag)
+	return c.submitResults(ctx, input, plan.eventName, results, diag)
 }
 
 // submitResults records a parsed result against its pending input via the

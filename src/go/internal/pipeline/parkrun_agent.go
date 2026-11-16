@@ -26,11 +26,19 @@ import (
 // matching and submission stay here, so the agent never needs credentials
 // beyond a Cloud Run invoker identity.
 //
-// Both endpoints require a Google-signed identity token for this service's
-// URL, exactly like /internal/parkrun-recheck.
+// The third, POST /internal/parkrun-expire, is the deadline pass: every
+// WAITING parkrun input past its auto_deadline becomes the manual-entry prompt
+// (parkrun_results_state=EXPIRED), one whose user lost the integration is
+// closed. It used to ride the scheduled cloud check (fitglue-parkrun-check.timer
+// → topic-parkrun-results-trigger → /pubsub/parkrun-check), retired 2026-11-16;
+// Jarvis now calls it (the agent's every run, and its FitGlue poller when an
+// input it shows is past its deadline).
+//
+// All three require a Google-signed identity token for this service's URL,
+// exactly like /internal/parkrun-recheck.
 
 // agentPendingWindow bounds how far back the pending list reaches. Inputs the
-// scheduled checker has already EXPIRED (deadline elapsed) stay WAITING as a
+// expiry pass has already EXPIRED (deadline elapsed) stay WAITING as a
 // manual-entry prompt; the agent still fetches those for a while so a stretch
 // of failed cloud fetches is recovered automatically once results are reachable.
 const agentPendingWindow = 21 * 24 * time.Hour
@@ -140,6 +148,49 @@ func (c *ParkrunChecker) pendingItem(ctx context.Context, input *pbpipeline.Pend
 		ExpectedDate: expectedDateStr,
 		State:        input.ProviderMetadata["parkrun_results_state"],
 	}, true
+}
+
+// HandleExpire is POST /internal/parkrun-expire: settle every WAITING parkrun
+// input without fetching anything — the deadline rule (past auto_deadline →
+// EXPIRED manual-entry prompt) and the removed-integration rule (→ COMPLETED),
+// exactly as the retired scheduled check applied them. Inputs still inside
+// their deadline are left to the agent's fetch. 500 only when the list fails.
+func (c *ParkrunChecker) HandleExpire(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !c.authorizeAgent(w, r) {
+		return
+	}
+	ctx := r.Context()
+
+	inputs, err := c.db.ListPendingInputsByEnricher(ctx, "parkrun", pbpipeline.PendingInput_STATUS_WAITING)
+	if err != nil {
+		c.logger.Error(ctx, "parkrun expiry: failed to list pending inputs", "error", err)
+		http.Error(w, "failed to list pending inputs", http.StatusInternalServerError)
+		return
+	}
+
+	expired, polling, skipped := 0, 0, 0
+	for _, input := range inputs {
+		diag, plan := c.settle(ctx, input)
+		switch {
+		case plan != nil:
+			polling++
+		case diag.Outcome == outcomeExpired:
+			expired++
+		default:
+			skipped++
+		}
+	}
+
+	c.logger.Info(ctx, "parkrun expiry: run complete",
+		"pending", len(inputs), "expired", expired, "polling", polling, "skipped", skipped)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{ //nolint:errcheck
+		"status": "ok", "pending": len(inputs), "expired": expired, "polling": polling, "skipped": skipped,
+	})
 }
 
 // HandleSubmitHTML is POST /internal/parkrun-html: the agent hands back the raw

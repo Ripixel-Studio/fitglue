@@ -14,7 +14,6 @@
 //	fitgluectl connect intervals --api-key-stdin --athlete-id i12345
 //	fitgluectl connections [--json]                         what is connected, token expiry
 //	fitgluectl trigger roundup --data '{"period_type":"week"}' publish a roundup trigger (the box timers)
-//	fitgluectl trigger parkrun-check                        publish a parkrun results-check trigger
 //	fitgluectl reconcile [--since 14d] [--apply] [--json]   three-way check Hevy × FitGlue × Strava; fixes missed ingests/uploads
 //	fitgluectl health-check                                 sleep/body/nutrition routes against the live grant: counts and dates only
 //	fitgluectl retitle [--apply] [--json]                  canonical numbered titles (parkrun, club runs) + counters; Firestore only
@@ -58,7 +57,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  backfill-photos  copy his Strava photos onto showcased activities that have none (Strava read only; dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
 	fmt.Fprintln(os.Stderr, "  connections   list the owner's connected providers")
-	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup / parkrun-check trigger message (what the box timers run)")
+	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup trigger message (what the box timers run)")
 	fmt.Fprintln(os.Stderr, "  reconcile     three-way check of Hevy, FitGlue and Strava; --apply replays missed workouts and reposts missing Strava uploads")
 	fmt.Fprintln(os.Stderr, "  health-check  run the sleep/body/nutrition routes against Google Health; prints counts and date ranges only")
 	fmt.Fprintln(os.Stderr, "  retitle       renumber parkruns and numbered habits oldest first, titles + counters (Firestore only; dry run unless --apply)")
