@@ -157,7 +157,7 @@ build-ctl:
 # stopped unit — cutover from Cloud Run is `systemctl --user start fitglue.target`,
 # done once in F3.4 (deploy/box/cutover.sh --start). Run it from
 # ~/work/fitglue-server (the checkout the units' ExecStart points at). See
-# docs/guides/box-deploy.md. The roundup/parkrun-check timers (F3.4) run
+# docs/guides/box-deploy.md. The roundup timers (F3.4) run
 # bin/fitgluectl, which build-box also produces; they need no restart.
 BOX_SERVICES := api-webhook api-client user pipeline activity destination
 BOX_TOOLS := fitgluectl bootstrap-owner

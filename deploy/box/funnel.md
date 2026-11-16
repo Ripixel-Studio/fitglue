@@ -18,7 +18,7 @@ OAuth callbacks): **`https://jarvis.tail3065f7.ts.net/fg/...`**
 | Public path | Backend | Backend path | Notes |
 |---|---|---|---|
 | `/fg/webhook/{strava,fitbit,hevy,health}` | api-webhook 8101 | `/api/webhooks/{…}` | GET verification + POST events |
-| `/fg/pubsub/pipeline/{raw,run,enriched,parkrun-check}` | pipeline 8104 | `/pubsub/{…}` | pipeline's `/internal/*` is **not** routed |
+| `/fg/pubsub/pipeline/{raw,run,enriched}` | pipeline 8104 | `/pubsub/{…}` | pipeline's `/internal/*` is **not** routed |
 | `/fg/pubsub/activity/roundup` | activity 8105 | `/pubsub/roundup` | |
 | `/fg/pubsub/destination/` | destination 8106 | `/` | destination's push handler is mounted at `/`; the slash-less form is accepted too |
 | `/fg/oauth/{provider}/callback` | api-client 8102 | `/api/v2/oauth/{provider}/callback` | `fitgluectl connect` |

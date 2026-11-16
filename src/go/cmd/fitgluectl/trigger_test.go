@@ -47,14 +47,13 @@ func TestTrigger_RoundupPublishesSchedulerBody(t *testing.T) {
 	}
 }
 
-func TestTrigger_ParkrunCheckDefaultsToEmptyObject(t *testing.T) {
-	// parkrun-results-check sent base64encode("{}").
+func TestTrigger_FullTopicDefaultsToEmptyObject(t *testing.T) {
 	var got capturedPublish
 	var out, errb bytes.Buffer
-	if err := triggerCommand(context.Background(), []string{"parkrun-check"}, &out, &errb, capturePublisher(&got, nil)); err != nil {
+	if err := triggerCommand(context.Background(), []string{"topic-custom"}, &out, &errb, capturePublisher(&got, nil)); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got.topic != "topic-parkrun-results-trigger" || got.data != "{}" {
+	if got.topic != "topic-custom" || got.data != "{}" {
 		t.Errorf("got %+v", got)
 	}
 }
@@ -76,13 +75,14 @@ func TestTrigger_FlagsBeforeTopicAndAttrs(t *testing.T) {
 
 func TestTrigger_Rejections(t *testing.T) {
 	cases := map[string][]string{
-		"no topic":             {},
-		"unknown short name":   {"nightly"},
-		"two topics":           {"roundup", "parkrun-check"},
-		"roundup without type": {"roundup"},
-		"roundup bad type":     {"roundup", "--data", `{"period_type":"day"}`},
-		"data not json object": {"parkrun-check", "--data", `[1]`},
-		"attr without equals":  {"parkrun-check", "--attr", "novalue"},
+		"no topic":              {},
+		"unknown short name":    {"nightly"},
+		"retired parkrun-check": {"parkrun-check"},
+		"two topics":            {"roundup", "topic-custom"},
+		"roundup without type":  {"roundup"},
+		"roundup bad type":      {"roundup", "--data", `{"period_type":"day"}`},
+		"data not json object":  {"topic-custom", "--data", `[1]`},
+		"attr without equals":   {"topic-custom", "--attr", "novalue"},
 	}
 	for name, args := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -117,7 +117,7 @@ func TestTrigger_DryRunNeverPublishes(t *testing.T) {
 func TestTrigger_PublishErrorIsReturned(t *testing.T) {
 	var got capturedPublish
 	var out, errb bytes.Buffer
-	err := triggerCommand(context.Background(), []string{"parkrun-check"}, &out, &errb, capturePublisher(&got, errors.New("boom")))
+	err := triggerCommand(context.Background(), []string{"topic-custom"}, &out, &errb, capturePublisher(&got, errors.New("boom")))
 	if err == nil || !strings.Contains(err.Error(), "boom") {
 		t.Fatalf("err = %v", err)
 	}

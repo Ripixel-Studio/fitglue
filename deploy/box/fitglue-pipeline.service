@@ -4,7 +4,7 @@
 # come from ~/.jarvis/fitglue.env (see fitglue.env.example), which overrides
 # anything set below.
 [Unit]
-Description=FitGlue pipeline service (gRPC + Pub/Sub push: raw/run/enriched/parkrun-check)
+Description=FitGlue pipeline service (gRPC + Pub/Sub push: raw/run/enriched)
 After=network-online.target fitglue-user.service
 Wants=network-online.target
 PartOf=fitglue.target

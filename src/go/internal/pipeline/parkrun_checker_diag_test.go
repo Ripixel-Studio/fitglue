@@ -42,132 +42,9 @@ func (l recordingLogger) Error(_ context.Context, msg string, args ...any) {
 }
 func (l recordingLogger) With(_ ...any) infra.Logger { return l }
 
-// A WAITING input that fetches cleanly but has no matching results row is still
-// unresolved, so exactly one diagnostic summary is surfaced to error-tracking
-// carrying the discriminating signals (url, html_bytes, rows_parsed, slug/date match).
-func TestParkrunChecker_HandleCheck_SurfacesUnresolvedDiagnostic(t *testing.T) {
-	base := &mocks.MockDatabase{
-		GetUserFunc: func(_ context.Context, _ string) (*user.Record, error) { return parkrunUser(), nil },
-	}
-	db := &parkrunDB{
-		MockDatabase: base,
-		listFn: func(_ context.Context, _ string, _ pbpipeline.PendingInput_Status) ([]*pbpipeline.PendingInput, error) {
-			return []*pbpipeline.PendingInput{{
-				ActivityId: "i1",
-				UserId:     "u1",
-				ProviderMetadata: map[string]string{
-					"parkrun_event_slug": "bushy",
-					"expected_date":      "26/07/2025",
-				},
-			}}, nil
-		},
-	}
-
-	var errs []map[string]any
-	c := NewParkrunChecker(db, nil, recordingLogger{errs: &errs})
-	c.fetch = func(_ context.Context, _ *slog.Logger, _, _, _ string, _ time.Time) (*parkrunutil.Result, parkrunutil.FetchDiagnostics, error) {
-		return nil, parkrunutil.FetchDiagnostics{
-			URL:         "https://www.parkrun.org.uk/parkrunner/12345/all/",
-			HTMLBytes:   48213,
-			RowsParsed:  42,
-			SlugMatched: true,
-			DateMatched: false,
-		}, nil
-	}
-
-	code, body := doCheck(t, c)
-	if code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", code)
-	}
-	if body["skipped"].(float64) != 1 {
-		t.Errorf("expected 1 skipped, got %v", body["skipped"])
-	}
-	if body["unresolved"].(float64) != 1 {
-		t.Errorf("expected 1 unresolved, got %v", body["unresolved"])
-	}
-
-	var summary map[string]any
-	for _, e := range errs {
-		if e["_msg"] == "parkrun checker: pending input still unresolved this run" {
-			summary = e
-			break
-		}
-	}
-	if summary == nil {
-		t.Fatalf("expected an unresolved-input diagnostic to be surfaced, got errors: %v", errs)
-	}
-	if summary["reason"] != reasonNotPublished {
-		t.Errorf("reason = %v, want %s", summary["reason"], reasonNotPublished)
-	}
-	if summary["input_id"] != "i1" || summary["user_id"] != "u1" {
-		t.Errorf("expected input_id=i1 user_id=u1, got %v / %v", summary["input_id"], summary["user_id"])
-	}
-	if summary["event_slug"] != "bushy" {
-		t.Errorf("event_slug = %v, want bushy", summary["event_slug"])
-	}
-	if summary["url"] != "https://www.parkrun.org.uk/parkrunner/12345/all/" {
-		t.Errorf("url = %v", summary["url"])
-	}
-	if summary["html_bytes"] != 48213 {
-		t.Errorf("html_bytes = %v, want 48213", summary["html_bytes"])
-	}
-	if summary["rows_parsed"] != 42 {
-		t.Errorf("rows_parsed = %v, want 42", summary["rows_parsed"])
-	}
-	if summary["slug_matched"] != true || summary["date_matched"] != false {
-		t.Errorf("slug/date match = %v/%v, want true/false", summary["slug_matched"], summary["date_matched"])
-	}
-}
-
-// A hard fetch failure surfaces a diagnostic whose reason is fetch_failed and whose
-// fetch_error carries the underlying message — the fetcher-infra vs stored-metadata
-// discriminator.
-func TestParkrunChecker_HandleCheck_SurfacesFetchFailure(t *testing.T) {
-	base := &mocks.MockDatabase{
-		GetUserFunc: func(_ context.Context, _ string) (*user.Record, error) { return parkrunUser(), nil },
-	}
-	db := &parkrunDB{
-		MockDatabase: base,
-		listFn: func(_ context.Context, _ string, _ pbpipeline.PendingInput_Status) ([]*pbpipeline.PendingInput, error) {
-			return []*pbpipeline.PendingInput{{
-				ActivityId:       "i1",
-				UserId:           "u1",
-				ProviderMetadata: map[string]string{"parkrun_event_slug": "bushy", "expected_date": "26/07/2025"},
-			}}, nil
-		},
-	}
-
-	var errs []map[string]any
-	c := NewParkrunChecker(db, nil, recordingLogger{errs: &errs})
-	c.fetch = func(_ context.Context, _ *slog.Logger, _, _, _ string, _ time.Time) (*parkrunutil.Result, parkrunutil.FetchDiagnostics, error) {
-		return nil, parkrunutil.FetchDiagnostics{URL: "https://www.parkrun.org.uk/parkrunner/12345/all/"},
-			errors.New("playwright service error: status=503")
-	}
-
-	_, body := doCheck(t, c)
-	if body["unresolved"].(float64) != 1 {
-		t.Fatalf("expected 1 unresolved, got %v", body["unresolved"])
-	}
-	var summary map[string]any
-	for _, e := range errs {
-		if e["_msg"] == "parkrun checker: pending input still unresolved this run" {
-			summary = e
-		}
-	}
-	if summary == nil {
-		t.Fatal("expected a surfaced diagnostic for the fetch failure")
-	}
-	if summary["reason"] != reasonFetchFailed {
-		t.Errorf("reason = %v, want %s", summary["reason"], reasonFetchFailed)
-	}
-	if summary["fetch_error"] != "playwright service error: status=503" {
-		t.Errorf("fetch_error = %v", summary["fetch_error"])
-	}
-}
-
 // An already-EXPIRED (manual-entry) input has intentionally left the auto-poll set,
 // so it must NOT be surfaced as noise even though it is skipped.
-func TestParkrunChecker_HandleCheck_AlreadyExpiredNotSurfaced(t *testing.T) {
+func TestParkrunChecker_HandleExpire_AlreadyExpiredNotSurfaced(t *testing.T) {
 	db := &parkrunDB{
 		MockDatabase: &mocks.MockDatabase{},
 		listFn: func(_ context.Context, _ string, _ pbpipeline.PendingInput_Status) ([]*pbpipeline.PendingInput, error) {
@@ -183,9 +60,6 @@ func TestParkrunChecker_HandleCheck_AlreadyExpiredNotSurfaced(t *testing.T) {
 	_, body := doCheck(t, c)
 	if body["skipped"].(float64) != 1 {
 		t.Errorf("expected 1 skipped, got %v", body["skipped"])
-	}
-	if body["unresolved"].(float64) != 0 {
-		t.Errorf("expected 0 unresolved (EXPIRED is not noise), got %v", body["unresolved"])
 	}
 	if len(errs) != 0 {
 		t.Errorf("expected no surfaced diagnostics for already-EXPIRED input, got %v", errs)

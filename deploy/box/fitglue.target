@@ -9,7 +9,7 @@
 [Unit]
 Description=FitGlue (all services and timers on the box)
 Wants=fitglue-api-webhook.service fitglue-api-client.service fitglue-user.service fitglue-pipeline.service fitglue-activity.service fitglue-destination.service
-Wants=fitglue-roundup-weekly.timer fitglue-roundup-monthly.timer fitglue-roundup-yearly.timer fitglue-parkrun-check.timer
+Wants=fitglue-roundup-weekly.timer fitglue-roundup-monthly.timer fitglue-roundup-yearly.timer
 
 [Install]
 WantedBy=default.target

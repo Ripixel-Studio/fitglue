@@ -44,7 +44,7 @@ UNIT_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user
 
 SERVICES=(api-webhook api-client user pipeline activity destination)
 CLOUD_SERVICES=(api-webhook api-client user pipeline activity destination)
-TIMERS=(fitglue-roundup-weekly fitglue-roundup-monthly fitglue-roundup-yearly fitglue-parkrun-check)
+TIMERS=(fitglue-roundup-weekly fitglue-roundup-monthly fitglue-roundup-yearly)
 # Required keys in ~/.jarvis/fitglue.env (deploy/box/fitglue.env.example). Values
 # are checked for presence only and never echoed.
 REQUIRED_ENV=(FITGLUE_API_TOKEN FITGLUE_OWNER_UID PUBSUB_PUSH_AUDIENCE OAUTH_STATE_SECRET
@@ -55,14 +55,13 @@ OPTIONAL_ENV=(WEB_URL TRAININGPEAKS_CLIENT_ID TRAININGPEAKS_CLIENT_SECRET GITHUB
   GITHUB_CLIENT_SECRET GITHUB_WEBHOOK_SECRET SPOTIFY_CLIENT_ID SPOTIFY_CLIENT_SECRET SENTRY_DSN
   SITE_EXPORT_HOOK_URL)
 # Public push paths (Caddyfile) and what each maps to.
-PUSH_PATHS=(pipeline/raw pipeline/run pipeline/enriched pipeline/parkrun-check activity/roundup destination/)
+PUSH_PATHS=(pipeline/raw pipeline/run pipeline/enriched activity/roundup destination/)
 # Pub/Sub push subscriptions (terraform/pubsub.tf) -> expected endpoint.
 declare -A SUB_ENDPOINT=(
   [sub-pipeline-raw]="$PUBSUB_AUDIENCE/pipeline/raw"
   [sub-pipeline-run]="$PUBSUB_AUDIENCE/pipeline/run"
   [sub-pipeline-enriched]="$PUBSUB_AUDIENCE/pipeline/enriched"
   [sub-enrichment-lag]="$PUBSUB_AUDIENCE/pipeline/run"
-  [sub-parkrun-results-check]="$PUBSUB_AUDIENCE/pipeline/parkrun-check"
   [sub-roundup-trigger]="$PUBSUB_AUDIENCE/activity/roundup"
   [sub-destination-upload]="$PUBSUB_AUDIENCE/destination/"
 )

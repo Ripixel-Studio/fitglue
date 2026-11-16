@@ -1,6 +1,6 @@
 # Push subscriptions deliver to the box (rethink F3.4) through Tailscale Funnel →
 # Caddy (deploy/box/caddy/Caddyfile, docs/guides/box-ingress.md):
-#   /fg/pubsub/pipeline/{raw,run,enriched,parkrun-check} → pipeline    8104 /pubsub/…
+#   /fg/pubsub/pipeline/{raw,run,enriched}               → pipeline    8104 /pubsub/…
 #   /fg/pubsub/activity/roundup                          → activity    8105 /pubsub/roundup
 #   /fg/pubsub/destination/                              → destination 8106 /
 # Each push carries an OIDC token signed as the per-service cr-<svc>-sa (unchanged
@@ -144,41 +144,6 @@ resource "google_pubsub_subscription" "enrichment_lag_dead_letter_sub" {
   }
 }
 
-
-resource "google_pubsub_topic" "parkrun_results_trigger" {
-  name    = "topic-parkrun-results-trigger"
-  project = var.project_id
-
-  # Trigger messages are only useful until the next scheduled check (2h).
-  # Short retention prevents stale triggers stacking up if the handler is down.
-  message_retention_duration = "7200s"
-}
-
-resource "google_pubsub_subscription" "parkrun_results_check_sub" {
-  name    = "sub-parkrun-results-check"
-  topic   = google_pubsub_topic.parkrun_results_trigger.name
-  project = var.project_id
-
-  push_config {
-    push_endpoint = "${local.box_pubsub_base}/pipeline/parkrun-check"
-    oidc_token {
-      service_account_email = google_service_account.cloud_run_sa["pipeline"].email
-      audience              = local.box_pubsub_audience
-    }
-  }
-
-  # The checker scans all waiting parkrun pending inputs — give it 5 min.
-  ack_deadline_seconds = 300
-
-  # Discard undelivered messages after 2h (aligned to check interval).
-  # If the handler is down that long, the next timer fire will start fresh.
-  message_retention_duration = "7200s"
-
-  retry_policy {
-    minimum_backoff = "30s"
-    maximum_backoff = "300s"
-  }
-}
 
 resource "google_pubsub_subscription" "destination_upload_sub" {
   name  = "sub-destination-upload"

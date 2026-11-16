@@ -93,9 +93,8 @@ in `deploy/box/`, same schedules, same message bodies:
 | `fitglue-roundup-weekly.timer` | `Mon *-*-* 06:00:00 UTC` | `topic-roundup-trigger` `{"period_type":"week"}` |
 | `fitglue-roundup-monthly.timer` | `*-*-01 06:00:00 UTC` | `topic-roundup-trigger` `{"period_type":"month"}` |
 | `fitglue-roundup-yearly.timer` | `*-01-01 06:00:00 UTC` | `topic-roundup-trigger` `{"period_type":"year"}` |
-| `fitglue-parkrun-check.timer` | `*-*-* 10,12,14,16,18,20:00:00 Europe/London` | `topic-parkrun-results-trigger` `{}` |
 
-Each `.service` runs `bin/fitgluectl trigger <roundup|parkrun-check> [--data …]`
+Each `.service` runs `bin/fitgluectl trigger roundup --data …`
 with the fitglue-box key (pubsub.publisher). `Persistent=true` replays one
 missed fire after a reboot, as Scheduler's single retry did. They are
 `Wants=` by `fitglue.target` and `PartOf=` it, so `--start` starts them and

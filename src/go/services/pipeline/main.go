@@ -118,10 +118,10 @@ func main() {
 	mux.HandleFunc("/pubsub/raw", pushAuth.WrapFunc(handlePubSubPush(logger, splitterSvc.SplitByPipeline)))
 	mux.HandleFunc("/pubsub/run", pushAuth.WrapFunc(enricher.EnrichActivityHTTP))
 	mux.HandleFunc("/pubsub/enriched", pushAuth.WrapFunc(handlePubSubPush(logger, routerSvc.RouteActivity)))
-	mux.HandleFunc("/pubsub/parkrun-check", pushAuth.WrapFunc(parkrunChecker.HandleCheck))
 	mux.HandleFunc("/internal/parkrun-recheck", parkrunChecker.HandleRecheck)
 	mux.HandleFunc("/internal/parkrun-pending", parkrunChecker.HandlePending)
 	mux.HandleFunc("/internal/parkrun-html", parkrunChecker.HandleSubmitHTML)
+	mux.HandleFunc("/internal/parkrun-expire", parkrunChecker.HandleExpire)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))

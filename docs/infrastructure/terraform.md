@@ -95,7 +95,6 @@ Event-driven messaging between functions:
 | `topic-pipeline-activity` | Pipeline (splitter) | Pipeline (enricher) |
 | `topic-enriched-activity` | Pipeline (enricher) | Destination |
 | `topic-destination-upload` | Pipeline (router) | Destination |
-| `topic-parkrun-results-trigger` | `fitglue-parkrun-check.timer` on the box (`fitgluectl trigger parkrun-check`; Cloud Scheduler until F3.4) | Pipeline |
 | `topic-roundup-trigger` | `fitglue-roundup-{weekly,monthly,yearly}.timer` on the box (`fitgluectl trigger roundup`) | Activity |
 
 ### Firestore (`firestore.tf`)
@@ -245,7 +244,7 @@ gcloud storage ls gs://fitglue-server-prod-showcase-assets --project fitglue-ser
 # Pub/Sub: publish permission on a topic, without publishing
 curl -s -X POST -H "Authorization: Bearer $T" -H "Content-Type: application/json" \
   -d '{"permissions":["pubsub.topics.publish"]}' \
-  "https://pubsub.googleapis.com/v1/projects/fitglue-server-prod/topics/topic-parkrun-results-trigger:testIamPermissions"
+  "https://pubsub.googleapis.com/v1/projects/fitglue-server-prod/topics/topic-roundup-trigger:testIamPermissions"
 unset CLOUDSDK_CONFIG
 ```
 

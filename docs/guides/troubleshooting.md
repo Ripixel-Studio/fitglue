@@ -303,7 +303,6 @@ Use this table to jump straight to the right service, code, and logs for any fai
 | `topic-pipeline-activity` | `pipeline` (splitter) | `pipeline` (enricher) | Per-pipeline activity messages |
 | `topic-enriched-activity` | `pipeline` (enricher) | `destination` | Enriched activities for upload |
 | `topic-destination-upload` | `pipeline` (router) | `destination` | Targeted upload instructions |
-| `topic-parkrun-results-trigger` | Cloud Scheduler | `pipeline` | Scheduled Parkrun poll |
 
 ### Key Code Paths
 

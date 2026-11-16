@@ -34,7 +34,7 @@ Fixed; Caddy and the units' `*_SERVICE_URL` settings depend on them.
 | 8101 | `fitglue-api-webhook` | HTTP | user, pipeline, activity |
 | 8102 | `fitglue-api-client` | HTTP (bearer token) | user, pipeline, activity |
 | 8103 | `fitglue-user` | gRPC | — |
-| 8104 | `fitglue-pipeline` | gRPC + HTTP (`/pubsub/raw`, `/pubsub/run`, `/pubsub/enriched`, `/pubsub/parkrun-check`, `/internal/parkrun-*`, `/health`) | user |
+| 8104 | `fitglue-pipeline` | gRPC + HTTP (`/pubsub/raw`, `/pubsub/run`, `/pubsub/enriched`, `/internal/parkrun-*`, `/health`) | user |
 | 8105 | `fitglue-activity` | gRPC + HTTP (`/pubsub/roundup`, `/health`) | — (POSTs `SITE_EXPORT_HOOK_URL` on the box after site exports) |
 | 8106 | `fitglue-destination` | HTTP (`/` = Pub/Sub push) | user, activity |
 
@@ -48,7 +48,7 @@ OIDC token; the trust boundary here is the loopback interface.
 |---|---|
 | `deploy/box/fitglue-<svc>.service` | one user unit per service: `ExecStart=%h/work/fitglue-server/bin/<svc>`, fixed non-secret env, journald, `Restart=on-failure` |
 | `deploy/box/fitglue.target` | wants the six services and the four timers; `start`/`stop` it to move them together |
-| `deploy/box/fitglue-roundup-{weekly,monthly,yearly}.timer`, `fitglue-parkrun-check.timer` (+ `.service`) | the Cloud Scheduler jobs, as user timers (F3.4): each runs `bin/fitgluectl trigger …` |
+| `deploy/box/fitglue-roundup-{weekly,monthly,yearly}.timer` (+ `.service`) | the Cloud Scheduler jobs, as user timers (F3.4): each runs `bin/fitgluectl trigger roundup …` |
 | `deploy/box/cutover.sh` | the cut-over runbook as a script: `--check`, `--start`, `--pubsub`, `--parkrun`, `--strava`, `--scale-down-cloud`, `--rollback` |
 | `deploy/box/install.sh` | symlinks the units into `~/.config/systemd/user/`, `daemon-reload`, enables the target (`--no-enable` to skip) |
 | `deploy/box/fitglue.env.example` | every key `~/.jarvis/fitglue.env` must hold, with comments, no values |
@@ -196,8 +196,9 @@ Everything stateful:
   --scale-down-cloud`) and F4 deletes it. The
   `parkrun-fetcher` service is dead weight (WAF-walled); the box agent
   replaced it.
-- ~~Cloud Scheduler~~ — replaced by the `fitglue-roundup-*` / `fitglue-parkrun-check`
-  user timers (F3.4f); `terraform/scheduler.tf` is gone.
+- ~~Cloud Scheduler~~ — replaced by the `fitglue-roundup-*` user timers (F3.4f);
+  `terraform/scheduler.tf` is gone. The parkrun results check went too (2026-11-16):
+  Jarvis's parkrun agent fetches results and calls `/internal/parkrun-expire`.
 - **DNS, the Firebase site, the assets load balancer** — S4/F4.
 
 Identity for all of it is the `fitglue-box` service account key at

@@ -63,7 +63,7 @@ http://:8100 {
 	}
 
 	# Pub/Sub push subscriptions. Each service keeps its own OIDC token check.
-	# /fg/pubsub/pipeline/raw -> 8104 /pubsub/raw  (also run, enriched, parkrun-check)
+	# /fg/pubsub/pipeline/raw -> 8104 /pubsub/raw  (also run, enriched)
 	handle_path /fg/pubsub/pipeline/* {
 		rewrite * /pubsub{uri}
 		reverse_proxy 127.0.0.1:8104
