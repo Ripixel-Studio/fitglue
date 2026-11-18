@@ -1,8 +1,9 @@
 # Running FitGlue on the box
 
 Since rethink F3.1 the six services run as systemd **user** units on the
-Jarvis box, as static binaries, against the same Firestore, GCS and Pub/Sub in
-`fitglue-server-prod` that Cloud Run uses. This guide is the box side; the
+Jarvis box, as static binaries, against the same Firestore and GCS in
+`fitglue-server-prod` that Cloud Run uses. Messages between services go through an
+SQLite queue on the box (see "The on-box queue" below). This guide is the box side; the
 cloud side (Pub/Sub subscriptions, Strava/Fitbit/Hevy callbacks, the scheduler
 jobs, the parkrun agent) is re-pointed in F3.4 — `docs/guides/box-cutover.md`,
 `deploy/box/cutover.sh` — and torn down in F4.
@@ -19,7 +20,8 @@ internet ── Tailscale Funnel (443, F3.3) ── Caddy 127.0.0.1:8100 ──�
           api-client  8102 ─┘─ gRPC over loopback ─► user 8103, pipeline 8104, activity 8105
                                                      destination 8106 ─► user, activity
                                                             │
-                                   Firestore · GCS · Pub/Sub (still Google Cloud)
+                         SQLite queue ~/.local/share/fitglue/fitglue.db (on box)
+                                   Firestore · GCS (still Google Cloud)
 ```
 
 Nothing listens on anything but `127.0.0.1`. The only way in from outside is
@@ -134,7 +136,60 @@ the other way round: both deployments subscribed to the same topics.
 units survive logout and come back after a reboot once `fitglue.target` is
 enabled.
 
-## Pub/Sub push authentication
+## The on-box queue (replaced Cloud Pub/Sub, 2026-11-18)
+
+The services no longer publish to Cloud Pub/Sub. Each message goes into
+the `queue_messages` table of one SQLite file,
+`~/.local/share/fitglue/fitglue.db` (`FITGLUE_DB`, set in each unit; WAL
+mode, pure-Go driver, so `make build-box` stays static). The consuming
+service delivers it in-process to the same push handler, with the same push
+envelope, so no handler changed
+(`pkg/infrastructure/localqueue`):
+
+| Topic | Consumer (in-process) | Handler | Backoff | Dead after |
+|---|---|---|---|---|
+| `topic-raw-activity` | pipeline | `/pubsub/raw` | 10 s → 10 min | 150 |
+| `topic-pipeline-activity` | pipeline | `/pubsub/run` | 30 s → 10 min | 5 |
+| `topic-enrichment-lag` | pipeline | `/pubsub/run` | 60 s → 10 min | 100 |
+| `topic-enriched-activity` | pipeline | `/pubsub/enriched` | 10 s → 10 min | 150 |
+| `topic-destination-upload` | destination | `/` | 10 s → 10 min | 150 |
+| `topic-roundup-trigger` | activity | `/pubsub/roundup` | 60 s → 10 min | 150 |
+
+The backoffs and dead-letter counts are `terraform/pubsub.tf`'s retry and
+dead-letter policies. Where a subscription had no dead-letter policy, 150
+attempts (about a day at the 10-minute cap) stands in for Pub/Sub's retention.
+
+- **Ack/nack:** a 2xx response deletes the row. Anything else, or a panic,
+  schedules a redelivery with doubling backoff. At the limit the row is kept
+  with `dead_at` set rather than dropped.
+- **Lease:** a delivery is leased for 10 minutes (the ack deadline). When a
+  service starts, it releases the leases on its own topics, so a deploy or a
+  crash redelivers at once.
+- **Topics nobody consumes** (`topic-fitbit-updates`, `topic-job-upload-strava`)
+  are dropped at publish, as Pub/Sub did with no subscription.
+- **Latency:** an idle worker polls once a second. A publish from the same
+  process wakes it at once.
+- **Publishers:** api-webhook, api-client, pipeline, activity and destination,
+  plus `fitgluectl trigger`/`reconcile --apply` and `showcase-reboost`.
+  `fitgluectl` uses the same default path, so a shell needs nothing extra.
+- **`FITGLUE_QUEUE=pubsub`** puts back the Cloud Pub/Sub publisher and turns
+  off the in-process consumers. docker-compose sets it, because separate
+  containers cannot share the file.
+
+```bash
+bin/fitgluectl queue              # per topic: ready, waiting (backing off), in flight, dead, oldest
+bin/fitgluectl queue --dead       # dead letters, newest first, with the last error
+bin/fitgluectl queue retry <id>   # put one back, due now, attempts reset
+```
+
+The file holds only messages in flight, so it is close to empty most of the
+time. Nothing needs backing up yet. That changes when Firestore moves into the
+same file.
+
+## Pub/Sub push authentication (legacy routes)
+
+The push routes below still exist so that messages already in Cloud Pub/Sub
+when the queue went live get delivered. Nothing new arrives on them.
 
 On Cloud Run the push endpoints were protected by IAM: each subscription
 minted an OIDC token for its service account and Cloud Run rejected requests
@@ -187,9 +242,11 @@ Everything stateful:
 - **GCS** — `fitglue-server-prod-artifacts` (FIT files, payloads),
   `fitglue-server-prod-showcase-assets` (images; served as
   `https://assets.fitglue.tech`).
-- **Pub/Sub** — the topics and push subscriptions; they are the glue between
-  pipeline → destination and the lag/retry path. The box publishes to them
-  and receives their pushes via Funnel.
+- ~~Pub/Sub~~ — replaced by the on-box queue (2026-11-18, below). The topics
+  and push subscriptions still exist in `terraform/pubsub.tf`, and the push
+  routes still work, so anything already queued in Google drains through
+  Caddy; nothing on the box publishes there any more. Deleting them waits for
+  F4.
 - **Secret Manager** — read by nothing on the box since F3.5 (`fitglue.env`
   has the values); the secrets and `terraform/secrets.tf` go in F4.2.
 - **Cloud Run** — until F3.4's cut-over makes it unreachable (`cutover.sh

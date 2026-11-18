@@ -5,6 +5,23 @@ Hand-written since F1.8 of the single-user conversion; entries below
 
 ## Unreleased
 
+### feat!: messages go through an SQLite queue on the box, not Cloud Pub/Sub
+
+- New `pkg/infrastructure/localqueue`: a `queue_messages` table in
+  `~/.local/share/fitglue/fitglue.db` (`FITGLUE_DB`). Publishers write to it.
+  The consuming service (pipeline: raw/run/lag/enriched; destination: uploads;
+  activity: roundup trigger) delivers each message in-process to its existing
+  push handler. Delivery keeps Pub/Sub's envelope, ack/nack, backoff,
+  dead-letter counts and ack-deadline lease. Pure-Go `modernc.org/sqlite`, so
+  builds stay CGO-free.
+- `FITGLUE_QUEUE=pubsub` restores the Cloud Pub/Sub publisher
+  (docker-compose sets it).
+- `fitgluectl queue` (counts, `--dead`, `retry <id>`). `fitgluectl trigger`,
+  `reconcile --apply` and `showcase-reboost` publish through the same switch.
+- The `/pubsub/*` push routes stay, so messages already in Cloud Pub/Sub when
+  this ships still drain. Their topics, subscriptions and Caddy routes go with
+  F4.
+
 ### refactor!: the scheduled parkrun check is retired; Jarvis expires parkrun inputs
 
 - Removed `fitglue-parkrun-check.timer`/`.service`, `fitgluectl trigger

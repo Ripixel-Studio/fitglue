@@ -9,7 +9,6 @@ import (
 	"time"
 
 	firestore "cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub" //nolint:staticcheck // v1 client, same as the services
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 
@@ -41,8 +40,7 @@ type liveReconcile struct {
 	db         *infradb.FirestoreAdapter
 	users      *user.FirestoreStore
 	runs       *pipelinestore.FirestoreStore
-	ps         *pubsub.Client
-	publisher  *infrapubsub.PubSubAdapter
+	publisher  infrapubsub.Publisher
 	pipeConn   *grpc.ClientConn
 	pipeline   pipelinepb.PipelineServiceClient
 	http       *http.Client
@@ -55,15 +53,15 @@ func openLiveReconcile(ctx context.Context, f *reconcileFlags) (reconcileBackend
 	if err != nil {
 		return nil, nil, fmt.Errorf("firestore client: %w", err)
 	}
-	ps, err := pubsub.NewClient(ctx, f.project)
+	publisher, _, closePub, err := infrapubsub.NewPublisherFromEnv(ctx, f.project, infra.NewLoggerWithComponent("fitgluectl"))
 	if err != nil {
 		fs.Close()
-		return nil, nil, fmt.Errorf("pubsub client: %w", err)
+		return nil, nil, fmt.Errorf("publisher: %w", err)
 	}
 	conn, err := infra.GRPCDial(f.pipelineURL)
 	if err != nil {
 		fs.Close()
-		ps.Close()
+		closePub()
 		return nil, nil, fmt.Errorf("pipeline service %s: %w", f.pipelineURL, err)
 	}
 	l := &liveReconcile{
@@ -72,15 +70,14 @@ func openLiveReconcile(ctx context.Context, f *reconcileFlags) (reconcileBackend
 		db:         infradb.NewFirestoreAdapter(fs),
 		users:      user.NewFirestoreStore(fs),
 		runs:       pipelinestore.NewFirestoreStore(fs),
-		ps:         ps,
-		publisher:  &infrapubsub.PubSubAdapter{Client: ps, Logger: infra.NewLoggerWithComponent("fitgluectl")},
+		publisher:  publisher,
 		pipeConn:   conn,
 		pipeline:   pipelinepb.NewPipelineServiceClient(conn),
 		http:       &http.Client{Timeout: 30 * time.Second},
 		hevyBase:   hevymap.APIBase,
 		stravaBase: stravamap.APIBase,
 	}
-	return l, func() { conn.Close(); ps.Close(); fs.Close() }, nil
+	return l, func() { conn.Close(); closePub(); fs.Close() }, nil
 }
 
 func (l *liveReconcile) Snapshot(ctx context.Context, from, since, now time.Time) (reconcile.Snapshot, error) {

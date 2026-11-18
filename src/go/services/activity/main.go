@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	"github.com/fitglue/server/src/go/internal/activity"
 	"github.com/fitglue/server/src/go/internal/activity/siteexport"
@@ -16,6 +15,7 @@ import (
 	shared "github.com/fitglue/server/src/go/pkg"
 	stravamap "github.com/fitglue/server/src/go/pkg/domain/sourcemap/strava"
 	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
+	"github.com/fitglue/server/src/go/pkg/infrastructure/localqueue"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
 	infrapubsub "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
 	gcsstorage "github.com/fitglue/server/src/go/pkg/infrastructure/storage"
@@ -56,12 +56,11 @@ func main() {
 	defer gcsClient.Close()
 	blobStore := &GCSBlobStore{adapter: &gcsstorage.StorageAdapter{Client: gcsClient}}
 
-	pubsubClient, err := pubsub.NewClient(ctx, projectID)
+	pub, queue, closePub, err := infrapubsub.NewPublisherFromEnv(ctx, projectID, logger)
 	if err != nil {
-		log.Fatalf("failed to init pubsub: %v", err)
+		log.Fatalf("failed to init publisher: %v", err)
 	}
-	defer pubsubClient.Close()
-	pub := &infrapubsub.PubSubAdapter{Client: pubsubClient, Logger: logger}
+	defer closePub()
 
 	bucketName := os.Getenv("ARTIFACT_BUCKET")
 	if bucketName == "" {
@@ -107,6 +106,14 @@ func main() {
 	// on the box PUBSUB_PUSH_AUDIENCE turns the check on here.
 	pushAuth := infra.PubSubPushAuthFromEnv(logger)
 	mux.HandleFunc("/pubsub/roundup", pushAuth.WrapFunc(svc.HandleRoundupTrigger))
+	// On the box the roundup trigger arrives through the SQLite queue, not a push.
+	if queue != nil {
+		if err := queue.Run(ctx, []localqueue.Subscription{
+			{Policy: localqueue.SubRoundupTrigger, Handler: http.HandlerFunc(svc.HandleRoundupTrigger)},
+		}); err != nil {
+			log.Fatalf("failed to start queue consumers: %v", err)
+		}
+	}
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))

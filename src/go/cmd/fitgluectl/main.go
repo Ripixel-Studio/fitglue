@@ -58,6 +58,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
 	fmt.Fprintln(os.Stderr, "  connections   list the owner's connected providers")
 	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup trigger message (what the box timers run)")
+	fmt.Fprintln(os.Stderr, "  queue         the on-box message queue: counts per topic, dead letters (--dead), retry one (retry <id>)")
 	fmt.Fprintln(os.Stderr, "  reconcile     three-way check of Hevy, FitGlue and Strava; --apply replays missed workouts and reposts missing Strava uploads")
 	fmt.Fprintln(os.Stderr, "  health-check  run the sleep/body/nutrition routes against Google Health; prints counts and date ranges only")
 	fmt.Fprintln(os.Stderr, "  retitle       renumber parkruns and numbered habits oldest first, titles + counters (Firestore only; dry run unless --apply)")
@@ -93,7 +94,9 @@ func main() {
 	case "connections":
 		err = connectionsCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openOwnerStore)
 	case "trigger":
-		err = triggerCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, publishToPubSub)
+		err = triggerCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, publishTrigger)
+	case "queue":
+		err = queueCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
 	case "reconcile":
 		err = reconcileCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveReconcile, time.Now)
 	case "health-check":

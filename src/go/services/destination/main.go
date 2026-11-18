@@ -8,6 +8,7 @@ import (
 
 	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
+	"github.com/fitglue/server/src/go/pkg/infrastructure/localqueue"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"
 	userpb "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
@@ -85,6 +86,16 @@ func main() {
 	pushAuth := infra.PubSubPushAuthFromEnv(logger)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", pushAuth.WrapFunc(executor.HandlePubSubPush))
+
+	// On the box uploads arrive through the SQLite queue, in-process.
+	if svc.Queue != nil {
+		if err := svc.Queue.Run(ctx, []localqueue.Subscription{
+			{Policy: localqueue.SubDestinationUpload, Handler: http.HandlerFunc(executor.HandlePubSubPush)},
+		}); err != nil {
+			logger.Error(ctx, "Failed to start queue consumers", "error", err)
+			os.Exit(1)
+		}
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {

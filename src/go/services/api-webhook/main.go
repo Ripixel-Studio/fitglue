@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
 	"github.com/fitglue/server/src/go/internal/infra"
 	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
 	infraps "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
@@ -71,14 +70,12 @@ func main() {
 	if projectID == "" {
 		projectID = "fitglue" // Fallback or development default
 	}
-	pubsubClient, err := pubsub.NewClient(ctx, projectID)
+	publisher, _, closePublisher, err := infraps.NewPublisherFromEnv(ctx, projectID, logger)
 	if err != nil {
-		logger.Error(ctx, "Failed to initialize Pub/Sub client", "error", err)
+		logger.Error(ctx, "Failed to initialize publisher", "error", err)
 		os.Exit(1)
 	}
-	defer pubsubClient.Close()
-
-	publisher := &infraps.PubSubAdapter{Client: pubsubClient, Logger: logger}
+	defer closePublisher()
 
 	// Setup Firestore for bounceback detection
 	fsClient, err := firestore.NewClient(ctx, projectID)

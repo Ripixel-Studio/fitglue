@@ -14,6 +14,8 @@ Type=simple
 ExecStart=%h/work/fitglue-server/bin/api-webhook
 WorkingDirectory=%h/work/fitglue-server
 EnvironmentFile=%h/.jarvis/fitglue.env
+# The on-box message queue that replaced Cloud Pub/Sub (docs/guides/box-deploy.md).
+Environment=FITGLUE_DB=%h/.local/share/fitglue/fitglue.db
 Environment=PROJECT_ID=fitglue-server-prod
 Environment=GOOGLE_CLOUD_PROJECT=fitglue-server-prod
 Environment=ENVIRONMENT=prod

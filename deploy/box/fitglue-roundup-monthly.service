@@ -1,7 +1,7 @@
 # FitGlue monthly roundup trigger (rethink F3.4). Replaces the Cloud Scheduler job
 # `monthly-roundup-generator`: publishes {"period_type":"month"} to
-# topic-roundup-trigger, whose push subscription delivers it to the activity
-# service (/fg/pubsub/activity/roundup → 8105 /pubsub/roundup), which generates
+# topic-roundup-trigger in the on-box queue (FITGLUE_DB), which the activity
+# service consumes in-process (its /pubsub/roundup handler) and which generates
 # the showcase roundup for the month that just ended. Fired by fitglue-roundup-monthly.timer;
 # run by hand with `systemctl --user start fitglue-roundup-monthly.service`.
 [Unit]
@@ -14,6 +14,7 @@ Type=oneshot
 WorkingDirectory=%h/work/fitglue-server
 EnvironmentFile=%h/.jarvis/fitglue.env
 Environment=PROJECT_ID=fitglue-server-prod
+Environment=FITGLUE_DB=%h/.local/share/fitglue/fitglue.db
 Environment=GOOGLE_APPLICATION_CREDENTIALS=%h/.jarvis/fitglue-box-sa.json
 ExecStart=%h/work/fitglue-server/bin/fitgluectl trigger roundup --data '{"period_type":"month"}'
 StandardOutput=journal

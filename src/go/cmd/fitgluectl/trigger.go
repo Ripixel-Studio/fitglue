@@ -10,7 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"cloud.google.com/go/pubsub" //nolint:staticcheck // v1 client, same as the services
+	"github.com/fitglue/server/src/go/internal/infra"
+	infrapubsub "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
 )
 
 // `fitgluectl trigger` publishes the one-shot messages Cloud Scheduler used to
@@ -23,8 +24,9 @@ import (
 // The message body and attributes are exactly what the Scheduler jobs sent, so
 // the push handler (activity /pubsub/roundup) is untouched. (The parkrun-check
 // trigger went 2026-11-16: Jarvis's parkrun agent calls the pipeline's
-// /internal/parkrun-expire instead.) Publishing uses ADC: on the box GOOGLE_APPLICATION_CREDENTIALS
-// is the fitglue-box key, which has pubsub.publisher.
+// /internal/parkrun-expire instead.) On the box the message goes into the
+// SQLite queue the activity service consumes (FITGLUE_DB); FITGLUE_QUEUE=pubsub
+// publishes to Cloud Pub/Sub instead.
 
 // triggerTopics maps the short names the timers use to the real topic ids. A
 // full `topic-…` name is accepted as well so a new topic needs no code change.
@@ -133,7 +135,7 @@ func triggerCommand(ctx context.Context, args []string, stdout, stderr io.Writer
 		return err
 	}
 	if f.dryRun {
-		fmt.Fprintf(stdout, "dry-run: would publish to projects/%s/topics/%s data=%s attrs=%s\n", f.project, f.topic, f.data, attrList(f.attrs).String())
+		fmt.Fprintf(stdout, "dry-run: would publish to %s data=%s attrs=%s\n", f.topic, f.data, attrList(f.attrs).String())
 		return nil
 	}
 	id, err := publish(ctx, f.project, f.topic, []byte(f.data), f.attrs)
@@ -144,18 +146,13 @@ func triggerCommand(ctx context.Context, args []string, stdout, stderr io.Writer
 	return nil
 }
 
-// publishToPubSub is the real publisher: one message, wait for the server id.
-func publishToPubSub(ctx context.Context, project, topic string, data []byte, attrs map[string]string) (string, error) {
-	client, err := pubsub.NewClient(ctx, project)
+// publishTrigger is the real publisher: the on-box queue (FITGLUE_DB), or
+// Cloud Pub/Sub with FITGLUE_QUEUE=pubsub.
+func publishTrigger(ctx context.Context, project, topic string, data []byte, attrs map[string]string) (string, error) {
+	pub, _, closePub, err := infrapubsub.NewPublisherFromEnv(ctx, project, infra.NewLoggerWithComponent("fitgluectl"))
 	if err != nil {
-		return "", fmt.Errorf("pubsub client: %w", err)
+		return "", err
 	}
-	defer client.Close()
-	t := client.Topic(topic)
-	defer t.Stop()
-	msg := &pubsub.Message{Data: data}
-	if len(attrs) > 0 {
-		msg.Attributes = attrs
-	}
-	return t.Publish(ctx, msg).Get(ctx)
+	defer closePub()
+	return pub.Publish(ctx, topic, data, attrs)
 }

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 
 	firebase "firebase.google.com/go/v4"
@@ -17,6 +16,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/infra"
 	shared "github.com/fitglue/server/src/go/pkg"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/database"
+	"github.com/fitglue/server/src/go/pkg/infrastructure/localqueue"
 	infrapubsub "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
 	sentryPkg "github.com/fitglue/server/src/go/pkg/infrastructure/sentry"
 	infrastorage "github.com/fitglue/server/src/go/pkg/infrastructure/storage"
@@ -30,9 +30,12 @@ type Config struct {
 
 // Service holds initialized dependencies
 type Service struct {
-	DB     shared.Database
-	Store  shared.BlobStore
-	Pub    shared.Publisher
+	DB    shared.Database
+	Store shared.BlobStore
+	Pub   shared.Publisher
+	// Queue is the on-box queue when it is the publisher (nil on Pub/Sub);
+	// a consuming service Runs its subscriptions on it.
+	Queue  *localqueue.Queue
 	Auth   *auth.Client
 	Config *Config
 }
@@ -105,14 +108,12 @@ func NewService(ctx context.Context) (*Service, error) {
 		return nil, fmt.Errorf("firestore init: %w", err)
 	}
 
-	// Pub/Sub - always use real publisher
-	psClient, err := pubsub.NewClient(ctx, cfg.ProjectID)
+	// Publisher: the on-box SQLite queue, or Cloud Pub/Sub with FITGLUE_QUEUE=pubsub.
+	pubAdapter, queue, _, err := infrapubsub.NewPublisherFromEnv(ctx, cfg.ProjectID, logger)
 	if err != nil {
-		logger.Error(ctx, "PubSub init failed", "error", err)
-		return nil, fmt.Errorf("pubsub init: %w", err)
+		logger.Error(ctx, "Publisher init failed", "error", err)
+		return nil, fmt.Errorf("publisher init: %w", err)
 	}
-	pubAdapter := &infrapubsub.PubSubAdapter{Client: psClient, Logger: logger}
-	logger.Info(ctx, "Pub/Sub initialized")
 
 	// Storage
 	gcsClient, err := storage.NewClient(ctx)
@@ -140,6 +141,7 @@ func NewService(ctx context.Context) (*Service, error) {
 	return &Service{
 		DB:    database.NewFirestoreAdapter(fsClient),
 		Pub:   pubAdapter,
+		Queue: queue,
 		Store: &infrastorage.StorageAdapter{Client: gcsClient},
 
 		Auth:   authClient,

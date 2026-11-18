@@ -47,7 +47,6 @@ import (
 	"time"
 
 	firestore "cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub" //nolint:staticcheck // v1 client, same as services/pipeline
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/google/uuid"
@@ -178,12 +177,12 @@ func main() {
 	sessions := buildSessions(stravaActs, hevyWorkouts, entries, fromT)
 	log.Printf("sessions: %d", len(sessions))
 
-	pub := &infrapubsub.PubSubAdapter{Logger: infra.NewLoggerWithComponent("showcase-reboost")}
+	var pub infrapubsub.Publisher
 	if *apply {
-		pc, err := pubsub.NewClient(ctx, *project)
-		must(err, "pubsub")
-		defer func() { _ = pc.Close() }()
-		pub.Client = pc
+		p, _, closePub, err := infrapubsub.NewPublisherFromEnv(ctx, *project, infra.NewLoggerWithComponent("showcase-reboost"))
+		must(err, "publisher")
+		defer closePub()
+		pub = p
 	}
 
 	published, skipped, failed := 0, 0, 0

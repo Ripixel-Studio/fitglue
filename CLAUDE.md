@@ -10,7 +10,7 @@ Go backend — 7 Cloud Run microservices communicating via gRPC, fronted by 3 HT
 | HTTP | go-chi/v5 |
 | RPC | gRPC + Protocol Buffers 3 |
 | Database | Cloud Firestore (no ORM) |
-| Messaging | Cloud Pub/Sub |
+| Messaging | On-box SQLite queue (`pkg/infrastructure/localqueue`, `FITGLUE_DB`); `FITGLUE_QUEUE=pubsub` restores Cloud Pub/Sub |
 | File storage | Google Cloud Storage |
 | Auth | Static bearer token (`FITGLUE_API_TOKEN`); one user (`FITGLUE_OWNER_UID`) |
 | AI | Claude via the box CLI (`pkg/claude`) |
@@ -68,6 +68,7 @@ bin/fitgluectl backfill-photos [--since 2025-01-01] [--until 2025-12-31] [--id X
 bin/fitgluectl backfill-photos --prune [--drop-url U,...] [--apply]
                                                         # remove graphics it imported earlier (and any --drop-url) from showcase
                                                         # + entry, refresh roundup mosaics, re-export; his own uploads untouched
+bin/fitgluectl queue [--dead] [--json] | queue retry <id>  # the on-box message queue: counts per topic, dead letters
 bin/fitgluectl health-check                             # sleep/body/nutrition routes vs Google Health: counts + dates only
 bin/fitgluectl reconcile [--since 14d] [--apply] [--json] # three-way check Hevy × FitGlue × Strava, one row per session;
                                                         # --apply replays missed ingests (same event as the webhook) and
@@ -95,7 +96,7 @@ Internet
     ├── api-client   (HTTP, static bearer)   → user, pipeline, activity
     └── api-webhook  (HTTP, HMAC/OAuth)       → pipeline (via Pub/Sub)
                                                 user (resolve integration)
-Pub/Sub
+Queue (SQLite on the box, consumed in-process; was Cloud Pub/Sub)
     ├── topic-raw-activity       → pipeline service (splitter + enricher)
     ├── topic-pipeline-activity  → pipeline service (per-pipeline routing)
     ├── topic-enriched-activity  → destination service

@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/storage"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
@@ -22,6 +21,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/pipeline/splitter"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
 	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
+	"github.com/fitglue/server/src/go/pkg/infrastructure/localqueue"
 	infrapubsub "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
 	infrastorage "github.com/fitglue/server/src/go/pkg/infrastructure/storage"
 	pb "github.com/fitglue/server/src/go/pkg/types/pb/services/pipeline"
@@ -48,11 +48,11 @@ func main() {
 	store := pipeline.NewFirestoreStore(fsClient)
 
 	// In the new architecture, we use a real publisher and blob store
-	rawPubClient, err := pubsub.NewClient(ctx, os.Getenv("PROJECT_ID"))
+	pubClient, queue, closePub, err := infrapubsub.NewPublisherFromEnv(ctx, os.Getenv("PROJECT_ID"), logger)
 	if err != nil {
-		log.Fatalf("failed to init pubsub: %v", err)
+		log.Fatalf("failed to init publisher: %v", err)
 	}
-	pubClient := &infrapubsub.PubSubAdapter{Client: rawPubClient, Logger: logger}
+	defer closePub()
 
 	gcsClient, err := storage.NewClient(ctx)
 	if err != nil {
@@ -115,9 +115,23 @@ func main() {
 	// Push endpoints: on Cloud Run the platform verifies the subscription's
 	// OIDC token; on the box PUBSUB_PUSH_AUDIENCE turns the check on here.
 	pushAuth := infra.PubSubPushAuthFromEnv(logger)
-	mux.HandleFunc("/pubsub/raw", pushAuth.WrapFunc(handlePubSubPush(logger, splitterSvc.SplitByPipeline)))
-	mux.HandleFunc("/pubsub/run", pushAuth.WrapFunc(enricher.EnrichActivityHTTP))
-	mux.HandleFunc("/pubsub/enriched", pushAuth.WrapFunc(handlePubSubPush(logger, routerSvc.RouteActivity)))
+	rawHandler := handlePubSubPush(logger, splitterSvc.SplitByPipeline)
+	runHandler := http.HandlerFunc(enricher.EnrichActivityHTTP)
+	enrichedHandler := handlePubSubPush(logger, routerSvc.RouteActivity)
+	mux.HandleFunc("/pubsub/raw", pushAuth.WrapFunc(rawHandler))
+	mux.HandleFunc("/pubsub/run", pushAuth.WrapFunc(runHandler))
+	mux.HandleFunc("/pubsub/enriched", pushAuth.WrapFunc(enrichedHandler))
+	// On the box the same handlers are fed from the SQLite queue in-process.
+	if queue != nil {
+		if err := queue.Run(ctx, []localqueue.Subscription{
+			{Policy: localqueue.SubPipelineRaw, Handler: rawHandler},
+			{Policy: localqueue.SubPipelineRun, Handler: runHandler},
+			{Policy: localqueue.SubEnrichmentLag, Handler: runHandler},
+			{Policy: localqueue.SubPipelineEnriched, Handler: enrichedHandler},
+		}); err != nil {
+			log.Fatalf("failed to start queue consumers: %v", err)
+		}
+	}
 	mux.HandleFunc("/internal/parkrun-recheck", parkrunChecker.HandleRecheck)
 	mux.HandleFunc("/internal/parkrun-pending", parkrunChecker.HandlePending)
 	mux.HandleFunc("/internal/parkrun-html", parkrunChecker.HandleSubmitHTML)

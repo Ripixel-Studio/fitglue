@@ -79,3 +79,8 @@ func (a *PubSubAdapter) publishWithAttrs(ctx context.Context, topicID string, da
 	a.logger().Info(ctx, "Message published successfully", "topic", topicID, "message_id", msgID, "size_bytes", len(data))
 	return msgID, nil
 }
+
+// Publish sends one message with optional attributes and returns its id.
+func (a *PubSubAdapter) Publish(ctx context.Context, topicID string, data []byte, attributes map[string]string) (string, error) {
+	return a.publishWithAttrs(ctx, topicID, data, attributes)
+}
