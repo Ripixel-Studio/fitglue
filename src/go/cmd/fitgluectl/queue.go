@@ -23,7 +23,7 @@ import (
 //	fitgluectl queue --dead [--limit N] [--json]
 //	fitgluectl queue retry <id>
 func queueCommand(ctx context.Context, args []string, stdout, stderr io.Writer) error {
-	q, err := localqueue.Open(localqueue.DefaultPath(), infra.NewLoggerWithComponent("fitgluectl"))
+	q, err := localqueue.Open(localqueue.DefaultPath(), infra.NewStderrLoggerWithComponent("fitgluectl"))
 	if err != nil {
 		return err
 	}

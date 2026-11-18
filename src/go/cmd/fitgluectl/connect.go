@@ -267,7 +267,7 @@ func webhookURL(provider string) string {
 	if err != nil {
 		return "<" + oauthflow.PublicBaseURLEnv + " unset>/api/webhooks/" + provider
 	}
-	return base + "/api/webhooks/" + provider
+	return boxWebhookURL(base, provider)
 }
 
 // ---- connections ----

@@ -1,0 +1,27 @@
+# One-off: point Hevy's webhook at the box (fitgluectl hevy-webhook --apply).
+# Mints a new ingress key (stored hashed), registers
+# the Funnel URL /fg/webhook/hevy with Hevy using the stored personal
+# key, and reads the subscription back. Neither key is printed. Re-run if Hevy
+# ever loses the subscription or `connect hevy` mints a new key:
+#   systemctl --user start fitglue-hevy-webhook.service
+#   journalctl --user -u fitglue-hevy-webhook.service -n 20
+# Not part of fitglue.target.
+[Unit]
+Description=FitGlue one-off: register the box as Hevy's webhook
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/work/fitglue-server
+EnvironmentFile=%h/.jarvis/fitglue.env
+Environment=PROJECT_ID=fitglue-server-prod
+Environment=GOOGLE_CLOUD_PROJECT=fitglue-server-prod
+Environment=FITGLUE_DB=%h/.local/share/fitglue/fitglue.db
+Environment=GOOGLE_APPLICATION_CREDENTIALS=%h/.jarvis/fitglue-box-sa.json
+ExecStart=%h/work/fitglue-server/bin/fitgluectl hevy-webhook --apply --url https://jarvis.tail3065f7.ts.net/fg/webhook/hevy
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fitglue-hevy-webhook
+NoNewPrivileges=true
+PrivateTmp=true

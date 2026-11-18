@@ -53,7 +53,7 @@ func openLiveReconcile(ctx context.Context, f *reconcileFlags) (reconcileBackend
 	if err != nil {
 		return nil, nil, fmt.Errorf("firestore client: %w", err)
 	}
-	publisher, _, closePub, err := infrapubsub.NewPublisherFromEnv(ctx, f.project, infra.NewLoggerWithComponent("fitgluectl"))
+	publisher, _, closePub, err := infrapubsub.NewPublisherFromEnv(ctx, f.project, infra.NewStderrLoggerWithComponent("fitgluectl"))
 	if err != nil {
 		fs.Close()
 		return nil, nil, fmt.Errorf("publisher: %w", err)

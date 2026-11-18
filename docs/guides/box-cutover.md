@@ -200,7 +200,28 @@ the body with the client secret, `FITBIT_OAUTH_CLIENT_SECRET`).
 The per-user subscription (`POST …/activities/apiSubscriptions/owner.json`)
 is independent of the endpoint URL and does not need redoing.
 
-## 7. Hevy — API call with the personal key
+## 7. Hevy — `fitgluectl hevy-webhook`
+
+```bash
+systemctl --user start fitglue-hevy-webhook.service    # deploy/box/fitglue-hevy-webhook.service
+journalctl --user -u fitglue-hevy-webhook.service -n 20
+```
+
+The unit runs `fitgluectl hevy-webhook --apply --url
+https://jarvis.tail3065f7.ts.net/fg/webhook/hevy` with the box's env: it reads
+the personal key from the Hevy integration, mints a new ingress key (stored
+hashed), replaces Hevy's subscription with the box URL and reads it back.
+Neither key is printed. Without `--apply` it only shows what Hevy has
+registered.
+
+This step was skipped at the cutover. It went unnoticed while the box still
+took Cloud Pub/Sub pushes, because Hevy events went to `fitglue.tech`, then the
+cloud api-webhook, then Pub/Sub, then the box. From the queue switch on
+2026-11-18 nothing read those messages, and Hevy workouts stopped arriving
+until this ran. Anything missed in between is replayed by `fitgluectl reconcile
+--apply` (jarvis-reconcile.timer, 21:30).
+
+The same calls by hand:
 
 Hevy delivers workout events to one webhook per account, managed through its
 public API with the account's personal API key (the one `fitgluectl connect

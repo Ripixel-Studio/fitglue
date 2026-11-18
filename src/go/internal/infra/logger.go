@@ -2,6 +2,7 @@ package infra
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 	"reflect"
@@ -50,7 +51,17 @@ func GCPHandlerOptions(level slog.Level) *slog.HandlerOptions {
 // The handler chain is: JSONHandler → ComponentHandler → SentryHandler
 // Error-level logs are automatically captured by Sentry (if initialized).
 func NewLogger() Logger {
-	jsonHandler := slog.NewJSONHandler(os.Stdout, GCPHandlerOptions(slog.LevelInfo))
+	return newLogger(os.Stdout)
+}
+
+// NewStderrLoggerWithComponent is NewLoggerWithComponent writing to stderr,
+// for CLI tools whose stdout is their output (fitgluectl ... --json).
+func NewStderrLoggerWithComponent(component string) Logger {
+	return newLogger(os.Stderr).With("component", component)
+}
+
+func newLogger(w io.Writer) Logger {
+	jsonHandler := slog.NewJSONHandler(w, GCPHandlerOptions(slog.LevelInfo))
 	compHandler := &ComponentHandler{Handler: jsonHandler}
 	sentryHandler := sentryPkg.NewSentryHandler(compHandler)
 	return &slogger{

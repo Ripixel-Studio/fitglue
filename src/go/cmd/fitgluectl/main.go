@@ -59,6 +59,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  classify      give every site activity its tag, race flag and reason through Haiku (site only; dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  backfill-photos  copy his Strava photos onto showcased activities that have none (Strava read only; dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  connect       print a provider's OAuth authorise URL, or store an API key (hevy, intervals)")
+	fmt.Fprintln(os.Stderr, "  hevy-webhook  show where Hevy delivers workouts; --apply points it at the box with a new ingress key")
 	fmt.Fprintln(os.Stderr, "  connections   list the owner's connected providers")
 	fmt.Fprintln(os.Stderr, "  trigger       publish a roundup trigger message (what the box timers run)")
 	fmt.Fprintln(os.Stderr, "  queue         the on-box message queue: counts per topic, dead letters (--dead), retry one (retry <id>)")
@@ -96,6 +97,8 @@ func main() {
 		err = backfillPhotosCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
 	case "connect":
 		err = connectCommand(ctx, os.Args[2:], os.Stdin, os.Stdout, os.Stderr, openOwnerStore)
+	case "hevy-webhook":
+		err = hevyWebhookCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openOwnerStore)
 	case "connections":
 		err = connectionsCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openOwnerStore)
 	case "trigger":
@@ -148,7 +151,7 @@ func connectGCP(ctx context.Context, f *exportSiteFlags) (siteexport.Source, sit
 	}
 	store := activity.NewFirestoreStore(fs)
 	blobs := &storage.StorageAdapter{Client: gcsClient}
-	svc := activity.NewService(store, blobs, nil, f.project+"-artifacts", f.bucket, infra.NewLoggerWithComponent("fitgluectl"))
+	svc := activity.NewService(store, blobs, nil, f.project+"-artifacts", f.bucket, infra.NewStderrLoggerWithComponent("fitgluectl"))
 	cache := siteexport.DefaultVisibilityCachePath(os.Getenv)
 	db := infradb.NewFirestoreAdapter(fs)
 	vis := siteexport.NewStravaVisibility(stravamap.APIBase, cache, func(ctx context.Context, uid string) (string, error) {

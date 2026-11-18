@@ -323,7 +323,7 @@ register the webhook in Hevy (Settings → Developer → Webhooks, or
 in the `api-key` header) with:
 
 - URL: `<public base>/api/webhooks/hevy` — on the box
-  `https://jarvis.tail3065f7.ts.net/fg/webhook/hevy` (`box-cutover.md` §7 has
+  `https://jarvis.tail3065f7.ts.net/fg/webhook/hevy` (`fitgluectl hevy-webhook --apply` registers it; `box-cutover.md` §7 has
   the GET/POST/DELETE calls)
 - auth token: the printed ingress key (Hevy sends it as `Authorization`;
   `api-webhook` also accepts `X-Api-Key` and `?api_key=`).

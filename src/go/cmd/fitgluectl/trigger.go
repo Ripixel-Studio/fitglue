@@ -149,7 +149,7 @@ func triggerCommand(ctx context.Context, args []string, stdout, stderr io.Writer
 // publishTrigger is the real publisher: the on-box queue (FITGLUE_DB), or
 // Cloud Pub/Sub with FITGLUE_QUEUE=pubsub.
 func publishTrigger(ctx context.Context, project, topic string, data []byte, attrs map[string]string) (string, error) {
-	pub, _, closePub, err := infrapubsub.NewPublisherFromEnv(ctx, project, infra.NewLoggerWithComponent("fitgluectl"))
+	pub, _, closePub, err := infrapubsub.NewPublisherFromEnv(ctx, project, infra.NewStderrLoggerWithComponent("fitgluectl"))
 	if err != nil {
 		return "", err
 	}

@@ -46,6 +46,8 @@ make bootstrap-owner UID=<owner uid> EMAIL=<email> [DISPLAY_NAME=...]
 bin/fitgluectl connect googlehealth|strava|github|spotify  # prints the authorise URL; approve in any browser (fitbit: legacy, off 2 Nov 2026)
 bin/fitgluectl connect hevy --api-key-stdin             # stores the key, prints the webhook ingress key once
 bin/fitgluectl connect intervals --api-key-stdin --athlete-id i12345
+bin/fitgluectl hevy-webhook [--apply] [--url U]          # where Hevy delivers workouts; --apply points it at the box with a fresh
+                                                        # ingress key (unit fitglue-hevy-webhook.service has the env)
 bin/fitgluectl connections [--json]                     # what is connected, token expiry
 bin/fitgluectl fix-activity --id <showcase id> --type RUN [--distance-m M] [--calories-kcal K] [--apply]
                                                         # correct a mislabelled activity + everything derived (entry, totals,
