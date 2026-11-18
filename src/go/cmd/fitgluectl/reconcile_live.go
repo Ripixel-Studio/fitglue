@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	firestore "cloud.google.com/go/firestore"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 

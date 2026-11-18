@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
-	firestore "cloud.google.com/go/firestore"
 	gcs "cloud.google.com/go/storage"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 
 	"github.com/fitglue/server/src/go/internal/activity"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/photo_upload"

@@ -2,21 +2,20 @@ package user
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
 
-	"cloud.google.com/go/firestore"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/api/option"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // setupOfflineFirestore creates a client that will fail fast since there's no emulator
 func setupOfflineFirestore(t *testing.T) *firestore.Client {
-	ctx := context.Background()
 	// Create a dummy client. Any network calls will fail.
-	client, err := firestore.NewClient(ctx, "test-project", option.WithEndpoint("localhost:9999"), option.WithoutAuthentication())
+	client, err := offlineDocstore(t)
 	if err != nil {
 		t.Fatalf("Failed to create dummy firestore client: %v", err)
 	}
@@ -113,4 +112,16 @@ func TestFirestoreStore_OfflineCoverage(t *testing.T) {
 		_, err = store.BootstrapOwner(ctx, "user1", "james@example.com", "James")
 		assert.Error(t, err)
 	})
+}
+
+// offlineDocstore is a store whose database is already closed, so every read
+// and write fails fast, as the unreachable Firestore emulator used to.
+func offlineDocstore(t *testing.T) (*firestore.Client, error) {
+	t.Helper()
+	c, err := firestore.Open(filepath.Join(t.TempDir(), "fitglue.db"))
+	if err != nil {
+		return nil, err
+	}
+	_ = c.Close()
+	return c, nil
 }

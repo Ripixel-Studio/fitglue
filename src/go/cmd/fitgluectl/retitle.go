@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	firestore "cloud.google.com/go/firestore"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

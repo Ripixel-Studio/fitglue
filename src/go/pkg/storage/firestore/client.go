@@ -1,7 +1,7 @@
 package firestore
 
 import (
-	"cloud.google.com/go/firestore"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 

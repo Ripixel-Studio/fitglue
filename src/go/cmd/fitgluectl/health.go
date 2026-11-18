@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	firestore "cloud.google.com/go/firestore"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 
 	"github.com/fitglue/server/src/go/internal/health"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/database"

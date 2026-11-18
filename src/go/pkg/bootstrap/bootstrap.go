@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/storage"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"

@@ -1,18 +1,17 @@
 package firestore
 
 import (
-	"context"
+	"path/filepath"
 	"testing"
 
-	fs "cloud.google.com/go/firestore"
+	fs "github.com/fitglue/server/src/go/pkg/docstore"
 )
 
 // offlineClient constructs a Firestore client that never connects. Building
 // document/collection references is pure path construction and needs no network.
 func offlineClient(t *testing.T) *fs.Client {
 	t.Helper()
-	t.Setenv("FIRESTORE_EMULATOR_HOST", "127.0.0.1:1")
-	c, err := fs.NewClient(context.Background(), "test-project")
+	c, err := offlineDocstore(t)
 	if err != nil {
 		t.Skipf("could not build firestore client: %v", err)
 	}
@@ -82,4 +81,16 @@ func TestCollection_DocRefs(t *testing.T) {
 	if users.NewDoc().Ref == nil {
 		t.Error("NewDoc should produce a ref")
 	}
+}
+
+// offlineDocstore is a store whose database is already closed, so every read
+// and write fails fast, as the unreachable Firestore emulator used to.
+func offlineDocstore(t *testing.T) (*fs.Client, error) {
+	t.Helper()
+	c, err := fs.Open(filepath.Join(t.TempDir(), "fitglue.db"))
+	if err != nil {
+		return nil, err
+	}
+	_ = c.Close()
+	return c, nil
 }

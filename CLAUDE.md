@@ -9,7 +9,7 @@ Go backend — 7 Cloud Run microservices communicating via gRPC, fronted by 3 HT
 | Language | Go 1.25.5 |
 | HTTP | go-chi/v5 |
 | RPC | gRPC + Protocol Buffers 3 |
-| Database | Cloud Firestore (no ORM) |
+| Database | Firestore-shaped document store in the on-box SQLite file (`pkg/docstore`, `docs` table in `FITGLUE_DB`; was Cloud Firestore) |
 | Messaging | On-box SQLite queue (`pkg/infrastructure/localqueue`, `FITGLUE_DB`); `FITGLUE_QUEUE=pubsub` restores Cloud Pub/Sub |
 | File storage | Google Cloud Storage |
 | Auth | Static bearer token (`FITGLUE_API_TOKEN`); one user (`FITGLUE_OWNER_UID`) |
@@ -69,6 +69,9 @@ bin/fitgluectl backfill-photos --prune [--drop-url U,...] [--apply]
                                                         # remove graphics it imported earlier (and any --drop-url) from showcase
                                                         # + entry, refresh roundup mosaics, re-export; his own uploads untouched
 bin/fitgluectl queue [--dead] [--json] | queue retry <id>  # the on-box message queue: counts per topic, dead letters
+bin/fitgluectl migrate-firestore [--apply]              # copy Cloud Firestore into the box's docs table, counts per collection
+                                                        # (re-runnable; unit fitglue-migrate-firestore.service has the creds)
+bin/fitgluectl snapshot --out PATH                      # VACUUM INTO copy of the SQLite file (fitglue-snapshot.timer, 03:00)
 bin/fitgluectl health-check                             # sleep/body/nutrition routes vs Google Health: counts + dates only
 bin/fitgluectl reconcile [--since 14d] [--apply] [--json] # three-way check Hevy × FitGlue × Strava, one row per session;
                                                         # --apply replays missed ingests (same event as the webhook) and
@@ -244,7 +247,7 @@ users/{userId}/
 showcased_activities/{id}     — Public showcase records
 ```
 
-No ORM. All Firestore access uses the Go Firestore SDK directly via service-specific store files (e.g., `internal/user/firestore_store.go`).
+No ORM. Store files (e.g., `internal/user/firestore_store.go`) use `pkg/docstore`, imported as `firestore`: the Firestore Go API FitGlue uses, over the `docs` table of the box's SQLite file. Only `fitgluectl migrate-firestore` still imports `cloud.google.com/go/firestore`. See `docs/guides/box-deploy.md` ("The on-box document store").
 
 ## Authentication
 

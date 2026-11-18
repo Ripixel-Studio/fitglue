@@ -16,7 +16,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	firestore "cloud.google.com/go/firestore"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 
 	pipelinestore "github.com/fitglue/server/src/go/internal/pipeline"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"

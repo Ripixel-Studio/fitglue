@@ -1,0 +1,12 @@
+# Half an hour before jarvis-backup.timer (03:30) so restic takes tonight's copy.
+[Unit]
+Description=FitGlue SQLite snapshot timer
+PartOf=fitglue.target
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+Unit=fitglue-snapshot.service
+
+[Install]
+WantedBy=timers.target

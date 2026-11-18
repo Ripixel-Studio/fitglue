@@ -7,12 +7,12 @@ import (
 	"os"
 	"strings"
 
-	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/storage"
 	"github.com/fitglue/server/src/go/internal/activity"
 	"github.com/fitglue/server/src/go/internal/activity/siteexport"
 	"github.com/fitglue/server/src/go/internal/infra"
 	shared "github.com/fitglue/server/src/go/pkg"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	stravamap "github.com/fitglue/server/src/go/pkg/domain/sourcemap/strava"
 	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/localqueue"

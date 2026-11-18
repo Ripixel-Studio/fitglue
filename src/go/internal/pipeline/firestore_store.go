@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"cloud.google.com/go/firestore"
 	"github.com/fitglue/server/src/go/internal/infra"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	"github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"

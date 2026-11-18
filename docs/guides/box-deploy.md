@@ -136,6 +136,37 @@ the other way round: both deployments subscribed to the same topics.
 units survive logout and come back after a reboot once `fitglue.target` is
 enabled.
 
+## The on-box document store (replaced Cloud Firestore, 2026-11-18)
+
+Every document now lives in the `docs` table of the same SQLite file as the
+queue (`FITGLUE_DB`). `pkg/docstore` keeps Firestore's model (collections,
+documents, sub-collections, field maps) and the slice of the Firestore Go API
+FitGlue used, under the same names, so each store moved over by changing its
+import to `firestore "github.com/fitglue/server/src/go/pkg/docstore"`.
+
+- **One row per document:** `path` (`users/{uid}/pipeline_runs/{id}`),
+  `parent` (its collection path), the fields as JSON (times as `{"$t":…}`,
+  bytes as `{"$b":…}`; `Data()` gives back int64/float64/time.Time/[]byte as
+  Firestore did), create and update times.
+- **Behaviour kept from Firestore:** Get of a missing document is a gRPC
+  `NotFound`; Set replaces unless `MergeAll`; Update fails on a missing
+  document and takes dotted paths; `Delete` as a value removes a field; a
+  query skips documents missing a field it filters or orders on;
+  `CollectionGroup`, `StartAfter`, counts and transactions work.
+- **Queries filter in Go** after reading one collection's rows: one user,
+  a few thousand documents.
+- **Switch-over:** `systemctl --user start fitglue-migrate-firestore.service`
+  runs `fitgluectl migrate-firestore --apply`: every Firestore document, every
+  sub-collection, then a count per collection, Firestore vs box (journal).
+  Re-runnable: unchanged documents are skipped; one changed on the box since
+  keeps its box fields. Firestore itself is untouched (read only) until F4.
+- **Backup:** `fitglue-snapshot.timer` (03:00) runs `fitgluectl snapshot`
+  (`VACUUM INTO`) to `~/.jarvis/fitglue-snapshot/fitglue.db`, which the
+  03:30 restic backup of `~/.jarvis` takes. Restore = stop `fitglue.target`,
+  copy the snapshot over `FITGLUE_DB`, delete the `-wal`/`-shm` files, start.
+- **Rollback** is a redeploy of the commit before this one: the services read
+  Firestore again, without anything written on the box since.
+
 ## The on-box queue (replaced Cloud Pub/Sub, 2026-11-18)
 
 The services no longer publish to Cloud Pub/Sub. Each message goes into

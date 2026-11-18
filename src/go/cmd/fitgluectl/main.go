@@ -17,9 +17,12 @@
 //	fitgluectl reconcile [--since 14d] [--apply] [--json]   three-way check Hevy × FitGlue × Strava; fixes missed ingests/uploads
 //	fitgluectl health-check                                 sleep/body/nutrition routes against the live grant: counts and dates only
 //	fitgluectl retitle [--apply] [--json]                  canonical numbered titles (parkrun, club runs) + counters; Firestore only
+//	fitgluectl snapshot --out PATH                         consistent copy of the SQLite file for the backup
+//	fitgluectl migrate-firestore [--apply]                 copy Firestore into the box's SQLite store (docs table), compare counts
 //	fitgluectl voice-samples [--since 2025-01-01] [--out PATH] his own words from pipeline runs, JSONL 0600; prints counts only
 //
-// It talks to Firestore, GCS and Pub/Sub directly with Application Default Credentials
+// Documents live in the box's SQLite file (FITGLUE_DB, pkg/docstore); only
+// migrate-firestore still reads Cloud Firestore. It talks to GCS directly with Application Default Credentials
 // (gcloud auth application-default login, or a service account), so it runs
 // from the box with no services deployed. See docs/guides/site-export.md and
 // docs/guides/connect-sources.md.
@@ -31,8 +34,8 @@ import (
 	"os"
 	"time"
 
-	firestore "cloud.google.com/go/firestore"
 	gcs "cloud.google.com/go/storage"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 
 	"github.com/fitglue/server/src/go/internal/activity"
 	"github.com/fitglue/server/src/go/internal/activity/siteexport"
@@ -62,6 +65,8 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  reconcile     three-way check of Hevy, FitGlue and Strava; --apply replays missed workouts and reposts missing Strava uploads")
 	fmt.Fprintln(os.Stderr, "  health-check  run the sleep/body/nutrition routes against Google Health; prints counts and date ranges only")
 	fmt.Fprintln(os.Stderr, "  retitle       renumber parkruns and numbered habits oldest first, titles + counters (Firestore only; dry run unless --apply)")
+	fmt.Fprintln(os.Stderr, "  snapshot      write a consistent copy of the box's SQLite file (--out PATH) for the nightly backup")
+	fmt.Fprintln(os.Stderr, "  migrate-firestore  copy every Firestore document into the box's SQLite store and compare counts (re-runnable; dry run unless --apply)")
 	fmt.Fprintln(os.Stderr, "  voice-samples his own words from every pipeline run, to a private JSONL (0600); prints counts only")
 }
 
@@ -103,6 +108,10 @@ func main() {
 		err = healthCheckCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveHealth)
 	case "retitle":
 		err = retitleCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveRetitle)
+	case "snapshot":
+		err = snapshotCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
+	case "migrate-firestore":
+		err = migrateFirestoreCommand(ctx, os.Args[2:], os.Stdout, os.Stderr)
 	case "voice-samples":
 		err = voiceSamplesCommand(ctx, os.Args[2:], os.Stdout, os.Stderr, openLiveVoiceSamples)
 	case "-h", "--help", "help":

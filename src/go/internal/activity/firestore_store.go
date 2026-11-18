@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"cloud.google.com/go/firestore"
 	firestorepb "cloud.google.com/go/firestore/apiv1/firestorepb"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbpipeline "github.com/fitglue/server/src/go/pkg/types/pb/models/pipeline"
 	"google.golang.org/api/iterator"

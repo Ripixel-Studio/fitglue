@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"cloud.google.com/go/firestore"
 	gcstorage "cloud.google.com/go/storage"
 	"github.com/fitglue/server/src/go/internal/health"
 	"github.com/fitglue/server/src/go/internal/infra"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/database"
 	infraps "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
 	infrastorage "github.com/fitglue/server/src/go/pkg/infrastructure/storage"

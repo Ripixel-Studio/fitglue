@@ -6,9 +6,9 @@ import (
 	"net"
 	"os"
 
-	cloudFirestore "cloud.google.com/go/firestore"
 	"github.com/fitglue/server/src/go/internal/infra"
 	"github.com/fitglue/server/src/go/internal/user"
+	cloudFirestore "github.com/fitglue/server/src/go/pkg/docstore"
 	pbsvc "github.com/fitglue/server/src/go/pkg/types/pb/services/user"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"

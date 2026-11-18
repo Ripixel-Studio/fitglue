@@ -1,0 +1,16 @@
+# Nightly consistent copy of the box's SQLite file (documents + queue) into
+# ~/.jarvis/fitglue-snapshot/, which jarvis-backup.service (restic, 03:30)
+# backs up with the rest of ~/.jarvis. The live WAL file itself is never
+# backed up: a copy taken mid-write may not open. Fired by fitglue-snapshot.timer.
+[Unit]
+Description=FitGlue SQLite snapshot for the nightly backup
+
+[Service]
+Type=oneshot
+Environment=FITGLUE_DB=%h/.local/share/fitglue/fitglue.db
+ExecStart=%h/work/fitglue-server/bin/fitgluectl snapshot --out %h/.jarvis/fitglue-snapshot/fitglue.db
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fitglue-snapshot
+NoNewPrivileges=true
+PrivateTmp=true

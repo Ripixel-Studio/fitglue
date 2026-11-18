@@ -46,9 +46,9 @@ import (
 	"strings"
 	"time"
 
-	firestore "cloud.google.com/go/firestore"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
 	"google.golang.org/protobuf/types/known/timestamppb"

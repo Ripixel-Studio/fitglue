@@ -2,10 +2,11 @@ package activity
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
 
-	fs "cloud.google.com/go/firestore"
+	fs "github.com/fitglue/server/src/go/pkg/docstore"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 )
 
@@ -14,8 +15,7 @@ import (
 // of each store method without a live emulator.
 func deadStore(t *testing.T) *FirestoreStore {
 	t.Helper()
-	t.Setenv("FIRESTORE_EMULATOR_HOST", "127.0.0.1:1")
-	c, err := fs.NewClient(context.Background(), "test-project")
+	c, err := offlineDocstore(t)
 	if err != nil {
 		t.Skipf("firestore client: %v", err)
 	}
@@ -83,4 +83,16 @@ func TestFirestoreStore_Smoke(t *testing.T) {
 	_, _ = s.CountBillingEventsSince(ctx, "u1", now.Add(-720*time.Hour))
 	_, _ = s.CountDistinctActivitiesForPeriod(ctx, "u1", "2024-01")
 	_, _ = s.CountDistinctActivitiesSince(ctx, "u1", now.Add(-720*time.Hour))
+}
+
+// offlineDocstore is a store whose database is already closed, so every read
+// and write fails fast, as the unreachable Firestore emulator used to.
+func offlineDocstore(t *testing.T) (*fs.Client, error) {
+	t.Helper()
+	c, err := fs.Open(filepath.Join(t.TempDir(), "fitglue.db"))
+	if err != nil {
+		return nil, err
+	}
+	_ = c.Close()
+	return c, nil
 }

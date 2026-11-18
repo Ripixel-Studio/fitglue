@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"os"
 
-	cloudFirestore "cloud.google.com/go/firestore"
 	"github.com/fitglue/server/src/go/internal/user"
+	cloudFirestore "github.com/fitglue/server/src/go/pkg/docstore"
 )
 
 func main() {

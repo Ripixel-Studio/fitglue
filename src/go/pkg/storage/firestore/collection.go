@@ -3,7 +3,7 @@ package firestore
 import (
 	"context"
 
-	"cloud.google.com/go/firestore"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 )
 
 type ToFirestoreFunc[T any] func(*T) map[string]interface{}

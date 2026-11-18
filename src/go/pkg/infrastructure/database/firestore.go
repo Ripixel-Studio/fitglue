@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/firestore"
 	shared "github.com/fitglue/server/src/go/pkg"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	"github.com/fitglue/server/src/go/pkg/domain/user"
 	pbplugin "github.com/fitglue/server/src/go/pkg/types/pb/models/plugin"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"

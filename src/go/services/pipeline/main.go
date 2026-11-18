@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/storage"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
@@ -20,6 +19,7 @@ import (
 	"github.com/fitglue/server/src/go/internal/pipeline/router"
 	"github.com/fitglue/server/src/go/internal/pipeline/splitter"
 	"github.com/fitglue/server/src/go/pkg/bootstrap"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/localqueue"
 	infrapubsub "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"

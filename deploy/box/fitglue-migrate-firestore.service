@@ -1,0 +1,26 @@
+# One-off: copy every Cloud Firestore document into the box's SQLite store
+# (docs table in FITGLUE_DB, pkg/docstore) and compare counts per collection.
+# Re-runnable: unchanged documents are skipped and documents changed on the box
+# since keep their box fields. Run by hand at the switch-over:
+#   systemctl --user start fitglue-migrate-firestore.service
+#   journalctl --user -u fitglue-migrate-firestore.service -n 60
+# Not part of fitglue.target; delete in F4 with the rest of the GCP leftovers.
+[Unit]
+Description=FitGlue one-off copy Firestore -> on-box SQLite store
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/work/fitglue-server
+EnvironmentFile=%h/.jarvis/fitglue.env
+Environment=PROJECT_ID=fitglue-server-prod
+Environment=GOOGLE_CLOUD_PROJECT=fitglue-server-prod
+Environment=FITGLUE_DB=%h/.local/share/fitglue/fitglue.db
+Environment=GOOGLE_APPLICATION_CREDENTIALS=%h/.jarvis/fitglue-box-sa.json
+ExecStart=%h/work/fitglue-server/bin/fitgluectl migrate-firestore --apply
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fitglue-migrate-firestore
+NoNewPrivileges=true
+PrivateTmp=true

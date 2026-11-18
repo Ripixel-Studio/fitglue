@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"cloud.google.com/go/firestore"
 	"github.com/fitglue/server/src/go/internal/infra"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	infradb "github.com/fitglue/server/src/go/pkg/infrastructure/database"
 	infraps "github.com/fitglue/server/src/go/pkg/infrastructure/pubsub"
 	activitypb "github.com/fitglue/server/src/go/pkg/types/pb/services/activity"

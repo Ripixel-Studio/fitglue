@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"cloud.google.com/go/firestore"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 
 	"github.com/fitglue/server/src/go/internal/user"
 )

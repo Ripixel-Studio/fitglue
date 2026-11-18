@@ -11,7 +11,7 @@ import (
 
 	"github.com/fitglue/server/src/go/pkg/domain/apikey"
 
-	"cloud.google.com/go/firestore"
+	firestore "github.com/fitglue/server/src/go/pkg/docstore"
 	pbuser "github.com/fitglue/server/src/go/pkg/types/pb/models/user"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
