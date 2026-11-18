@@ -102,7 +102,7 @@ func migrateFirestoreCommand(ctx context.Context, args []string, stdout, stderr 
 	walkColl = func(col *gfs.CollectionRef, rel string) {
 		kind := docstore.CollectionKind(rel)
 		sem <- struct{}{}
-		snaps, err := col.Documents(ctx).GetAll()
+		snaps, err := readPaged(ctx, col)
 		var refs []*gfs.DocumentRef
 		if err == nil {
 			// DocumentRefs also lists "missing" documents that exist only as
@@ -165,7 +165,12 @@ func migrateFirestoreCommand(ctx context.Context, args []string, stdout, stderr 
 	sort.Strings(names)
 	mismatch := 0
 	fmt.Fprintf(stdout, "%-48s %9s %9s\n", "collection", "firestore", "box")
+	quiet := 0
 	for _, k := range names {
+		if local[k] == stats.source[k] && local[k] < 10 {
+			quiet++ // small matching collections (e.g. per-activity GitHub paths)
+			continue
+		}
 		mark := ""
 		if *apply && local[k] < stats.source[k] {
 			mark = "  MISSING"
@@ -174,6 +179,9 @@ func migrateFirestoreCommand(ctx context.Context, args []string, stdout, stderr 
 			mark = "  (box only)"
 		}
 		fmt.Fprintf(stdout, "%-48s %9d %9d%s\n", k, stats.source[k], local[k], mark)
+	}
+	if quiet > 0 {
+		fmt.Fprintf(stdout, "(+ %d smaller collections, counts match)\n", quiet)
 	}
 	total := 0
 	for _, n := range stats.source {
@@ -237,4 +245,23 @@ func plainFirestoreValue(v interface{}) (interface{}, int) {
 		return out, n
 	}
 	return v, 0
+}
+
+// readPaged reads a collection 300 documents at a time in id order: one
+// query over a large collection (users/*/executions) times out server-side.
+func readPaged(ctx context.Context, col *gfs.CollectionRef) ([]*gfs.DocumentSnapshot, error) {
+	const page = 300
+	var out []*gfs.DocumentSnapshot
+	q := col.OrderBy(gfs.DocumentID, gfs.Asc).Limit(page)
+	for {
+		snaps, err := q.Documents(ctx).GetAll()
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, snaps...)
+		if len(snaps) < page {
+			return out, nil
+		}
+		q = col.OrderBy(gfs.DocumentID, gfs.Asc).StartAfter(snaps[len(snaps)-1].Ref.ID).Limit(page)
+	}
 }
