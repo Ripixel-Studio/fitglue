@@ -1,6 +1,8 @@
 package stravaexercise
 
 import (
+	"regexp"
+
 	"github.com/fitglue/server/src/go/pkg/activitytag"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 )
@@ -25,12 +27,16 @@ var runTypes = map[pbactivity.ActivityType]bool{
 	pbactivity.ActivityType_ACTIVITY_TYPE_VIRTUAL_RUN: true,
 }
 
+// spinTitle: a hybrid spinning class is still cycling, whatever type the classifier
+// filed it under (it files them as Crossfit).
+var spinTitle = regexp.MustCompile(`(?i)\bspin(ning)?\b`)
+
 // SportType is the Strava sport_type for an activity: base (the type's own Strava
 // name) unless the site tag is hybrid and the activity is a gym session, or a run
-// carrying Hyrox race splits — then HybridRacing. A hybrid-tagged ride ("Hybrid Spin")
-// or walk keeps its own type.
-func SportType(t pbactivity.ActivityType, base, tag string, a *pbactivity.StandardizedActivity) string {
-	if activitytag.Normalize(tag) != activitytag.Hybrid {
+// carrying Hyrox race splits — then HybridRacing. A hybrid-tagged ride or spin class
+// ("Hybrid Spin"), walk, or obstacle race without Hyrox splits keeps its own type.
+func SportType(t pbactivity.ActivityType, base, tag, title string, a *pbactivity.StandardizedActivity) string {
+	if activitytag.Normalize(tag) != activitytag.Hybrid || spinTitle.MatchString(title) {
 		return base
 	}
 	if hybridGymTypes[t] {
