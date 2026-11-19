@@ -83,4 +83,9 @@ func TestCreatedSportType(t *testing.T) {
 	assert.False(t, ok, "an activity recorded on Strava keeps its type")
 	_, ok = createdSportType(false, "", "Run")
 	assert.False(t, ok)
+	sport, ok = createdSportType(true, "HybridRacing", "Run")
+	assert.True(t, ok, "a hybrid race ROXFIT filed as a Run becomes HybridRacing")
+	assert.Equal(t, "HybridRacing", sport)
+	_, ok = createdSportType(true, "HybridRacing", "HybridRacing")
+	assert.False(t, ok)
 }

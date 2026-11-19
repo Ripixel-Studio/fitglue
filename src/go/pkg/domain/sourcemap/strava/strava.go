@@ -211,6 +211,9 @@ var stravaTypeMap = map[stravaapi.ActivityType]activitypb.ActivityType{
 	stravaapi.ActivityTypeWindsurf:        activitypb.ActivityType_ACTIVITY_TYPE_WINDSURF,
 	stravaapi.ActivityTypeWorkout:         activitypb.ActivityType_ACTIVITY_TYPE_WORKOUT,
 	stravaapi.ActivityTypeYoga:            activitypb.ActivityType_ACTIVITY_TYPE_YOGA,
+	// Strava's Hyrox sport type (2026-11-19), not in the generated client yet. FitGlue
+	// keeps hybrid sessions as classes; the hybrid tag sends them back as HybridRacing.
+	stravaapi.ActivityType("HybridRacing"): activitypb.ActivityType_ACTIVITY_TYPE_CROSSFIT,
 }
 
 // MapActivityType maps a Strava sport/activity type onto the FitGlue ActivityType enum.

@@ -14,6 +14,7 @@ func TestMapActivityType_SportTypes(t *testing.T) {
 		"Pilates":                       activitypb.ActivityType_ACTIVITY_TYPE_PILATES,
 		"TrailRun":                      activitypb.ActivityType_ACTIVITY_TYPE_TRAIL_RUN,
 		"GravelRide":                    activitypb.ActivityType_ACTIVITY_TYPE_GRAVEL_RIDE,
+		"HybridRacing":                  activitypb.ActivityType_ACTIVITY_TYPE_CROSSFIT,
 		"NotAThing":                     activitypb.ActivityType_ACTIVITY_TYPE_UNSPECIFIED,
 	}
 	for in, want := range cases {
