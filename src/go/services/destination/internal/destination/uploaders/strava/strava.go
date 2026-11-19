@@ -21,6 +21,7 @@ import (
 	httputil "github.com/fitglue/server/src/go/pkg/infrastructure/http"
 	"github.com/fitglue/server/src/go/pkg/infrastructure/oauth"
 	"github.com/fitglue/server/src/go/pkg/loopprevention"
+	"github.com/fitglue/server/src/go/pkg/stravaexercise"
 	"github.com/fitglue/server/src/go/pkg/title"
 	pbactivity "github.com/fitglue/server/src/go/pkg/types/pb/models/activity"
 	pbevents "github.com/fitglue/server/src/go/pkg/types/pb/models/events"
@@ -109,79 +110,132 @@ func (u *Uploader) Create(ctx context.Context, payload *pbevents.ActivityPayload
 		return "", fmt.Errorf("GCS Read Error: %w", err)
 	}
 
-	// Build multipart form data
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, _ := writer.CreateFormFile("file", "activity.fit")
-	part.Write(fileData)
-	writer.WriteField("data_type", "fit")
-	if activityName != "" {
-		writer.WriteField("name", activityName)
-	}
-	if description != "" {
-		writer.WriteField("description", description)
-	}
-
 	stravaType := "Run"
 	if sType, ok := payload.Metadata["strava_sport_type"]; ok {
 		stravaType = sType
 	}
-	writer.WriteField("sport_type", stravaType)
-	writer.WriteField("activity_type", stravaType)
+
+	// A gym or hybrid session with sets goes up as Strava's JSON (sets) format, which
+	// names every exercise in Strava's workout log; a FIT file's set messages leave most
+	// of them "Unknown". Anything the JSON route cannot carry, or that Strava refuses
+	// there, falls back to the FIT file.
+	if stravaexercise.JSONSportTypes[stravaType] {
+		if body, ok := stravaexercise.BuildUpload(payload.StandardizedActivity, londonTZ()); ok {
+			uploadResp, err := postUpload(ctx, httpClient, "activity.json", "json", body, activityName, description, stravaType,
+				fmt.Sprintf("fitglue-sets-%d.json", payload.StandardizedActivity.GetStartTime().AsTime().Unix()))
+			if err == nil {
+				if id, done, rerr := u.uploadResult(ctx, payload, uploadResp); done {
+					slog.Default().Info("Strava JSON (sets) upload", "sets", stravaexercise.SetsSummary(body), "sport_type", stravaType, "strava_id", id)
+					return id, rerr
+				}
+				if uploadErrorText(uploadResp) == "" {
+					// Still processing: a FIT upload now could land a second activity.
+					return "", fmt.Errorf("upload pending processing")
+				}
+			}
+			slog.Default().Warn("Strava JSON (sets) upload failed, falling back to FIT", "error", err, "upload_error", uploadErrorText(uploadResp))
+		}
+	}
+
+	uploadResp, err := postUpload(ctx, httpClient, "activity.fit", "fit", fileData, activityName, description, stravaType, "")
+	if err != nil {
+		return "", err
+	}
+	if id, done, rerr := u.uploadResult(ctx, payload, uploadResp); done {
+		return id, rerr
+	}
+	if uploadResp.Error != nil && *uploadResp.Error != "" {
+		return "", fmt.Errorf("strava upload incomplete: %s", *uploadResp.Error)
+	}
+	return "", fmt.Errorf("upload pending processing")
+}
+
+// londonTZ is the zone a JSON upload's utc_offset is shown in (FitGlue is one athlete's).
+func londonTZ() *time.Location {
+	if loc, err := time.LoadLocation("Europe/London"); err == nil {
+		return loc
+	}
+	return time.UTC
+}
+
+func uploadErrorText(r *strava.Upload) string {
+	if r == nil || r.Error == nil {
+		return ""
+	}
+	return *r.Error
+}
+
+// postUpload POSTs one file to /uploads and waits for Strava to process it.
+// externalID "" leaves Strava's default (the filename).
+func postUpload(ctx context.Context, httpClient *http.Client, filename, dataType string, data []byte, name, desc, sportType, externalID string) (*strava.Upload, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", filename)
+	part.Write(data)
+	writer.WriteField("data_type", dataType)
+	if externalID != "" {
+		writer.WriteField("external_id", externalID)
+	}
+	if name != "" {
+		writer.WriteField("name", name)
+	}
+	if desc != "" {
+		writer.WriteField("description", desc)
+	}
+	writer.WriteField("sport_type", sportType)
+	writer.WriteField("activity_type", sportType)
 	writer.Close()
 
 	req, err := http.NewRequestWithContext(ctx, "POST", stravaAPIBase+"/uploads", body)
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	httpResp, err := httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("Strava API Error: %w", err)
+		return nil, fmt.Errorf("Strava API Error: %w", err)
 	}
 	defer httpResp.Body.Close()
 
 	if httpResp.StatusCode >= 400 {
-		err := httputil.WrapResponseError(httpResp, "Strava upload failed")
-		return "", err
+		return nil, httputil.WrapResponseError(httpResp, "Strava upload failed")
 	}
 
 	var uploadResp strava.Upload
 	json.NewDecoder(httpResp.Body).Decode(&uploadResp)
 
-	if uploadResp.ActivityId == nil || *uploadResp.ActivityId == 0 {
+	if (uploadResp.ActivityId == nil || *uploadResp.ActivityId == 0) && uploadResp.Id != nil {
 		finalResp, err := waitForUploadCompletion(ctx, httpClient, *uploadResp.Id)
 		if err == nil {
 			uploadResp = *finalResp
 		}
 	}
+	return &uploadResp, nil
+}
 
+// uploadResult reads a processed upload: done is true when it settled the create —
+// an activity ID, or a duplicate (recovered from this run's outcomes when possible).
+func (u *Uploader) uploadResult(ctx context.Context, payload *pbevents.ActivityPayload, uploadResp *strava.Upload) (string, bool, error) {
 	if uploadResp.Error != nil && strings.Contains(strings.ToLower(*uploadResp.Error), "duplicate") {
-		// Strava detected a duplicate FIT file. Try to recover the ExternalId from our subcollection
+		// Strava detected a duplicate. Try to recover the ExternalId from our subcollection
 		// so the pipeline run doesn't lose the real Strava activity ID.
 		if payload.PipelineExecutionId != nil && *payload.PipelineExecutionId != "" {
 			if outcomes, err := u.svc.DB.GetDestinationOutcomes(ctx, payload.UserId, *payload.PipelineExecutionId); err == nil {
 				for _, outcome := range outcomes {
 					if outcome.Destination == pbplugin.DestinationType_DESTINATION_STRAVA &&
 						outcome.ExternalId != nil && *outcome.ExternalId != "" {
-						return *outcome.ExternalId, nil
+						return *outcome.ExternalId, true, nil
 					}
 				}
 			}
 		}
-		return "", nil
+		return "", true, nil
 	}
-
 	if uploadResp.ActivityId != nil && *uploadResp.ActivityId != 0 {
-		return fmt.Sprintf("%d", *uploadResp.ActivityId), nil
+		return fmt.Sprintf("%d", *uploadResp.ActivityId), true, nil
 	}
-
-	if uploadResp.Error != nil && *uploadResp.Error != "" {
-		return "", fmt.Errorf("strava upload incomplete: %s", *uploadResp.Error)
-	}
-
-	return "", fmt.Errorf("upload pending processing")
+	return "", false, nil
 }
 
 // Update modifies an existing Strava activity.
@@ -302,9 +356,14 @@ func (u *Uploader) Update(ctx context.Context, payload *pbevents.ActivityPayload
 
 // createdSportType is the sport type an update writes to a Strava activity FitGlue
 // created itself: the pipeline's type (the ai-activity-type verdict) when it differs.
-// An activity recorded on Strava keeps the type it was recorded with.
+// An activity recorded on Strava keeps the type it was recorded with — except that a
+// hybrid session becomes HybridRacing wherever it came from (ROXFIT and the watches
+// still file a Hyrox race as a Run).
 func createdSportType(isSameSource bool, proposed, existing string) (string, bool) {
-	if isSameSource || proposed == "" || proposed == existing {
+	if proposed == "" || proposed == existing {
+		return "", false
+	}
+	if isSameSource && proposed != stravaexercise.HybridRacing {
 		return "", false
 	}
 	return proposed, true

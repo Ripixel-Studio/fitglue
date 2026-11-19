@@ -526,7 +526,8 @@ func category(t string) string {
 	case "":
 		return ""
 	case "weighttraining", "workout", "crossfit", "pilates", "yoga", "hiit",
-		"highintensityintervaltraining", "strengthtraining", "functionaltraining", "stairstepper", "elliptical":
+		"highintensityintervaltraining", "strengthtraining", "functionaltraining", "stairstepper", "elliptical",
+		"hybridracing":
 		return "strength"
 	case "run", "trailrun", "virtualrun", "running", "treadmill":
 		return "run"
