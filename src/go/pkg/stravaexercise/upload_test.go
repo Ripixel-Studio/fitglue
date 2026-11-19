@@ -78,6 +78,11 @@ func TestBuildUploadRefusesRoutesAndEmpty(t *testing.T) {
 	if _, ok := BuildUpload(a, nil); ok {
 		t.Error("no sets: nothing for a JSON upload to carry")
 	}
+	a = hyroxClass(false)
+	a.Sessions[0].StrengthSets = []*pbactivity.StrengthSet{{ExerciseName: "Bootcamp", DurationSeconds: 3000}}
+	if _, ok := BuildUpload(a, nil); ok {
+		t.Error("a placeholder-only class (one generic set) stays a FIT upload")
+	}
 	if _, ok := BuildUpload(nil, nil); ok {
 		t.Error("nil activity")
 	}

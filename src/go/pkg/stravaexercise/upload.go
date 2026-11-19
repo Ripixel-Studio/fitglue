@@ -171,7 +171,15 @@ func BuildUpload(a *pbactivity.StandardizedActivity, loc *time.Location) ([]byte
 			}
 		}
 	}
-	if len(up.Sets) == 0 {
+	named := 0
+	for _, s := range up.Sets {
+		if !IsGeneric(s.ExerciseType) {
+			named++
+		}
+	}
+	// A class logged as one placeholder set ("Bootcamp", "Spinning") has nothing for
+	// the workout log; it stays a FIT upload.
+	if named == 0 {
 		return nil, false
 	}
 	up.ElapsedTime = int(math.Round(elapsed))
