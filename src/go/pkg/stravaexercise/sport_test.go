@@ -24,10 +24,12 @@ func TestSportType(t *testing.T) {
 		{"ACTIVITY_TYPE_RUN", "Run", "hybrid", plain, "Run", "a run with hyrox in the title stays a run"},
 		{"ACTIVITY_TYPE_RIDE", "Ride", "hybrid", plain, "Ride", "hybrid spin stays a ride"},
 		{"ACTIVITY_TYPE_CROSSFIT", "Crossfit", "class", plain, "Crossfit", "not hybrid"},
+		{"ACTIVITY_TYPE_CROSSFIT", "Crossfit", "hybrid", plain, "Crossfit", "Hybrid Spinning Class"},
+		{"ACTIVITY_TYPE_TRAIL_RUN", "TrailRun", "hybrid", plain, "TrailRun", "Spartan Sprint, no hyrox splits"},
 		{"ACTIVITY_TYPE_CROSSFIT", "Crossfit", "", plain, "Crossfit", "untagged"},
 	}
 	for _, c := range cases {
-		if got := SportType(pbactivity.ActivityType(T[c.typ]), c.base, c.tag, c.a); got != c.want {
+		if got := SportType(pbactivity.ActivityType(T[c.typ]), c.base, c.tag, c.name, c.a); got != c.want {
 			t.Errorf("%s: got %s, want %s", c.name, got, c.want)
 		}
 	}

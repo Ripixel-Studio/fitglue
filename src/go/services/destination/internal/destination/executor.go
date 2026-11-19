@@ -206,7 +206,7 @@ func (e *UploadExecutor) Process(ctx context.Context, ce *event.Event) error {
 	// A hybrid session (Hyrox class, PT, sim, race) goes to Strava as HybridRacing: the
 	// site's hybrid tag decides it, the internal type stays what the classifier chose.
 	metadata["strava_sport_type"] = stravaexercise.SportType(payload.ActivityType, metadata["strava_sport_type"],
-		payload.Enrichments.GetClassification().GetTag(), resolvedActivityData)
+		payload.Enrichments.GetClassification().GetTag(), payload.Name, resolvedActivityData)
 
 	// Construct generic ActivityPayload for Destination Uploaders
 	activityPayload := &pbevents.ActivityPayload{
