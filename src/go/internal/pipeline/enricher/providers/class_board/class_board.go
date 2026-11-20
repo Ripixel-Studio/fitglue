@@ -19,6 +19,7 @@ import (
 	"log/slog"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
@@ -97,8 +98,15 @@ func IsClass(a *pbactivity.StandardizedActivity) bool {
 			}
 		}
 	}
-	return true
+	// No sets at all, or one placeholder: a class word ("Bootcamp", "Hybrid")
+	// or the class's own title — not a timed exercise like "Plank".
+	if name == "" {
+		return true
+	}
+	return placeholderName.MatchString(name) || strings.EqualFold(strings.TrimSpace(name), strings.TrimSpace(a.GetName()))
 }
+
+var placeholderName = regexp.MustCompile(`(?i)\b(bootcamp|boot camp|hybrid|hyrox|class(es)?|lift|wod|circuits?|hiit|crossfit|conditioning|kettlebells?|amrap|emom|metcon|athx|deka)\b`)
 
 func span(a *pbactivity.StandardizedActivity) (time.Time, time.Time, int) {
 	start := a.GetStartTime().AsTime()

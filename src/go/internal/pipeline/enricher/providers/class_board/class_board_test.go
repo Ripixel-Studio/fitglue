@@ -55,6 +55,14 @@ func TestIsClass(t *testing.T) {
 			return a
 		}(), false},
 		{"pilates", hevyClass(pbactivity.ActivityType_ACTIVITY_TYPE_PILATES, "Tower Pilates", placeholder()), false},
+		{"plank-only session", hevyClass(pbactivity.ActivityType_ACTIVITY_TYPE_WEIGHT_TRAINING, "Core",
+			&pbactivity.StrengthSet{ExerciseName: "Plank", DurationSeconds: 60},
+			&pbactivity.StrengthSet{ExerciseName: "Plank", DurationSeconds: 60}), false},
+		{"treadmill time only", hevyClass(pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT, "Morning",
+			&pbactivity.StrengthSet{ExerciseName: "Treadmill", DurationSeconds: 1800}), false},
+		{"placeholder named like the title", hevyClass(pbactivity.ActivityType_ACTIVITY_TYPE_WORKOUT, "Body Conditioning",
+			&pbactivity.StrengthSet{ExerciseName: "Body Conditioning", DurationSeconds: 2700}), true},
+		{"placeholder 'Hybrid'", hevyClass(cf, "Hybrid 6pm", &pbactivity.StrengthSet{ExerciseName: "Hybrid", DurationSeconds: 3000}), true},
 	}
 	for _, c := range cases {
 		if got := IsClass(c.a); got != c.want {
