@@ -41,6 +41,7 @@ import (
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/best_efforts"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/cadence_summary"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/calories_burned"
+	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/class_board"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/condition_matcher"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/distance_milestones"
 	_ "github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/effort_score"
