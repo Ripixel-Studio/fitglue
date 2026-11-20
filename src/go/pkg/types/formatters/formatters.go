@@ -771,6 +771,8 @@ func FormatEnricherProviderType(value pbplugin.EnricherProviderType) string {
 		return "Hdrop"
 	case pbplugin.EnricherProviderType_ENRICHER_PROVIDER_LOCATION_PINNER:
 		return "Location Pinner"
+	case pbplugin.EnricherProviderType_ENRICHER_PROVIDER_CLASS_BOARD:
+		return "Class Board"
 	case pbplugin.EnricherProviderType_ENRICHER_PROVIDER_MOCK:
 		return "Mock"
 	default:
@@ -920,6 +922,9 @@ func ParseEnricherProviderType(input string) pbplugin.EnricherProviderType {
 		"enricher_provider_location_pinner":      pbplugin.EnricherProviderType_ENRICHER_PROVIDER_LOCATION_PINNER,
 		"location_pinner":                        pbplugin.EnricherProviderType_ENRICHER_PROVIDER_LOCATION_PINNER,
 		"location pinner":                        pbplugin.EnricherProviderType_ENRICHER_PROVIDER_LOCATION_PINNER,
+		"enricher_provider_class_board":          pbplugin.EnricherProviderType_ENRICHER_PROVIDER_CLASS_BOARD,
+		"class_board":                            pbplugin.EnricherProviderType_ENRICHER_PROVIDER_CLASS_BOARD,
+		"class board":                            pbplugin.EnricherProviderType_ENRICHER_PROVIDER_CLASS_BOARD,
 		"enricher_provider_mock":                 pbplugin.EnricherProviderType_ENRICHER_PROVIDER_MOCK,
 		"mock":                                   pbplugin.EnricherProviderType_ENRICHER_PROVIDER_MOCK,
 	}

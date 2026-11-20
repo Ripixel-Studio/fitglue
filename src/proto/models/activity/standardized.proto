@@ -114,6 +114,9 @@ message StrengthSet {
 
   double distance_meters = 10;
   string set_type = 11;
+  // A guess, not a record: a class-board estimate (reps from the board's
+  // timings, a usual weight). Never sets a PB.
+  bool estimated = 12;
 }
 
 enum MuscleGroup {

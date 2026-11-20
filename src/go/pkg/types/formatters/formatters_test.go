@@ -344,3 +344,14 @@ func TestFormatDestinationStatus_Roundtrip(t *testing.T) {
 		}
 	}
 }
+
+func TestClassBoardEnricherNames(t *testing.T) {
+	if got := FormatEnricherProviderType(pbplugin.EnricherProviderType_ENRICHER_PROVIDER_CLASS_BOARD); got != "Class Board" {
+		t.Errorf("Format = %q, want Class Board", got)
+	}
+	for _, in := range []string{"class_board", "class board", "enricher_provider_class_board"} {
+		if got := ParseEnricherProviderType(in); got != pbplugin.EnricherProviderType_ENRICHER_PROVIDER_CLASS_BOARD {
+			t.Errorf("Parse(%q) = %v", in, got)
+		}
+	}
+}
