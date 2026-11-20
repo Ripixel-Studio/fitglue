@@ -292,45 +292,43 @@ func (p *PersonalRecordsProvider) checkStrengthRecords(ctx context.Context, logg
 		HeaviestWeight float64
 	})
 
-	for _, session := range activity.Sessions {
-		for _, set := range session.StrengthSets {
-			if set.WeightKg <= 0 || set.Reps <= 0 {
-				continue
-			}
-
-			// Normalize exercise name using muscle_heatmap fuzzy matcher
-			normalizedName := normalizeExerciseName(set.ExerciseName)
-			if normalizedName == "" {
-				normalizedName = strings.ToLower(strings.ReplaceAll(set.ExerciseName, " ", "_"))
-			}
-
-			data := exerciseData[normalizedName]
-
-			// Track the heaviest single weight lifted for this exercise
-			if set.WeightKg > data.HeaviestWeight {
-				data.HeaviestWeight = set.WeightKg
-			}
-
-			// Calculate 1RM for this set
-			estimated1RM := Calculate1RM(set.WeightKg, set.Reps)
-			if estimated1RM > data.Best1RM {
-				data.Best1RM = estimated1RM
-			}
-
-			// Track volume
-			setVolume := CalculateSetVolume(set.WeightKg, set.Reps)
-			if setVolume > data.BestSetVolume {
-				data.BestSetVolume = setVolume
-			}
-			data.TotalVolume += setVolume
-
-			// Track max reps in a single set
-			if set.Reps > data.MaxReps {
-				data.MaxReps = set.Reps
-			}
-
-			exerciseData[normalizedName] = data
+	for _, set := range recordSets(activity) {
+		if set.WeightKg <= 0 || set.Reps <= 0 {
+			continue
 		}
+
+		// Normalize exercise name using muscle_heatmap fuzzy matcher
+		normalizedName := normalizeExerciseName(set.ExerciseName)
+		if normalizedName == "" {
+			normalizedName = strings.ToLower(strings.ReplaceAll(set.ExerciseName, " ", "_"))
+		}
+
+		data := exerciseData[normalizedName]
+
+		// Track the heaviest single weight lifted for this exercise
+		if set.WeightKg > data.HeaviestWeight {
+			data.HeaviestWeight = set.WeightKg
+		}
+
+		// Calculate 1RM for this set
+		estimated1RM := Calculate1RM(set.WeightKg, set.Reps)
+		if estimated1RM > data.Best1RM {
+			data.Best1RM = estimated1RM
+		}
+
+		// Track volume
+		setVolume := CalculateSetVolume(set.WeightKg, set.Reps)
+		if setVolume > data.BestSetVolume {
+			data.BestSetVolume = setVolume
+		}
+		data.TotalVolume += setVolume
+
+		// Track max reps in a single set
+		if set.Reps > data.MaxReps {
+			data.MaxReps = set.Reps
+		}
+
+		exerciseData[normalizedName] = data
 	}
 
 	// Check each exercise for PRs
@@ -438,25 +436,23 @@ func (p *PersonalRecordsProvider) checkHybridRaceRecords(ctx context.Context, lo
 	}
 
 	// Check individual station PRs (from StrengthSets)
-	for _, session := range activity.Sessions {
-		for _, set := range session.StrengthSets {
-			if set.DurationSeconds <= 0 {
-				continue
-			}
+	for _, set := range recordSets(activity) {
+		if set.DurationSeconds <= 0 {
+			continue
+		}
 
-			// Normalize station name for record key
-			stationKey := normalizeStationName(set.ExerciseName)
-			if stationKey == "" {
-				continue
-			}
+		// Normalize station name for record key
+		stationKey := normalizeStationName(set.ExerciseName)
+		if stationKey == "" {
+			continue
+		}
 
-			recordType := FormatHybridRaceRecordType(raceType, stationKey)
-			pr, err := p.checkAndUpdateRecord(ctx, userID, recordType, float64(set.DurationSeconds), "seconds", activity, true)
-			if err != nil {
-				logger.Warn("Failed to check hybrid race station PR", "error", err, "station", stationKey)
-			} else if pr != nil {
-				results = append(results, *pr)
-			}
+		recordType := FormatHybridRaceRecordType(raceType, stationKey)
+		pr, err := p.checkAndUpdateRecord(ctx, userID, recordType, float64(set.DurationSeconds), "seconds", activity, true)
+		if err != nil {
+			logger.Warn("Failed to check hybrid race station PR", "error", err, "station", stationKey)
+		} else if pr != nil {
+			results = append(results, *pr)
 		}
 	}
 
@@ -470,6 +466,20 @@ func (p *PersonalRecordsProvider) checkHybridRaceRecords(ctx context.Context, lo
 
 // normalizeStationName converts exercise names to station keys for PRs (ATHX; Hyrox
 // records go through checkHyroxRecords).
+// recordSets are the sets that may set a record: an estimated set (a class
+// board's guess at reps or weight) never does.
+func recordSets(activity *pbactivity.StandardizedActivity) []*pbactivity.StrengthSet {
+	var out []*pbactivity.StrengthSet
+	for _, session := range activity.GetSessions() {
+		for _, set := range session.GetStrengthSets() {
+			if !set.GetEstimated() {
+				out = append(out, set)
+			}
+		}
+	}
+	return out
+}
+
 func normalizeStationName(exerciseName string) string {
 	return hyrox.StationKey(exerciseName)
 }

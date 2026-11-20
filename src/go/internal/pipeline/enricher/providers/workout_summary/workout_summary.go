@@ -93,7 +93,9 @@ func (p *WorkoutSummaryProvider) Enrich(ctx context.Context, logger *slog.Logger
 		if set.Reps > 0 {
 			stats.totalReps += int(set.Reps)
 		}
-		if set.WeightKg > 0 {
+		// A class board's estimate is listed but never counted as lifted
+		// volume or a heaviest lift: it's a guess, not a record.
+		if set.WeightKg > 0 && !set.GetEstimated() {
 			if set.Reps > 0 {
 				stats.totalVolume += set.WeightKg * float64(set.Reps)
 			} else if set.DistanceMeters > 0 {

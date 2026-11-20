@@ -842,8 +842,11 @@ type StrengthSet struct {
 	SecondaryMuscleGroups []MuscleGroup          `protobuf:"varint,9,rep,packed,name=secondary_muscle_groups,json=secondaryMuscleGroups,proto3,enum=fitglue.models.activity.MuscleGroup" json:"secondary_muscle_groups,omitempty"`
 	DistanceMeters        float64                `protobuf:"fixed64,10,opt,name=distance_meters,json=distanceMeters,proto3" json:"distance_meters,omitempty"`
 	SetType               string                 `protobuf:"bytes,11,opt,name=set_type,json=setType,proto3" json:"set_type,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// A guess, not a record: a class-board estimate (reps from the board's
+	// timings, a usual weight). Never sets a PB.
+	Estimated     bool `protobuf:"varint,12,opt,name=estimated,proto3" json:"estimated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StrengthSet) Reset() {
@@ -951,6 +954,13 @@ func (x *StrengthSet) GetSetType() string {
 		return x.SetType
 	}
 	return ""
+}
+
+func (x *StrengthSet) GetEstimated() bool {
+	if x != nil {
+		return x.Estimated
+	}
+	return false
 }
 
 type WorkoutDefinition struct {
@@ -1180,7 +1190,7 @@ const file_models_activity_standardized_proto_rawDesc = "" +
 	"\x15_vertical_oscillationB\x11\n" +
 	"\x0f_vertical_ratioB\x0e\n" +
 	"\f_step_lengthB\x0e\n" +
-	"\f_temperature\"\xfa\x03\n" +
+	"\f_temperature\"\x98\x04\n" +
 	"\vStrengthSet\x12#\n" +
 	"\rexercise_name\x18\x01 \x01(\tR\fexerciseName\x12\x12\n" +
 	"\x04reps\x18\x02 \x01(\x05R\x04reps\x12\x1b\n" +
@@ -1195,7 +1205,8 @@ const file_models_activity_standardized_proto_rawDesc = "" +
 	"\x17secondary_muscle_groups\x18\t \x03(\x0e2$.fitglue.models.activity.MuscleGroupR\x15secondaryMuscleGroups\x12'\n" +
 	"\x0fdistance_meters\x18\n" +
 	" \x01(\x01R\x0edistanceMeters\x12\x19\n" +
-	"\bset_type\x18\v \x01(\tR\asetType\"c\n" +
+	"\bset_type\x18\v \x01(\tR\asetType\x12\x1c\n" +
+	"\testimated\x18\f \x01(\bR\testimated\"c\n" +
 	"\x11WorkoutDefinition\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12:\n" +
 	"\x05steps\x18\x02 \x03(\v2$.fitglue.models.activity.WorkoutStepR\x05steps\"\xd8\x01\n" +

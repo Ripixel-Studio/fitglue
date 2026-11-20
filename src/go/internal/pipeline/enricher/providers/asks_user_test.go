@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers"
+	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/class_board"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/hdrop"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/manual_workout_entry"
 	"github.com/fitglue/server/src/go/internal/pipeline/enricher/providers/photo_upload"
@@ -12,7 +13,7 @@ import (
 
 // A run forced partial by a lagging data source must still ask the owner (2026-11-05).
 func TestLagForcedRunStillAsks(t *testing.T) {
-	asking := []providers.Provider{&hdrop.Provider{}, &photo_upload.Provider{}, &manual_workout_entry.Provider{}}
+	asking := []providers.Provider{&class_board.Provider{}, &hdrop.Provider{}, &photo_upload.Provider{}, &manual_workout_entry.Provider{}}
 	for _, p := range asking {
 		if providers.DoNotRetryFor(p, true) {
 			t.Errorf("%s: lag-forced run passed doNotRetry=true, so it would skip its question", p.Name())

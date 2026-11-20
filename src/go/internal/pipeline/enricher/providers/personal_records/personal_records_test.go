@@ -523,3 +523,15 @@ func makeActivityWithLaps(laps []lapData) *pbactivity.StandardizedActivity {
 		},
 	}
 }
+
+func TestRecordSetsSkipEstimated(t *testing.T) {
+	a := &pbactivity.StandardizedActivity{Sessions: []*pbactivity.Session{{StrengthSets: []*pbactivity.StrengthSet{
+		{ExerciseName: "Wall Ball", Reps: 100, WeightKg: 9, Estimated: true},
+		{ExerciseName: "Bench Press", Reps: 5, WeightKg: 100},
+		{ExerciseName: "SkiErg", DurationSeconds: 200, Estimated: true},
+	}}}}
+	got := recordSets(a)
+	if len(got) != 1 || got[0].ExerciseName != "Bench Press" {
+		t.Fatalf("recordSets = %v", got)
+	}
+}

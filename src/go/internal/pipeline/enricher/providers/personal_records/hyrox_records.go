@@ -68,19 +68,17 @@ func HyroxRaceValues(activity *pbactivity.StandardizedActivity) (HyroxRace, bool
 	}
 
 	runs := 0
-	for _, s := range activity.Sessions {
-		for _, set := range s.StrengthSets {
-			if key := hyrox.StationKey(set.ExerciseName); key != "" {
-				if set.DurationSeconds > 0 {
-					values[key] = float64(set.DurationSeconds)
-				}
-				continue
+	for _, set := range recordSets(activity) {
+		if key := hyrox.StationKey(set.ExerciseName); key != "" {
+			if set.DurationSeconds > 0 {
+				values[key] = float64(set.DurationSeconds)
 			}
-			if strings.Contains(strings.ToLower(set.ExerciseName), "run") {
-				runs++
-				if set.DurationSeconds > 0 {
-					values[hyrox.RunKey(runs)] = float64(set.DurationSeconds)
-				}
+			continue
+		}
+		if strings.Contains(strings.ToLower(set.ExerciseName), "run") {
+			runs++
+			if set.DurationSeconds > 0 {
+				values[hyrox.RunKey(runs)] = float64(set.DurationSeconds)
 			}
 		}
 	}

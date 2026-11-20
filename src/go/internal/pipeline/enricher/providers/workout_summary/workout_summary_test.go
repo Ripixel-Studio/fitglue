@@ -248,3 +248,19 @@ func TestWorkoutSummary_ProviderMetadata(t *testing.T) {
 		t.Errorf("expected 'workout-summary', got %q", p.Name())
 	}
 }
+
+func TestWorkoutSummary_EstimatedSetsAreNotVolume(t *testing.T) {
+	guess := makeSet("Sled Push", 0, 152.0, "normal")
+	guess.DistanceMeters = 20
+	guess.Estimated = true
+	wb := makeSet("Wall Ball", 100, 6.0, "normal")
+	wb.Estimated = true
+	sets := []*pbactivity.StrengthSet{makeSet("Bench Press", 10, 100.0, "normal"), guess, wb}
+	_, meta := enrichWith(t, sets, nil)
+	if meta["total_volume"] != "1000.00" {
+		t.Errorf("volume counts only real sets: got %q, want 1000.00", meta["total_volume"])
+	}
+	if meta["total_sets"] != "3" {
+		t.Errorf("estimated sets are still listed: total_sets %q", meta["total_sets"])
+	}
+}
